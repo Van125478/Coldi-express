@@ -1,0 +1,50 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-ssr/
+build/
+coverage/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Caches and local build metadata
+.cache/
+.turbo/
+.vite/
+*.tsbuildinfo
+.eslintcache
+*.local
+
+# IDE and editor state
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Operating system files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Third-party downloaded skill. The directory stays on disk and is not part of the Coldi source.
+ui-ux-pro-max-skill-main/
+
+# Nested Git metadata inside the reference course. The guide files themselves stay tracked.
+docs/tecandlearnfront/react/.git/
