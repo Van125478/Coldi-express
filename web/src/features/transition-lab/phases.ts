@@ -70,3 +70,19 @@ export function phaseSpan(id: PhaseId) {
   }
   return { start: phase.from, duration: phase.to - phase.from };
 }
+
+/** Normalized 0–1 window on the single planned timeline. */
+export function phaseRange(id: PhaseId) {
+  const { start, duration } = phaseSpan(id);
+  return {
+    start: start / TIMELINE_UNITS,
+    end: (start + duration) / TIMELINE_UNITS,
+  };
+}
+
+/** Local progress inside one phase, 0–1, mapped onto the full timeline. */
+export function toTimelineProgress(id: PhaseId, local: number) {
+  const range = phaseRange(id);
+  const t = Math.min(1, Math.max(0, local));
+  return range.start + t * (range.end - range.start);
+}

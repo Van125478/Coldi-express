@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { paths } from "@/app/paths";
 import { KeyframeBoard } from "@/features/transition-lab/KeyframeBoard";
+import { PhaseOnePreview } from "@/features/transition-lab/PhaseOnePreview";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
 export function TransitionLabPage() {
@@ -13,6 +14,7 @@ export function TransitionLabPage() {
           Về trang khách
         </Link>
       </div>
+      <PhaseOnePreview />
       <KeyframeBoard />
     </main>
   );
