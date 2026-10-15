@@ -17,7 +17,7 @@ export function Logo({ tone = "default" }: LogoProps) {
   return (
     <Link to={paths.home} className="inline-flex min-h-11 min-w-0 items-center gap-2.5 rounded-lg">
       <span
-        className="relative inline-block shrink-0 overflow-hidden rounded-md bg-white"
+        className="relative inline-block shrink-0 overflow-hidden"
         style={{
           width: `calc(${inkHeight} * ${ink.width} / ${ink.height} + 6px)`,
           height: `calc(${inkHeight} + 6px)`,

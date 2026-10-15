@@ -137,7 +137,7 @@ function attachScrub(video: HTMLVideoElement) {
     const lastFrame = Math.max(0, video.duration - FRAME_STEP);
     const next = Math.min(Math.max(time, 0), lastFrame);
     if (seeking) {
-      pending = next;
+      if (pending === null || Math.abs(pending - next) >= FRAME_STEP / 2) pending = next;
       return;
     }
     const atEnd = next >= lastFrame - 0.001;
@@ -203,6 +203,7 @@ export function PhaseOnePreview({ mode = "lab" }: { mode?: "lab" | "guest" }) {
 
     let active = true;
     let revertMedia: (() => void) | undefined;
+    let cancelFollow = () => {};
     const interior = phaseRange("interior");
     const doors = phaseRange("doors");
     const rearPhase = phaseRange("rear");
@@ -238,30 +239,42 @@ export function PhaseOnePreview({ mode = "lab" }: { mode?: "lab" | "guest" }) {
         const showRise = riseReady && timeline >= rearPhase.end && !showDrive;
         const showPull = pullReady && timeline >= doors.end && !showRise && !showDrive;
         const showDoor = doorReady && timeline >= doors.start && !showPull && !showRise && !showDrive;
-        image.style.opacity = showDoor || showPull || showRise || showDrive ? "0" : "1";
-        door.style.opacity = showDoor ? "1" : "0";
-        pull.style.opacity = showPull ? "1" : "0";
-        rise.style.opacity = showRise ? "1" : "0";
-        drive.style.opacity = showDrive ? "1" : "0";
+        const showStill = !(showDoor || showPull || showRise || showDrive);
+        const layer = (node: HTMLElement, visible: boolean) => {
+          const opacity = visible ? "1" : "0";
+          const visibility = visible ? "visible" : "hidden";
+          if (node.style.opacity !== opacity) node.style.opacity = opacity;
+          if (node.style.visibility !== visibility) node.style.visibility = visibility;
+        };
+        layer(image, showStill);
+        layer(door, showDoor);
+        layer(pull, showPull);
+        layer(rise, showRise);
+        layer(drive, showDrive);
       };
 
       let latest = 0;
+      let storyLabel = "";
       const paintStories = (timeline: number) => {
         const nodes = root.querySelectorAll<HTMLElement>("[data-story]");
         let label = "";
         let best = -1;
         nodes.forEach((node) => {
           const opacity = storyOpacity(timeline, Number(node.dataset.start), Number(node.dataset.end));
-          node.style.opacity = String(opacity);
+          const nextOpacity = String(opacity);
+          if (node.style.opacity !== nextOpacity) node.style.opacity = nextOpacity;
           const quiet = opacity < 0.08;
-          node.toggleAttribute("inert", quiet);
-          node.setAttribute("aria-hidden", quiet ? "true" : "false");
+          if (node.hasAttribute("inert") !== quiet) node.toggleAttribute("inert", quiet);
+          if ((node.getAttribute("aria-hidden") === "true") !== quiet) node.setAttribute("aria-hidden", quiet ? "true" : "false");
           if (opacity > best && node.dataset.label) {
             best = opacity;
             label = node.dataset.label;
           }
         });
-        if (label) root.setAttribute("aria-labelledby", label);
+        if (label && label !== storyLabel) {
+          storyLabel = label;
+          root.setAttribute("aria-labelledby", label);
+        }
       };
       const sync = (timeline: number) => {
         latest = timeline;
@@ -304,6 +317,7 @@ export function PhaseOnePreview({ mode = "lab" }: { mode?: "lab" | "guest" }) {
         if (!veil || !lane || !map || !glow || !core || !traveler || !origin || !dest || !destLabel) return;
         const span = mapPhase.end - drivePhase.end;
         const local = timeline <= drivePhase.end ? 0 : timeline >= mapPhase.end ? 1 : (timeline - drivePhase.end) / span;
+        if (local === 0 && veil.style.opacity === "0" && map.style.opacity === "0" && lane.style.opacity === "0") return;
         const fade = (from: number, to: number) => Math.min(1, Math.max(0, (local - from) / (to - from)));
         const laneIn = fade(0.04, 0.2);
         const laneOut = fade(0.28, 0.48);
@@ -371,6 +385,33 @@ export function PhaseOnePreview({ mode = "lab" }: { mode?: "lab" | "guest" }) {
       if (rise.readyState >= 2) onRiseReady();
       if (drive.readyState >= 2) onDriveReady();
 
+      let desired = 0;
+      let shown = 0;
+      let followRaf = 0;
+      let followStamp = 0;
+      const followScroll = (target: number) => {
+        if (!guest) {
+          sync(target);
+          return;
+        }
+        desired = target;
+        if (followRaf) return;
+        followStamp = performance.now();
+        const step = (now: number) => {
+          const dt = Math.min(0.032, (now - followStamp) / 1000);
+          followStamp = now;
+          const error = desired - shown;
+          const tau = Math.abs(error) > 0.035 ? 0.045 : 0.12;
+          const next = shown + error * (1 - Math.exp(-dt / tau));
+          shown = Math.abs(desired - next) < 0.0006 ? desired : next;
+          sync(shown);
+          followRaf = shown === desired ? 0 : requestAnimationFrame(step);
+        };
+        followRaf = requestAnimationFrame(step);
+      };
+      cancelFollow = () => {
+        if (followRaf) cancelAnimationFrame(followRaf);
+      };
       const media = gsap.matchMedia();
       const bind = (phaseOneDistance: number) => {
         const animPercent = (phaseOneDistance * mapPhase.end) / interior.end;
@@ -387,7 +428,7 @@ export function PhaseOnePreview({ mode = "lab" }: { mode?: "lab" | "guest" }) {
             scrub: 0.45,
             anticipatePin: 1,
             invalidateOnRefresh: true,
-            onUpdate: (self) => sync(Math.min(mapPhase.end, self.progress * (mapPhase.end + holdUnits))),
+            onUpdate: (self) => followScroll(Math.min(mapPhase.end, self.progress * (mapPhase.end + holdUnits))),
           },
         });
         timeline.fromTo(
@@ -426,6 +467,7 @@ export function PhaseOnePreview({ mode = "lab" }: { mode?: "lab" | "guest" }) {
 
     return () => {
       active = false;
+      cancelFollow();
       doorScrub.stop();
       pullScrub.stop();
       riseScrub.stop();
