@@ -4,8 +4,11 @@ import { phaseRange } from "@/features/transition-lab/phases";
 
 const DOOR_VIDEO = "/cinematic/phase-2/coldi-doors-closing.mp4";
 const PULL_VIDEO = "/cinematic/phase-3/coldi-phase-3-pullback.mp4";
+const RISE_VIDEO = "/cinematic/phase-4/coldi-phase-4-camera-rise.mp4";
 const PUSH_SCALE = 1.08;
 const FRAME_STEP = 1 / 24;
+/** Scroll distance of the approved 0–15% push. Later phases lengthen the same pin by this ratio. */
+const PHASE_ONE_PIN = { desktop: 140, mobile: 110 };
 
 function usePrefersReducedMotion() {
   const [matches, setMatches] = useState(
@@ -72,6 +75,7 @@ export function PhaseOnePreview() {
   const imageRef = useRef<HTMLImageElement>(null);
   const doorRef = useRef<HTMLVideoElement>(null);
   const pullRef = useRef<HTMLVideoElement>(null);
+  const riseRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     const root = rootRef.current;
@@ -79,41 +83,49 @@ export function PhaseOnePreview() {
     const image = imageRef.current;
     const door = doorRef.current;
     const pull = pullRef.current;
-    if (!root || !pin || !image || !door || !pull || reduce) return;
+    const rise = riseRef.current;
+    if (!root || !pin || !image || !door || !pull || !rise || reduce) return;
 
     let active = true;
     let revertMedia: (() => void) | undefined;
     const interior = phaseRange("interior");
     const doors = phaseRange("doors");
     const rearPhase = phaseRange("rear");
+    const risePhase = phaseRange("rise");
     const doorScrub = attachScrub(door);
     const pullScrub = attachScrub(pull);
+    const riseScrub = attachScrub(rise);
     door.muted = true;
     pull.muted = true;
+    rise.muted = true;
     door.pause();
     pull.pause();
+    rise.pause();
 
     void (async () => {
       const [{ default: gsap }, { ScrollTrigger }] = await Promise.all([import("gsap"), import("gsap/ScrollTrigger")]);
       if (!active) return;
       gsap.registerPlugin(ScrollTrigger);
       gsap.set(image, { scale: 1, transformOrigin: "50% 50%" });
-      writeProgress(root, 0, rearPhase.end);
+      writeProgress(root, 0, risePhase.end);
 
       let doorReady = door.readyState >= 2;
       let pullReady = pull.readyState >= 2;
+      let riseReady = rise.readyState >= 2;
       const paint = (timeline: number) => {
-        const showPull = pullReady && timeline >= doors.end;
-        const showDoor = doorReady && timeline >= doors.start && !showPull;
-        image.style.opacity = showDoor || showPull ? "0" : "1";
+        const showRise = riseReady && timeline >= rearPhase.end;
+        const showPull = pullReady && timeline >= doors.end && !showRise;
+        const showDoor = doorReady && timeline >= doors.start && !showPull && !showRise;
+        image.style.opacity = showDoor || showPull || showRise ? "0" : "1";
         door.style.opacity = showDoor ? "1" : "0";
         pull.style.opacity = showPull ? "1" : "0";
+        rise.style.opacity = showRise ? "1" : "0";
       };
 
       let latest = 0;
       const sync = (timeline: number) => {
         latest = timeline;
-        writeProgress(root, timeline, rearPhase.end);
+        writeProgress(root, timeline, risePhase.end);
         paint(timeline);
         if (Number.isFinite(door.duration)) {
           if (timeline <= doors.start) doorScrub.seek(0);
@@ -125,6 +137,11 @@ export function PhaseOnePreview() {
           else if (timeline >= rearPhase.end) pullScrub.seek(pull.duration);
           else pullScrub.seek(((timeline - doors.end) / (rearPhase.end - doors.end)) * pull.duration);
         }
+        if (Number.isFinite(rise.duration)) {
+          if (timeline <= rearPhase.end) riseScrub.seek(0);
+          else if (timeline >= risePhase.end) riseScrub.seek(rise.duration);
+          else riseScrub.seek(((timeline - rearPhase.end) / (risePhase.end - rearPhase.end)) * rise.duration);
+        }
       };
       const onDoorReady = () => {
         doorReady = true;
@@ -134,18 +151,28 @@ export function PhaseOnePreview() {
         pullReady = true;
         sync(latest);
       };
+      const onRiseReady = () => {
+        riseReady = true;
+        sync(latest);
+      };
       const keepDoorPaused = () => {
         door.pause();
       };
       const keepPullPaused = () => {
         pull.pause();
       };
+      const keepRisePaused = () => {
+        rise.pause();
+      };
       door.addEventListener("loadeddata", onDoorReady);
       pull.addEventListener("loadeddata", onPullReady);
+      rise.addEventListener("loadeddata", onRiseReady);
       door.addEventListener("play", keepDoorPaused);
       pull.addEventListener("play", keepPullPaused);
+      rise.addEventListener("play", keepRisePaused);
       if (door.readyState >= 2) onDoorReady();
       if (pull.readyState >= 2) onPullReady();
+      if (rise.readyState >= 2) onRiseReady();
 
       const media = gsap.matchMedia();
       const bind = (end: string) => {
@@ -159,7 +186,7 @@ export function PhaseOnePreview() {
             scrub: 0.45,
             anticipatePin: 1,
             invalidateOnRefresh: true,
-            onUpdate: (self) => sync(self.progress * rearPhase.end),
+            onUpdate: (self) => sync(self.progress * risePhase.end),
           },
         });
         timeline.fromTo(
@@ -170,19 +197,23 @@ export function PhaseOnePreview() {
         );
         timeline.to(image, { scale: PUSH_SCALE, duration: doors.end - doors.start }, doors.start);
         timeline.to(image, { scale: PUSH_SCALE, duration: rearPhase.end - doors.end }, doors.end);
+        timeline.to(image, { scale: PUSH_SCALE, duration: risePhase.end - rearPhase.end }, rearPhase.end);
       };
 
+      const pinEnd = (phaseOneDistance: number) => `+=${((phaseOneDistance * risePhase.end) / interior.end).toFixed(4)}%`;
       media.add("(min-width: 768px)", () => {
-        bind("+=420%");
+        bind(pinEnd(PHASE_ONE_PIN.desktop));
       });
       media.add("(max-width: 767px)", () => {
-        bind("+=330%");
+        bind(pinEnd(PHASE_ONE_PIN.mobile));
       });
       revertMedia = () => {
         door.removeEventListener("loadeddata", onDoorReady);
         pull.removeEventListener("loadeddata", onPullReady);
+        rise.removeEventListener("loadeddata", onRiseReady);
         door.removeEventListener("play", keepDoorPaused);
         pull.removeEventListener("play", keepPullPaused);
+        rise.removeEventListener("play", keepRisePaused);
         media.revert();
       };
     })();
@@ -191,6 +222,7 @@ export function PhaseOnePreview() {
       active = false;
       doorScrub.stop();
       pullScrub.stop();
+      riseScrub.stop();
       revertMedia?.();
     };
   }, [reduce]);
@@ -199,10 +231,10 @@ export function PhaseOnePreview() {
     <section ref={rootRef} id="phase-one" className="bg-[#050914]" aria-labelledby="phase-one-title">
       <div ref={pinRef} className="flex min-h-svh flex-col justify-center px-4 py-8 sm:px-8">
         <div className="mx-auto w-full max-w-5xl">
-          <p className="text-[11px] font-semibold tracking-[0.22em] text-white/45 uppercase">Xem trước cuộn · Nhịp 1–3</p>
+          <p className="text-[11px] font-semibold tracking-[0.22em] text-white/45 uppercase">Xem trước cuộn · Nhịp 1–4</p>
           <div className="mt-3 flex items-baseline justify-between gap-4">
             <h2 id="phase-one-title" className="text-2xl font-extrabold tracking-tight sm:text-4xl">
-              Khoang lạnh đến đuôi xe, 0–45%
+              Khoang lạnh đến góc cao, 0–65%
             </h2>
             <p className="shrink-0 text-sm text-white/55">
               Dòng thời gian <span data-timeline-label>0%</span>
@@ -211,7 +243,7 @@ export function PhaseOnePreview() {
           <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/65">
             {reduce
               ? "Trình duyệt đang giảm chuyển động, nên khung mở đầu đứng yên."
-              : "Kéo trang để máy tiến vào khoang, cửa sau khép, rồi máy lùi và nghiêng sang góc 3/4 đuôi xe. Kéo ngược để quay lại. Sau 45% chưa chạy."}
+              : "Kéo trang để máy tiến vào khoang, cửa sau khép, máy lùi sang góc 3/4 đuôi xe, rồi nâng lên nhìn mái thùng. Kéo ngược để quay lại. Sau 65% chưa chạy."}
           </p>
           <div className="relative mx-auto mt-6 aspect-video w-[min(100%,calc(68svh*16/9))] max-w-full overflow-hidden bg-[#050914]">
             <img
@@ -237,6 +269,18 @@ export function PhaseOnePreview() {
                 ref={pullRef}
                 className="absolute inset-0 h-full w-full object-cover opacity-0"
                 src={PULL_VIDEO}
+                muted
+                playsInline
+                preload="auto"
+                disablePictureInPicture
+                aria-hidden="true"
+              />
+            )}
+            {reduce ? null : (
+              <video
+                ref={riseRef}
+                className="absolute inset-0 h-full w-full object-cover opacity-0"
+                src={RISE_VIDEO}
                 muted
                 playsInline
                 preload="auto"
