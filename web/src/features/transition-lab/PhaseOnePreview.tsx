@@ -14,6 +14,32 @@ const PUSH_SCALE = 1.08;
 const FRAME_STEP = 1 / 24;
 /** Scroll distance of the approved 0–15% push. Later phases lengthen the same pin by this ratio. */
 const PHASE_ONE_PIN = { desktop: 140, mobile: 110 };
+/** Extra pinned distance after the route is complete, in viewport-height percent. */
+const MAP_HOLD_VH = 70;
+
+function leaveJourney(event: React.MouseEvent<HTMLAnchorElement>) {
+  const target = document.getElementById("sau-hanh-trinh");
+  if (!target) return;
+  event.preventDefault();
+  target.scrollIntoView({ block: "start", behavior: "instant" });
+  window.history.replaceState(null, "", "#sau-hanh-trinh");
+  target.focus({ preventScroll: true });
+}
+
+function useMediaQuery(query: string) {
+  const [matches, setMatches] = useState(
+    () => typeof window !== "undefined" && window.matchMedia(query).matches,
+  );
+
+  useEffect(() => {
+    const media = window.matchMedia(query);
+    const onChange = () => setMatches(media.matches);
+    media.addEventListener("change", onChange);
+    return () => media.removeEventListener("change", onChange);
+  }, [query]);
+
+  return matches;
+}
 
 function usePrefersReducedMotion() {
   const [matches, setMatches] = useState(
@@ -80,6 +106,8 @@ export function CinematicJourney() {
 export function PhaseOnePreview({ mode = "lab" }: { mode?: "lab" | "guest" }) {
   const reduce = usePrefersReducedMotion();
   const guest = mode === "guest";
+  const coverStage = useMediaQuery("(min-aspect-ratio: 1.7)");
+  const tightMap = useMediaQuery("(max-width: 800px)");
   const rootRef = useRef<HTMLElement>(null);
   const pinRef = useRef<HTMLDivElement>(null);
   const heroRef = useRef<HTMLDivElement>(null);
@@ -268,18 +296,22 @@ export function PhaseOnePreview({ mode = "lab" }: { mode?: "lab" | "guest" }) {
       if (drive.readyState >= 2) onDriveReady();
 
       const media = gsap.matchMedia();
-      const bind = (end: string) => {
+      const bind = (phaseOneDistance: number) => {
+        const animPercent = (phaseOneDistance * mapPhase.end) / interior.end;
+        const holdPercent = guest ? MAP_HOLD_VH : 0;
+        const holdUnits = holdPercent === 0 ? 0 : (mapPhase.end * holdPercent) / animPercent;
         const timeline = gsap.timeline({
           defaults: { ease: "none" },
           scrollTrigger: {
             trigger: root,
             pin,
+            pinType: "fixed",
             start: "top top",
-            end,
+            end: `+=${(animPercent + holdPercent).toFixed(4)}%`,
             scrub: 0.45,
             anticipatePin: 1,
             invalidateOnRefresh: true,
-            onUpdate: (self) => sync(self.progress * mapPhase.end),
+            onUpdate: (self) => sync(Math.min(mapPhase.end, self.progress * (mapPhase.end + holdUnits))),
           },
         });
         timeline.fromTo(
@@ -293,15 +325,16 @@ export function PhaseOnePreview({ mode = "lab" }: { mode?: "lab" | "guest" }) {
         timeline.to(image, { scale: PUSH_SCALE, duration: risePhase.end - rearPhase.end }, rearPhase.end);
         timeline.to(image, { scale: PUSH_SCALE, duration: drivePhase.end - risePhase.end }, risePhase.end);
         timeline.to(image, { scale: PUSH_SCALE, duration: mapPhase.end - drivePhase.end }, drivePhase.end);
+        if (holdUnits > 0) timeline.to(image, { scale: PUSH_SCALE, duration: holdUnits }, mapPhase.end);
       };
 
-      const pinEnd = (phaseOneDistance: number) => `+=${((phaseOneDistance * mapPhase.end) / interior.end).toFixed(4)}%`;
       media.add("(min-width: 768px)", () => {
-        bind(pinEnd(PHASE_ONE_PIN.desktop));
+        bind(PHASE_ONE_PIN.desktop);
       });
       media.add("(max-width: 767px)", () => {
-        bind(pinEnd(PHASE_ONE_PIN.mobile));
+        bind(PHASE_ONE_PIN.mobile);
       });
+      ScrollTrigger.refresh();
       revertMedia = () => {
         door.removeEventListener("loadeddata", onDoorReady);
         pull.removeEventListener("loadeddata", onPullReady);
@@ -323,19 +356,41 @@ export function PhaseOnePreview({ mode = "lab" }: { mode?: "lab" | "guest" }) {
       driveScrub.stop();
       revertMedia?.();
     };
-  }, [reduce]);
+  }, [guest, reduce]);
+
+  const pinClass = guest
+    ? "relative z-0 h-dvh min-h-dvh w-full overflow-hidden"
+    : "relative flex min-h-svh flex-col justify-center px-4 py-8 sm:px-8";
+  const shellClass = guest ? "absolute inset-0" : "mx-auto w-full max-w-5xl";
+  const stageClass = guest
+    ? "absolute inset-0 overflow-hidden bg-[#050914]"
+    : "relative mx-auto mt-6 aspect-video w-[min(100%,calc(68svh*16/9))] max-w-full overflow-hidden bg-[#050914]";
+  const frameClass = guest
+    ? coverStage
+      ? "absolute inset-0"
+      : "absolute bottom-0 left-0 aspect-video w-full"
+    : "absolute inset-0";
 
   return (
     <section
       ref={rootRef}
       id={guest ? "hanh-trinh" : "phase-one"}
-      className="bg-[#050914] text-white"
+      className={guest ? "overflow-x-clip bg-[#050914] text-white" : "bg-[#050914] text-white"}
       aria-labelledby={guest ? "guest-hero-title" : "phase-one-title"}
     >
-      <div ref={pinRef} className="relative flex min-h-svh flex-col justify-center px-4 py-8 sm:px-8">
+      <div ref={pinRef} className={pinClass}>
         {guest ? (
-          <div ref={heroRef} className="absolute inset-x-0 top-0 z-10 px-4 pt-20 sm:px-8">
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-80 bg-gradient-to-b from-[#050914] via-[#050914]/88 to-transparent" />
+          <a
+            href="#sau-hanh-trinh"
+            onClick={leaveJourney}
+            className="absolute top-[4.5rem] left-4 z-30 inline-flex min-h-11 items-center rounded-full bg-[#050914]/80 px-4 text-sm font-semibold text-white ring-1 ring-white/25 backdrop-blur-md hover:bg-[#050914]"
+          >
+            Bỏ qua hành trình
+          </a>
+        ) : null}
+        {guest ? (
+          <div ref={heroRef} className="absolute inset-x-0 top-0 z-10 px-4 pt-32 sm:px-8">
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-[#050914]/80 via-[#050914]/40 to-transparent max-sm:h-[72%] max-sm:from-[#050914] max-sm:via-[#050914]/72" />
             <div className="relative mx-auto max-w-5xl">
               <p className="text-[11px] font-semibold tracking-[0.22em] text-white/70 uppercase">Coldi · Giải pháp vận tải lạnh</p>
               <h1 id="guest-hero-title" className="mt-3 max-w-xl text-3xl leading-[1.05] font-extrabold tracking-tight text-balance sm:text-5xl">
@@ -352,7 +407,9 @@ export function PhaseOnePreview({ mode = "lab" }: { mode?: "lab" | "guest" }) {
               </p>
               <div className="mt-6 flex flex-col gap-3 sm:flex-row">
                 <Button asChild size="lg" className="w-auto rounded-full bg-white px-6 text-navy hover:bg-white/90">
-                  <a href="#sau-hanh-trinh">Khám phá COLDI</a>
+                  <a href="#sau-hanh-trinh" onClick={leaveJourney}>
+                    Khám phá COLDI
+                  </a>
                 </Button>
                 <Button
                   asChild
@@ -363,16 +420,11 @@ export function PhaseOnePreview({ mode = "lab" }: { mode?: "lab" | "guest" }) {
                   <Link to={paths.login}>Đăng nhập</Link>
                 </Button>
               </div>
-              <p className="mt-3 text-sm text-white/60">
-                <a href="#sau-hanh-trinh" className="inline-flex min-h-11 items-center font-semibold text-white/80 underline-offset-4 hover:underline">
-                  Bỏ qua hành trình
-                </a>
-                {reduce ? null : <span className="ml-4">Cuộn để khám phá</span>}
-              </p>
+              {reduce ? null : <p className="mt-3 text-sm text-white/60">Cuộn để khám phá</p>}
             </div>
           </div>
         ) : null}
-        <div className="mx-auto w-full max-w-5xl">
+        <div className={shellClass}>
           {guest ? null : (
             <>
               <p className="text-[11px] font-semibold tracking-[0.22em] text-white/45 uppercase">Xem trước cuộn · Nhịp 1–6</p>
@@ -391,17 +443,24 @@ export function PhaseOnePreview({ mode = "lab" }: { mode?: "lab" | "guest" }) {
               </p>
             </>
           )}
-          <div className="relative mx-auto mt-6 aspect-video w-[min(100%,calc(68svh*16/9))] max-w-full overflow-hidden bg-[#050914]">
+          <div className={stageClass}>
+            {guest ? (
+              <div
+                className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(18,42,92,0.55),rgba(5,9,20,0.94)_62%,#050914_100%)]"
+                aria-hidden="true"
+              />
+            ) : null}
+            <div className={`${frameClass} overflow-hidden`}>
             <img
               ref={imageRef}
               src={interiorStill}
               alt="Khoang lạnh nhìn từ ngoài cửa sau đang mở, hàng đã xếp."
-              className="h-full w-full object-cover"
+              className="h-full w-full object-cover object-center"
             />
             {reduce ? null : (
               <video
                 ref={doorRef}
-                className="absolute inset-0 h-full w-full object-cover opacity-0"
+                className="absolute inset-0 h-full w-full object-cover object-center opacity-0"
                 src={DOOR_VIDEO}
                 muted
                 playsInline
@@ -413,7 +472,7 @@ export function PhaseOnePreview({ mode = "lab" }: { mode?: "lab" | "guest" }) {
             {reduce ? null : (
               <video
                 ref={pullRef}
-                className="absolute inset-0 h-full w-full object-cover opacity-0"
+                className="absolute inset-0 h-full w-full object-cover object-center opacity-0"
                 src={PULL_VIDEO}
                 muted
                 playsInline
@@ -425,7 +484,7 @@ export function PhaseOnePreview({ mode = "lab" }: { mode?: "lab" | "guest" }) {
             {reduce ? null : (
               <video
                 ref={riseRef}
-                className="absolute inset-0 h-full w-full object-cover opacity-0"
+                className="absolute inset-0 h-full w-full object-cover object-center opacity-0"
                 src={RISE_VIDEO}
                 muted
                 playsInline
@@ -437,7 +496,7 @@ export function PhaseOnePreview({ mode = "lab" }: { mode?: "lab" | "guest" }) {
             {reduce ? null : (
               <video
                 ref={driveRef}
-                className="absolute inset-0 h-full w-full object-cover opacity-0"
+                className="absolute inset-0 h-full w-full object-cover object-center opacity-0"
                 src={DRIVE_VIDEO}
                 muted
                 playsInline
@@ -446,6 +505,7 @@ export function PhaseOnePreview({ mode = "lab" }: { mode?: "lab" | "guest" }) {
                 aria-hidden="true"
               />
             )}
+            </div>
             {reduce ? null : (
               <div ref={veilRef} className="pointer-events-none absolute inset-0 bg-[#050914] opacity-0" aria-hidden="true" />
             )}
@@ -453,7 +513,8 @@ export function PhaseOnePreview({ mode = "lab" }: { mode?: "lab" | "guest" }) {
               <svg
                 ref={laneRef}
                 viewBox="0 0 1600 900"
-                className="pointer-events-none absolute inset-0 h-full w-full opacity-0"
+                preserveAspectRatio={guest && coverStage ? "xMidYMid slice" : "xMidYMid meet"}
+                className={`pointer-events-none ${frameClass} opacity-0`}
                 aria-hidden="true"
               >
                 <defs>
@@ -474,8 +535,12 @@ export function PhaseOnePreview({ mode = "lab" }: { mode?: "lab" | "guest" }) {
               </svg>
             )}
             {reduce ? null : (
-              <div ref={mapRef} className="pointer-events-none absolute inset-0 opacity-0" aria-hidden="true">
-                <svg viewBox="0 0 1600 900" className="h-full w-full">
+              <div ref={mapRef} className="pointer-events-none absolute inset-0 bg-[#050914] opacity-0" aria-hidden="true">
+                <svg
+                  viewBox={guest && tightMap ? "500 16 580 860" : "0 0 1600 900"}
+                  preserveAspectRatio="xMidYMid meet"
+                  className="h-full w-full"
+                >
                   <defs>
                     <radialGradient id="cine-map-night" cx="58%" cy="46%" r="62%">
                       <stop offset="0" stopColor="#122448" />

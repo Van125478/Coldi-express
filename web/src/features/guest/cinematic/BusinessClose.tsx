@@ -25,7 +25,12 @@ const columns = [
 
 export function BusinessClose() {
   return (
-    <section id="sau-hanh-trinh" className="bg-[#f8fafc] text-[#1e293b]" aria-labelledby="business-title">
+    <section
+      id="sau-hanh-trinh"
+      tabIndex={-1}
+      className="scroll-mt-20 bg-[#f8fafc] text-[#1e293b] outline-none"
+      aria-labelledby="business-title"
+    >
       <div className="mx-auto max-w-6xl px-5 py-20 sm:px-8 sm:py-28">
         <p className="text-xs font-bold tracking-[0.2em] text-[#1e3a8a] uppercase">Năng lực đã chốt</p>
         <h2 id="business-title" className="mt-3 max-w-3xl text-4xl leading-tight font-extrabold tracking-tight sm:text-6xl">

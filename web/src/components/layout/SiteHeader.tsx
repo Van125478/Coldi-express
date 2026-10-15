@@ -33,8 +33,10 @@ export function SiteHeader() {
     <header
       data-scrolled={cinematic && (scrolled || mobileOpen) ? "true" : "false"}
       className={cn(
-        "z-50 border-b",
-        cinematic ? "site-header-cinematic fixed inset-x-0 top-0 text-white" : "sticky top-0 border-line bg-surface/95 backdrop-blur",
+        "border-b",
+        cinematic
+          ? "site-header-cinematic fixed inset-x-0 top-0 z-[80] text-white"
+          : "sticky top-0 z-50 border-line bg-surface/95 backdrop-blur",
       )}
     >
       <div className="mx-auto flex w-full max-w-7xl items-center gap-2 px-4 py-2 sm:px-6 min-[1200px]:gap-3">
