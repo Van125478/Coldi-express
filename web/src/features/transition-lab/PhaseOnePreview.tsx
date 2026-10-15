@@ -3,8 +3,8 @@ import interiorStill from "@/features/transition-lab/keyframe-01-open-reefer.jpg
 import { phaseRange } from "@/features/transition-lab/phases";
 
 const DOOR_VIDEO = "/cinematic/phase-2/coldi-doors-closing.mp4";
+const PULL_VIDEO = "/cinematic/phase-3/coldi-phase-3-pullback.mp4";
 const PUSH_SCALE = 1.08;
-const PULL_AMOUNT = 0.04;
 const FRAME_STEP = 1 / 24;
 
 function usePrefersReducedMotion() {
@@ -29,41 +29,7 @@ function writeProgress(root: HTMLElement, timeline: number, span: number) {
   if (bar) bar.style.transform = `scaleX(${span === 0 ? 0 : timeline / span})`;
 }
 
-function paintEdgeFill(edge: HTMLCanvasElement, frame: HTMLElement, video: HTMLVideoElement, scale: number) {
-  const width = frame.clientWidth;
-  const height = frame.clientHeight;
-  if (width < 2 || height < 2 || video.videoWidth < 2) return;
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  const bitmapWidth = Math.round(width * dpr);
-  const bitmapHeight = Math.round(height * dpr);
-  if (edge.width !== bitmapWidth || edge.height !== bitmapHeight) {
-    edge.width = bitmapWidth;
-    edge.height = bitmapHeight;
-  }
-  const context = edge.getContext("2d");
-  if (!context) return;
-  const cover = Math.max(bitmapWidth / video.videoWidth, bitmapHeight / video.videoHeight);
-  const drawWidth = video.videoWidth * cover;
-  const drawHeight = video.videoHeight * cover;
-  context.setTransform(1, 0, 0, 1, 0, 0);
-  context.clearRect(0, 0, bitmapWidth, bitmapHeight);
-  context.save();
-  context.translate(bitmapWidth / 2, bitmapHeight / 2);
-  context.scale(scale, scale);
-  context.translate(-bitmapWidth / 2, -bitmapHeight / 2);
-  context.drawImage(video, (bitmapWidth - drawWidth) / 2, (bitmapHeight - drawHeight) / 2, drawWidth, drawHeight);
-  context.restore();
-  const left = Math.max(0, Math.floor((bitmapWidth * (1 - scale)) / 2));
-  const top = Math.max(0, Math.floor((bitmapHeight * (1 - scale)) / 2));
-  const right = bitmapWidth - left;
-  const bottom = bitmapHeight - top;
-  if (top > 0) context.drawImage(edge, 0, top, bitmapWidth, 1, 0, 0, bitmapWidth, top);
-  if (bitmapHeight - bottom > 0) context.drawImage(edge, 0, bottom - 1, bitmapWidth, 1, 0, bottom, bitmapWidth, bitmapHeight - bottom);
-  if (left > 0) context.drawImage(edge, left, 0, 1, bitmapHeight, 0, 0, left, bitmapHeight);
-  if (bitmapWidth - right > 0) context.drawImage(edge, right - 1, 0, 1, bitmapHeight, right, 0, bitmapWidth - right, bitmapHeight);
-}
-
-function attachDoorScrub(video: HTMLVideoElement) {
+function attachScrub(video: HTMLVideoElement) {
   let pending: number | null = null;
   let seeking = false;
 
@@ -75,7 +41,8 @@ function attachDoorScrub(video: HTMLVideoElement) {
       pending = next;
       return;
     }
-    if (Math.abs(video.currentTime - next) < FRAME_STEP / 2) return;
+    const atEnd = next >= lastFrame - 0.001;
+    if (atEnd ? video.currentTime >= lastFrame - 0.001 : Math.abs(video.currentTime - next) < FRAME_STEP / 2) return;
     seeking = true;
     video.currentTime = next;
   };
@@ -102,56 +69,45 @@ export function PhaseOnePreview() {
   const reduce = usePrefersReducedMotion();
   const rootRef = useRef<HTMLElement>(null);
   const pinRef = useRef<HTMLDivElement>(null);
-  const frameRef = useRef<HTMLDivElement>(null);
-  const edgeRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const doorRef = useRef<HTMLVideoElement>(null);
+  const pullRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     const root = rootRef.current;
     const pin = pinRef.current;
-    const frame = frameRef.current;
-    const edge = edgeRef.current;
     const image = imageRef.current;
-    const video = videoRef.current;
-    if (!root || !pin || !frame || !edge || !image || !video || reduce) return;
+    const door = doorRef.current;
+    const pull = pullRef.current;
+    if (!root || !pin || !image || !door || !pull || reduce) return;
 
     let active = true;
     let revertMedia: (() => void) | undefined;
     const interior = phaseRange("interior");
     const doors = phaseRange("doors");
     const rearPhase = phaseRange("rear");
-    const scrub = attachDoorScrub(video);
-    video.muted = true;
-    video.pause();
+    const doorScrub = attachScrub(door);
+    const pullScrub = attachScrub(pull);
+    door.muted = true;
+    pull.muted = true;
+    door.pause();
+    pull.pause();
 
     void (async () => {
       const [{ default: gsap }, { ScrollTrigger }] = await Promise.all([import("gsap"), import("gsap/ScrollTrigger")]);
       if (!active) return;
       gsap.registerPlugin(ScrollTrigger);
       gsap.set(image, { scale: 1, transformOrigin: "50% 50%" });
-      video.style.transformOrigin = "50% 50%";
       writeProgress(root, 0, rearPhase.end);
 
-      let primed = video.readyState >= 2;
+      let doorReady = door.readyState >= 2;
+      let pullReady = pull.readyState >= 2;
       const paint = (timeline: number) => {
-        const showVideo = primed && timeline >= doors.start;
-        image.style.opacity = showVideo ? "0" : "1";
-        video.style.opacity = showVideo ? "1" : "0";
-        if (timeline <= doors.end) {
-          video.style.transform = "none";
-          edge.style.opacity = "0";
-          return;
-        }
-        const along = Math.min(1, (timeline - doors.end) / (rearPhase.end - doors.end));
-        const scale = 1 - PULL_AMOUNT * along;
-        video.style.transform = `scale(${scale})`;
-        if (scale < 1) {
-          paintEdgeFill(edge, frame, video, scale);
-          edge.style.opacity = "1";
-        } else {
-          edge.style.opacity = "0";
-        }
+        const showPull = pullReady && timeline >= doors.end;
+        const showDoor = doorReady && timeline >= doors.start && !showPull;
+        image.style.opacity = showDoor || showPull ? "0" : "1";
+        door.style.opacity = showDoor ? "1" : "0";
+        pull.style.opacity = showPull ? "1" : "0";
       };
 
       let latest = 0;
@@ -159,28 +115,37 @@ export function PhaseOnePreview() {
         latest = timeline;
         writeProgress(root, timeline, rearPhase.end);
         paint(timeline);
-        if (!Number.isFinite(video.duration)) return;
-        if (timeline <= doors.start) {
-          scrub.seek(0);
-          return;
+        if (Number.isFinite(door.duration)) {
+          if (timeline <= doors.start) doorScrub.seek(0);
+          else if (timeline >= doors.end) doorScrub.seek(door.duration);
+          else doorScrub.seek(((timeline - doors.start) / (doors.end - doors.start)) * door.duration);
         }
-        if (timeline >= doors.end) {
-          scrub.seek(video.duration);
-          return;
+        if (Number.isFinite(pull.duration)) {
+          if (timeline <= doors.end) pullScrub.seek(0);
+          else if (timeline >= rearPhase.end) pullScrub.seek(pull.duration);
+          else pullScrub.seek(((timeline - doors.end) / (rearPhase.end - doors.end)) * pull.duration);
         }
-        const local = (timeline - doors.start) / (doors.end - doors.start);
-        scrub.seek(local * video.duration);
       };
-      const onReady = () => {
-        primed = true;
+      const onDoorReady = () => {
+        doorReady = true;
         sync(latest);
       };
-      const keepPaused = () => {
-        video.pause();
+      const onPullReady = () => {
+        pullReady = true;
+        sync(latest);
       };
-      video.addEventListener("loadeddata", onReady);
-      video.addEventListener("play", keepPaused);
-      if (video.readyState >= 2) onReady();
+      const keepDoorPaused = () => {
+        door.pause();
+      };
+      const keepPullPaused = () => {
+        pull.pause();
+      };
+      door.addEventListener("loadeddata", onDoorReady);
+      pull.addEventListener("loadeddata", onPullReady);
+      door.addEventListener("play", keepDoorPaused);
+      pull.addEventListener("play", keepPullPaused);
+      if (door.readyState >= 2) onDoorReady();
+      if (pull.readyState >= 2) onPullReady();
 
       const media = gsap.matchMedia();
       const bind = (end: string) => {
@@ -214,15 +179,18 @@ export function PhaseOnePreview() {
         bind("+=330%");
       });
       revertMedia = () => {
-        video.removeEventListener("loadeddata", onReady);
-        video.removeEventListener("play", keepPaused);
+        door.removeEventListener("loadeddata", onDoorReady);
+        pull.removeEventListener("loadeddata", onPullReady);
+        door.removeEventListener("play", keepDoorPaused);
+        pull.removeEventListener("play", keepPullPaused);
         media.revert();
       };
     })();
 
     return () => {
       active = false;
-      scrub.stop();
+      doorScrub.stop();
+      pullScrub.stop();
       revertMedia?.();
     };
   }, [reduce]);
@@ -243,15 +211,9 @@ export function PhaseOnePreview() {
           <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/65">
             {reduce
               ? "Trình duyệt đang giảm chuyển động, nên khung mở đầu đứng yên."
-              : "Kéo trang để máy tiến vào khoang, cửa sau khép, rồi khung lùi khỏi đuôi xe đã đóng. Kéo ngược để quay lại. Sau 45% chưa chạy."}
+              : "Kéo trang để máy tiến vào khoang, cửa sau khép, rồi máy lùi và nghiêng sang góc 3/4 đuôi xe. Kéo ngược để quay lại. Sau 45% chưa chạy."}
           </p>
-          <div
-            ref={frameRef}
-            className="relative mx-auto mt-6 aspect-video w-[min(100%,calc(68svh*16/9))] max-w-full overflow-hidden bg-[#050914]"
-          >
-            {reduce ? null : (
-              <canvas ref={edgeRef} aria-hidden="true" className="pointer-events-none absolute inset-0 h-full w-full opacity-0" />
-            )}
+          <div className="relative mx-auto mt-6 aspect-video w-[min(100%,calc(68svh*16/9))] max-w-full overflow-hidden bg-[#050914]">
             <img
               ref={imageRef}
               src={interiorStill}
@@ -260,9 +222,21 @@ export function PhaseOnePreview() {
             />
             {reduce ? null : (
               <video
-                ref={videoRef}
+                ref={doorRef}
                 className="absolute inset-0 h-full w-full object-cover opacity-0"
                 src={DOOR_VIDEO}
+                muted
+                playsInline
+                preload="auto"
+                disablePictureInPicture
+                aria-hidden="true"
+              />
+            )}
+            {reduce ? null : (
+              <video
+                ref={pullRef}
+                className="absolute inset-0 h-full w-full object-cover opacity-0"
+                src={PULL_VIDEO}
                 muted
                 playsInline
                 preload="auto"
