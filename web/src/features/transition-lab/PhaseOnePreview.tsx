@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import interiorStill from "@/features/transition-lab/keyframe-01-open-reefer.jpg";
+import { hanoi, hcmc, hcmcToHanoi, phuQuoc, roadApproach, vietnamCoast } from "@/features/transition-lab/mapArt";
 import { phaseRange } from "@/features/transition-lab/phases";
 
 const DOOR_VIDEO = "/cinematic/phase-2/coldi-doors-closing.mp4";
@@ -78,6 +79,15 @@ export function PhaseOnePreview() {
   const pullRef = useRef<HTMLVideoElement>(null);
   const riseRef = useRef<HTMLVideoElement>(null);
   const driveRef = useRef<HTMLVideoElement>(null);
+  const veilRef = useRef<HTMLDivElement>(null);
+  const laneRef = useRef<SVGSVGElement>(null);
+  const mapRef = useRef<HTMLDivElement>(null);
+  const routeGlowRef = useRef<SVGPathElement>(null);
+  const routeCoreRef = useRef<SVGPathElement>(null);
+  const travelerRef = useRef<SVGCircleElement>(null);
+  const originRef = useRef<SVGGElement>(null);
+  const destRef = useRef<SVGGElement>(null);
+  const destLabelRef = useRef<SVGTextElement>(null);
 
   useEffect(() => {
     const root = rootRef.current;
@@ -96,6 +106,7 @@ export function PhaseOnePreview() {
     const rearPhase = phaseRange("rear");
     const risePhase = phaseRange("rise");
     const drivePhase = phaseRange("overhead");
+    const mapPhase = phaseRange("map");
     const doorScrub = attachScrub(door);
     const pullScrub = attachScrub(pull);
     const riseScrub = attachScrub(rise);
@@ -114,7 +125,7 @@ export function PhaseOnePreview() {
       if (!active) return;
       gsap.registerPlugin(ScrollTrigger);
       gsap.set(image, { scale: 1, transformOrigin: "50% 50%" });
-      writeProgress(root, 0, drivePhase.end);
+      writeProgress(root, 0, mapPhase.end);
 
       let doorReady = door.readyState >= 2;
       let pullReady = pull.readyState >= 2;
@@ -135,8 +146,9 @@ export function PhaseOnePreview() {
       let latest = 0;
       const sync = (timeline: number) => {
         latest = timeline;
-        writeProgress(root, timeline, drivePhase.end);
+        writeProgress(root, timeline, mapPhase.end);
         paint(timeline);
+        paintRoute(timeline);
         if (Number.isFinite(door.duration)) {
           if (timeline <= doors.start) doorScrub.seek(0);
           else if (timeline >= doors.end) doorScrub.seek(door.duration);
@@ -157,6 +169,46 @@ export function PhaseOnePreview() {
           else if (timeline >= drivePhase.end) driveScrub.seek(drive.duration);
           else driveScrub.seek(((timeline - risePhase.end) / (drivePhase.end - risePhase.end)) * drive.duration);
         }
+      };
+      let routeLength = 0;
+      const paintRoute = (timeline: number) => {
+        const veil = veilRef.current;
+        const lane = laneRef.current;
+        const map = mapRef.current;
+        const glow = routeGlowRef.current;
+        const core = routeCoreRef.current;
+        const traveler = travelerRef.current;
+        const origin = originRef.current;
+        const dest = destRef.current;
+        const destLabel = destLabelRef.current;
+        if (!veil || !lane || !map || !glow || !core || !traveler || !origin || !dest || !destLabel) return;
+        const span = mapPhase.end - drivePhase.end;
+        const local = timeline <= drivePhase.end ? 0 : timeline >= mapPhase.end ? 1 : (timeline - drivePhase.end) / span;
+        const fade = (from: number, to: number) => Math.min(1, Math.max(0, (local - from) / (to - from)));
+        const laneIn = fade(0.04, 0.2);
+        const laneOut = fade(0.28, 0.48);
+        const mapIn = fade(0.22, 0.52);
+        const draw = fade(0.4, 0.94);
+        veil.style.opacity = String(fade(0, 0.32) * 0.72);
+        lane.style.opacity = String(laneIn * (1 - laneOut));
+        map.style.opacity = String(mapIn);
+        if (routeLength === 0) routeLength = core.getTotalLength();
+        const offset = routeLength * (1 - draw);
+        glow.style.strokeDasharray = `${routeLength}`;
+        glow.style.strokeDashoffset = `${offset}`;
+        core.style.strokeDasharray = `${routeLength}`;
+        core.style.strokeDashoffset = `${offset}`;
+        if (draw <= 0.008) {
+          traveler.style.opacity = "0";
+        } else {
+          const point = core.getPointAtLength(routeLength * Math.min(draw, 1));
+          traveler.setAttribute("cx", String(point.x));
+          traveler.setAttribute("cy", String(point.y));
+          traveler.style.opacity = draw >= 0.985 ? "0" : "1";
+        }
+        origin.style.opacity = String(fade(0.46, 0.62));
+        dest.style.opacity = String(mapIn * (0.28 + 0.72 * fade(0.86, 1)));
+        destLabel.style.opacity = String(fade(0.86, 1));
       };
       const onDoorReady = () => {
         doorReady = true;
@@ -211,7 +263,7 @@ export function PhaseOnePreview() {
             scrub: 0.45,
             anticipatePin: 1,
             invalidateOnRefresh: true,
-            onUpdate: (self) => sync(self.progress * drivePhase.end),
+            onUpdate: (self) => sync(self.progress * mapPhase.end),
           },
         });
         timeline.fromTo(
@@ -224,9 +276,10 @@ export function PhaseOnePreview() {
         timeline.to(image, { scale: PUSH_SCALE, duration: rearPhase.end - doors.end }, doors.end);
         timeline.to(image, { scale: PUSH_SCALE, duration: risePhase.end - rearPhase.end }, rearPhase.end);
         timeline.to(image, { scale: PUSH_SCALE, duration: drivePhase.end - risePhase.end }, risePhase.end);
+        timeline.to(image, { scale: PUSH_SCALE, duration: mapPhase.end - drivePhase.end }, drivePhase.end);
       };
 
-      const pinEnd = (phaseOneDistance: number) => `+=${((phaseOneDistance * drivePhase.end) / interior.end).toFixed(4)}%`;
+      const pinEnd = (phaseOneDistance: number) => `+=${((phaseOneDistance * mapPhase.end) / interior.end).toFixed(4)}%`;
       media.add("(min-width: 768px)", () => {
         bind(pinEnd(PHASE_ONE_PIN.desktop));
       });
@@ -260,10 +313,10 @@ export function PhaseOnePreview() {
     <section ref={rootRef} id="phase-one" className="bg-[#050914]" aria-labelledby="phase-one-title">
       <div ref={pinRef} className="flex min-h-svh flex-col justify-center px-4 py-8 sm:px-8">
         <div className="mx-auto w-full max-w-5xl">
-          <p className="text-[11px] font-semibold tracking-[0.22em] text-white/45 uppercase">Xem trước cuộn · Nhịp 1–5</p>
+          <p className="text-[11px] font-semibold tracking-[0.22em] text-white/45 uppercase">Xem trước cuộn · Nhịp 1–6</p>
           <div className="mt-3 flex items-baseline justify-between gap-4">
             <h2 id="phase-one-title" className="text-2xl font-extrabold tracking-tight sm:text-4xl">
-              Khoang lạnh đến đường đêm, 0–85%
+              Khoang lạnh đến lộ trình, 0–100%
             </h2>
             <p className="shrink-0 text-sm text-white/55">
               Dòng thời gian <span data-timeline-label>0%</span>
@@ -272,7 +325,7 @@ export function PhaseOnePreview() {
           <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/65">
             {reduce
               ? "Trình duyệt đang giảm chuyển động, nên khung mở đầu đứng yên."
-              : "Kéo trang để máy tiến vào khoang, cửa sau khép, máy lùi sang góc 3/4 đuôi xe, nâng lên nhìn mái thùng, rồi xe chạy trên đường đêm. Kéo ngược để quay lại. Sau 85% chưa chạy."}
+              : "Kéo trang để máy tiến vào khoang, cửa sau khép, máy lùi sang góc 3/4 đuôi xe, nâng lên nhìn mái thùng, xe chạy trên đường đêm, rồi đường nhập vào lộ trình từ TP. Hồ Chí Minh đến Hà Nội. Kéo ngược để quay lại."}
           </p>
           <div className="relative mx-auto mt-6 aspect-video w-[min(100%,calc(68svh*16/9))] max-w-full overflow-hidden bg-[#050914]">
             <img
@@ -328,6 +381,127 @@ export function PhaseOnePreview() {
                 disablePictureInPicture
                 aria-hidden="true"
               />
+            )}
+            {reduce ? null : (
+              <div ref={veilRef} className="pointer-events-none absolute inset-0 bg-[#050914] opacity-0" aria-hidden="true" />
+            )}
+            {reduce ? null : (
+              <svg
+                ref={laneRef}
+                viewBox="0 0 1600 900"
+                className="pointer-events-none absolute inset-0 h-full w-full opacity-0"
+                aria-hidden="true"
+              >
+                <defs>
+                  <filter id="cine-lane-glow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur stdDeviation="5" />
+                  </filter>
+                </defs>
+                <path
+                  d="M1240 860 C 1140 760, 1040 680, 960 610"
+                  fill="none"
+                  stroke="#7dd3fc"
+                  strokeWidth="10"
+                  strokeLinecap="round"
+                  filter="url(#cine-lane-glow)"
+                  opacity="0.85"
+                />
+                <path d="M1240 860 C 1140 760, 1040 680, 960 610" fill="none" stroke="#f4fbff" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            )}
+            {reduce ? null : (
+              <div ref={mapRef} className="pointer-events-none absolute inset-0 opacity-0" aria-hidden="true">
+                <svg viewBox="0 0 1600 900" className="h-full w-full">
+                  <defs>
+                    <radialGradient id="cine-map-night" cx="58%" cy="46%" r="62%">
+                      <stop offset="0" stopColor="#122448" />
+                      <stop offset="1" stopColor="#050914" />
+                    </radialGradient>
+                    <linearGradient id="cine-map-land" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0" stopColor="#1a3d78" />
+                      <stop offset="1" stopColor="#0c1c38" />
+                    </linearGradient>
+                    <linearGradient id="cine-map-road" x1="0" y1="1" x2="1" y2="0">
+                      <stop offset="0" stopColor="#7dd3fc" stopOpacity="0" />
+                      <stop offset="0.45" stopColor="#7dd3fc" stopOpacity="0.28" />
+                      <stop offset="1" stopColor="#e0f2fe" stopOpacity="0.85" />
+                    </linearGradient>
+                    <filter id="cine-map-glow" x="-30%" y="-30%" width="160%" height="160%">
+                      <feGaussianBlur stdDeviation="7" />
+                    </filter>
+                  </defs>
+                  <rect width="1600" height="900" fill="#050914" />
+                  <rect width="1600" height="900" fill="url(#cine-map-night)" />
+                  <path
+                    d={roadApproach}
+                    fill="none"
+                    stroke="url(#cine-map-road)"
+                    strokeWidth="22"
+                    strokeLinecap="round"
+                    filter="url(#cine-map-glow)"
+                    opacity="0.7"
+                  />
+                  <path d={vietnamCoast} fill="#12305f" filter="url(#cine-map-glow)" opacity="0.45" />
+                  <path d={vietnamCoast} fill="url(#cine-map-land)" stroke="#9bd8f5" strokeWidth="1.6" strokeLinejoin="round" />
+                  <path d={phuQuoc} fill="url(#cine-map-land)" stroke="#9bd8f5" strokeWidth="1.2" strokeLinejoin="round" />
+                  <path
+                    ref={routeGlowRef}
+                    d={hcmcToHanoi}
+                    fill="none"
+                    stroke="#7dd3fc"
+                    strokeWidth="16"
+                    strokeLinecap="round"
+                    filter="url(#cine-map-glow)"
+                    opacity="0.9"
+                    strokeDasharray="4000"
+                    strokeDashoffset="4000"
+                  />
+                  <path
+                    ref={routeCoreRef}
+                    d={hcmcToHanoi}
+                    fill="none"
+                    stroke="#f4fbff"
+                    strokeWidth="2.4"
+                    strokeLinecap="round"
+                    strokeDasharray="4000"
+                    strokeDashoffset="4000"
+                  />
+                  <circle ref={travelerRef} cx={hcmc.x} cy={hcmc.y} r="5" fill="#f4fbff" opacity="0" />
+                  <g ref={originRef} opacity="0">
+                    <circle cx={hcmc.x} cy={hcmc.y} r="7" fill="#050914" stroke="#e7eef6" strokeWidth="2.5" />
+                    <text
+                      x="760"
+                      y="808"
+                      textAnchor="end"
+                      fill="#e7eef6"
+                      stroke="#050914"
+                      strokeWidth="5"
+                      fontSize="26"
+                      fontFamily="Be Vietnam Pro, sans-serif"
+                      style={{ paintOrder: "stroke" }}
+                    >
+                      TP. Hồ Chí Minh
+                    </text>
+                  </g>
+                  <g ref={destRef} opacity="0">
+                    <circle cx={hanoi.x} cy={hanoi.y} r="8" fill="#1e3a8a" stroke="#7dd3fc" strokeWidth="2.5" />
+                  </g>
+                  <text
+                    ref={destLabelRef}
+                    x="908"
+                    y="178"
+                    fill="#e7eef6"
+                    stroke="#050914"
+                    strokeWidth="5"
+                    fontSize="26"
+                    fontFamily="Be Vietnam Pro, sans-serif"
+                    opacity="0"
+                    style={{ paintOrder: "stroke" }}
+                  >
+                    Hà Nội
+                  </text>
+                </svg>
+              </div>
             )}
           </div>
           {reduce ? null : (
