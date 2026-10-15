@@ -12,9 +12,11 @@ import { RegisterPage } from "@/pages/RegisterPage";
 import { SolutionPage } from "@/pages/SolutionPage";
 import { RequireAuth } from "@/app/RequireAuth";
 import { MotionLabPage } from "@/features/motion-lab/MotionLabPage";
+import { TransitionLabPage } from "@/pages/TransitionLabPage";
 
 export const router = createBrowserRouter([
   { path: "/motion-lab", element: <MotionLabPage /> },
+  { path: "/transition-lab", element: <TransitionLabPage /> },
   {
     element: <GuestLayout />,
     children: [

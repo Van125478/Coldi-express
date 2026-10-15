@@ -10,6 +10,7 @@ export const paths = {
   platform: "/nen-tang",
   legacy: "/phien-ban-cu",
   motionLab: "/motion-lab",
+  transitionLab: "/transition-lab",
 } as const;
 
 export type AuthAction = "publish" | "claim" | "account" | "general";
