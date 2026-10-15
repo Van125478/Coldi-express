@@ -50,14 +50,14 @@ export const storyboard = [
     to: 85,
     title: "Góc cao, xe trên đường",
     transition:
-      "Dải đường mảnh dần thành nét lộ trình. Xe mờ đi khi đường tuyến chiếm khung hình. Hai đầu con đường thành điểm đi và điểm đến.",
+      "Dải đường mảnh dần thành nét lộ trình. Xe mờ đi khi đường tuyến chiếm khung hình. Nét đó đậu lên bóng Việt Nam, từ TP. Hồ Chí Minh đến Hà Nội.",
   },
   {
     id: "map",
     from: 85,
     to: 100,
-    title: "Lộ trình từ điểm đi đến điểm đến",
-    transition: "Hết chuỗi. Phần sau khung ghim trả lại trang bình thường.",
+    title: "Lộ trình TP. Hồ Chí Minh đến Hà Nội",
+    transition: "Nét đường đã thành chuyến đi trên bóng Việt Nam. Hết chuỗi.",
   },
 ] as const;
 
