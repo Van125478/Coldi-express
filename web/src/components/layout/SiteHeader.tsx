@@ -39,9 +39,11 @@ export function SiteHeader() {
           : "sticky top-0 z-50 border-line bg-surface/95 backdrop-blur",
       )}
     >
-      <div className="mx-auto flex w-full max-w-7xl items-center gap-2 px-4 py-2 sm:px-6 min-[1200px]:gap-3">
-        <Logo tone={cinematic ? "inverse" : "default"} />
-        <nav className="hidden shrink-0 items-center gap-0.5 min-[1200px]:flex" aria-label="Điều hướng chính">
+      <div className="guest-frame flex items-center gap-2 py-2 min-[1200px]:grid min-[1200px]:grid-cols-[1fr_auto_1fr] min-[1200px]:gap-x-2 xl:gap-x-4">
+        <div className="min-[1200px]:min-w-max min-[1200px]:justify-self-start">
+          <Logo tone={cinematic ? "inverse" : "default"} />
+        </div>
+        <nav className="hidden shrink-0 items-center gap-0.5 min-[1200px]:flex min-[1200px]:justify-self-center" aria-label="Điều hướng chính">
           <NavItem to={paths.home} end cinematic={cinematic}>
             Trang chủ
           </NavItem>
@@ -59,7 +61,7 @@ export function SiteHeader() {
             Về chúng tôi
           </NavItem>
         </nav>
-        <div className="ml-auto flex items-center gap-1 sm:gap-2">
+        <div className="ml-auto flex items-center gap-1 sm:gap-2 min-[1200px]:ml-0 min-[1200px]:min-w-max min-[1200px]:justify-self-end">
           <LanguageMenu className="hidden sm:block" cinematic={cinematic} />
           <Link
             to={paths.login}
@@ -108,7 +110,7 @@ export function SiteHeader() {
         <nav
           id={menuId}
           className={cn(
-            "border-t px-4 py-3 min-[1200px]:hidden",
+            "border-t px-5 py-3 sm:px-8 xl:px-10 min-[1200px]:hidden",
             cinematic ? "site-header-menu border-white/10" : "border-line bg-surface",
           )}
           aria-label="Điều hướng di động"

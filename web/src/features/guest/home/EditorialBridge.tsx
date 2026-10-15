@@ -7,7 +7,7 @@ export function EditorialBridge() {
       aria-labelledby="bridge-title"
     >
       <div className="h-8 bg-gradient-to-b from-[#050914] to-[#f8fafc] sm:h-10" aria-hidden="true" />
-      <div className="mx-auto grid max-w-6xl gap-6 px-5 pt-8 pb-14 sm:px-8 sm:pt-10 sm:pb-16 lg:grid-cols-12 lg:items-end lg:gap-16 lg:pt-12 lg:pb-20">
+      <div className="guest-frame grid gap-6 pt-8 pb-14 sm:pt-10 sm:pb-16 lg:grid-cols-12 lg:items-end lg:gap-16 lg:pt-12 lg:pb-20">
         <div className="lg:col-span-7">
           <p className="text-[11px] font-semibold tracking-[0.22em] text-[#1e3a8a]">COLDI · VẬN TẢI LẠNH</p>
           <h2 id="bridge-title" className="mt-4 max-w-xl text-[1.75rem] leading-[1.2] font-extrabold tracking-tight text-balance sm:text-4xl lg:text-[2.6rem] lg:leading-[1.15]">

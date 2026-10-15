@@ -22,7 +22,7 @@ function Steps({ items }: { items: readonly string[] }) {
 export function AudienceSolutions() {
   return (
     <section className="bg-[#f8fafc] text-[#1e293b]" aria-labelledby="audiences-title">
-      <div className="mx-auto max-w-6xl px-5 pb-16 sm:px-8 sm:pb-24">
+      <div className="guest-frame pb-12 sm:pb-16">
         <div className="h-px bg-[#1e3a8a]/25" />
         <h2 id="audiences-title" className="mt-12 max-w-2xl text-[1.75rem] leading-tight font-extrabold tracking-tight text-balance sm:mt-14 sm:text-4xl">
           Hai phía kết nối. Một hành trình vận chuyển.
@@ -49,12 +49,12 @@ export function AudienceSolutions() {
           </figure>
         </article>
 
-        <article className="mt-16 grid items-center gap-8 lg:mt-24 lg:grid-cols-12 lg:gap-14">
-          <figure className="order-2 lg:order-none lg:col-span-7 lg:col-start-1 lg:row-start-1">
+        <article className="mt-16 grid items-start gap-8 lg:mt-24 lg:grid-cols-12 lg:items-stretch lg:gap-14">
+          <figure className="order-2 h-auto lg:order-none lg:col-span-7 lg:col-start-1 lg:row-start-1 lg:h-full">
             <img
               src={roadStill}
               alt="Xe lạnh trên đường đêm, nhìn từ phía trên."
-              className="aspect-[4/3] w-full object-cover object-center sm:aspect-[16/10]"
+              className="aspect-[4/3] w-full object-cover object-center sm:aspect-[16/10] lg:aspect-auto lg:h-full"
             />
           </figure>
           <div className="order-1 lg:order-none lg:col-span-5 lg:col-start-8 lg:row-start-1">
@@ -72,10 +72,6 @@ export function AudienceSolutions() {
             </Link>
           </div>
         </article>
-
-        <p className="mt-14 max-w-xl text-sm leading-relaxed text-[#475569]">
-          Hai trang giải pháp mô tả cách làm việc. Đăng đơn và nhận chuyến cần tài khoản; đăng nhập trên bản này chưa được nối.
-        </p>
       </div>
     </section>
   );
