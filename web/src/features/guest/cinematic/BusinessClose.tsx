@@ -2,6 +2,8 @@ import { Link } from "react-router-dom";
 import { authPath, paths } from "@/app/paths";
 import { Button } from "@/components/ui/button";
 
+/** Kept for a later section. Not mounted while the bridge and the two audiences are on the page. */
+
 const columns = [
   {
     title: "Chủ hàng",
