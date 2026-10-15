@@ -5,7 +5,7 @@ export function SiteFooter() {
   return (
     <footer className="border-t border-line bg-surface">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 py-6 sm:px-6 md:flex-row md:items-center md:justify-between">
-        <p className="text-sm text-muted">© 2026 Coldi Freight</p>
+        <p className="text-sm text-muted">© 2026 COLDI</p>
         <nav aria-label="Liên kết chân trang" className="flex flex-wrap gap-x-4 gap-y-2 text-sm font-medium">
           <Link to={paths.home} className="text-ink hover:text-navy">
             Trang chủ

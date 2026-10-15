@@ -61,10 +61,12 @@ export function AudienceSolutions() {
             <p className="text-[11px] font-semibold tracking-[0.22em] text-[#1e3a8a]">02 · NHÀ VẬN TẢI</p>
             <h3 className="mt-3 text-3xl font-extrabold tracking-tight">Nhà vận tải</h3>
             <p className="mt-4 max-w-md text-base leading-relaxed text-[#475569]">
-              Chủ động xem và nhận chuyến phù hợp, sau đó phân công phương tiện và tài xế để thực hiện vận chuyển.
+              Xem chuyến phù hợp, có thể liên hệ chủ hàng bằng điện thoại hoặc trao đổi theo đơn, rồi tự nhận. Xe và tài xế được phân công sau khi nhận thành công.
             </p>
             <Steps items={carrierSteps} />
-            <p className="mt-4 text-sm leading-relaxed text-[#475569]">Tài xế thực hiện chuyến được phân công, không tự nhận chuyến.</p>
+            <p className="mt-4 text-sm leading-relaxed text-[#475569]">
+              Gọi điện hoặc trao đổi không nhận chuyến và không giữ chỗ. Tài xế thực hiện chuyến được phân công, không tự nhận chuyến.
+            </p>
             <Link to={paths.carrierSolution} className="mt-4 inline-flex min-h-11 items-center text-sm font-bold text-[#1e3a8a] underline-offset-4 hover:underline">
               Giải pháp cho nhà xe
             </Link>
