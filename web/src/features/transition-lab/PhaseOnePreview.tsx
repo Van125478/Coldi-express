@@ -459,7 +459,7 @@ export function PhaseOnePreview({ mode = "lab" }: { mode?: "lab" | "guest" }) {
           <a
             href="#sau-hanh-trinh"
             onClick={leaveJourney}
-            className="absolute top-[4.5rem] left-4 z-30 inline-flex min-h-11 items-center rounded-full bg-[#050914]/80 px-4 text-sm font-semibold text-white ring-1 ring-white/25 backdrop-blur-md hover:bg-[#050914]"
+            className="sr-only focus:not-sr-only focus:fixed focus:top-[4.5rem] focus:left-4 focus:z-[90] focus:inline-flex focus:min-h-11 focus:items-center focus:rounded-full focus:bg-[#050914] focus:px-4 focus:text-sm focus:font-semibold focus:text-white focus:ring-1 focus:ring-white/40"
           >
             Bỏ qua hành trình
           </a>
