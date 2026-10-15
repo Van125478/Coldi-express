@@ -16,6 +16,71 @@ const FRAME_STEP = 1 / 24;
 const PHASE_ONE_PIN = { desktop: 140, mobile: 110 };
 /** Extra pinned distance after the route is complete, in viewport-height percent. */
 const MAP_HOLD_VH = 70;
+const STORY_FADE = 0.018;
+
+const STORIES = [
+  {
+    id: "story-one",
+    start: 0,
+    end: 0.15,
+    eyebrow: "01 / KHỞI ĐẦU",
+    title: "Mỗi hành trình bắt đầu từ sự tin cậy.",
+    caption: "Hàng hóa được chuẩn bị cho chuyến vận chuyển lạnh.",
+    actions: true,
+  },
+  {
+    id: "story-two",
+    start: 0.15,
+    end: 0.3,
+    eyebrow: "02 / SẴN SÀNG",
+    title: "Sẵn sàng cho hành trình phía trước.",
+    caption: "Từng chuyến hàng bắt đầu từ sự chuẩn bị rõ ràng.",
+  },
+  {
+    id: "story-three",
+    start: 0.3,
+    end: 0.45,
+    eyebrow: "03 / KẾT NỐI",
+    title: "Kết nối chủ hàng và nhà vận tải.",
+    caption: "Quy trình tiếp nhận và tổ chức chuyến hàng rõ ràng hơn.",
+  },
+  {
+    id: "story-four",
+    start: 0.45,
+    end: 0.65,
+    eyebrow: "04 / CHỦ ĐỘNG",
+    title: "Chủ động trong từng chuyến vận chuyển.",
+    caption: "Nhà vận tải phân công phương tiện và tài xế.",
+  },
+  {
+    id: "story-five",
+    start: 0.65,
+    end: 0.85,
+    eyebrow: "05 / HÀNH TRÌNH",
+    title: "Theo dõi hành trình, rõ ràng từng bước.",
+    caption: "Vị trí hỗ trợ theo dõi; giao nhận được xác nhận riêng.",
+  },
+  {
+    id: "story-six",
+    start: 0.85,
+    end: 1,
+    eyebrow: "06 / KẾT NỐI",
+    title: "Kết nối vận tải lạnh trên hành trình xuyên Việt.",
+    caption: "TP. Hồ Chí Minh → Hà Nội · Tuyến đường minh họa.",
+    map: true,
+  },
+] as const;
+
+function storyOpacity(timeline: number, start: number, end: number) {
+  const fadeIn = start <= 0 ? 0 : STORY_FADE;
+  const fadeOut = end >= 1 ? 0 : STORY_FADE;
+  const from = start - fadeIn;
+  const to = end + fadeOut;
+  if (timeline < from || timeline > to) return 0;
+  if (fadeIn > 0 && timeline < start + fadeIn) return (timeline - from) / (fadeIn * 2);
+  if (fadeOut > 0 && timeline > end - fadeOut) return (to - timeline) / (fadeOut * 2);
+  return 1;
+}
 
 function leaveJourney(event: React.MouseEvent<HTMLAnchorElement>) {
   const target = document.getElementById("sau-hanh-trinh");
@@ -108,9 +173,9 @@ export function PhaseOnePreview({ mode = "lab" }: { mode?: "lab" | "guest" }) {
   const guest = mode === "guest";
   const coverStage = useMediaQuery("(min-aspect-ratio: 1.7)");
   const tightMap = useMediaQuery("(max-width: 800px)");
+  const shortScreen = useMediaQuery("(max-height: 700px)");
   const rootRef = useRef<HTMLElement>(null);
   const pinRef = useRef<HTMLDivElement>(null);
-  const heroRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const doorRef = useRef<HTMLVideoElement>(null);
   const pullRef = useRef<HTMLVideoElement>(null);
@@ -181,18 +246,29 @@ export function PhaseOnePreview({ mode = "lab" }: { mode?: "lab" | "guest" }) {
       };
 
       let latest = 0;
+      const paintStories = (timeline: number) => {
+        const nodes = root.querySelectorAll<HTMLElement>("[data-story]");
+        let label = "";
+        let best = -1;
+        nodes.forEach((node) => {
+          const opacity = storyOpacity(timeline, Number(node.dataset.start), Number(node.dataset.end));
+          node.style.opacity = String(opacity);
+          const quiet = opacity < 0.08;
+          node.toggleAttribute("inert", quiet);
+          node.setAttribute("aria-hidden", quiet ? "true" : "false");
+          if (opacity > best && node.dataset.label) {
+            best = opacity;
+            label = node.dataset.label;
+          }
+        });
+        if (label) root.setAttribute("aria-labelledby", label);
+      };
       const sync = (timeline: number) => {
         latest = timeline;
         writeProgress(root, timeline, mapPhase.end);
         paint(timeline);
         paintRoute(timeline);
-        const hero = heroRef.current;
-        if (hero) {
-          const shown = timeline <= 0.1 ? 1 - timeline / 0.1 : 0;
-          hero.style.opacity = String(shown);
-          if (shown < 0.05) hero.setAttribute("inert", "");
-          else hero.removeAttribute("inert");
-        }
+        paintStories(timeline);
         if (Number.isFinite(door.duration)) {
           if (timeline <= doors.start) doorScrub.seek(0);
           else if (timeline >= doors.end) doorScrub.seek(door.duration);
@@ -376,7 +452,7 @@ export function PhaseOnePreview({ mode = "lab" }: { mode?: "lab" | "guest" }) {
       ref={rootRef}
       id={guest ? "hanh-trinh" : "phase-one"}
       className={guest ? "overflow-x-clip bg-[#050914] text-white" : "bg-[#050914] text-white"}
-      aria-labelledby={guest ? "guest-hero-title" : "phase-one-title"}
+      aria-labelledby={guest ? "story-one-title" : "phase-one-title"}
     >
       <div ref={pinRef} className={pinClass}>
         {guest ? (
@@ -389,39 +465,70 @@ export function PhaseOnePreview({ mode = "lab" }: { mode?: "lab" | "guest" }) {
           </a>
         ) : null}
         {guest ? (
-          <div ref={heroRef} className="absolute inset-x-0 top-0 z-10 px-4 pt-32 sm:px-8">
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-[#050914]/80 via-[#050914]/40 to-transparent max-sm:h-[72%] max-sm:from-[#050914] max-sm:via-[#050914]/72" />
-            <div className="relative mx-auto max-w-5xl">
-              <p className="text-[11px] font-semibold tracking-[0.22em] text-white/70 uppercase">Coldi · Giải pháp vận tải lạnh</p>
-              <h1 id="guest-hero-title" className="mt-3 max-w-xl text-3xl leading-[1.05] font-extrabold tracking-tight text-balance sm:text-5xl">
-                Kết nối vận tải lạnh, xuyên suốt hành trình.
-              </h1>
-              <p className="mt-4 max-w-lg text-sm leading-relaxed text-white/80 sm:text-base">
-                Từ đăng nhu cầu vận chuyển, nhận chuyến đến cập nhật giao nhận — một quy trình rõ ràng hơn cho chủ hàng và nhà vận tải.
-              </p>
-              {reduce ? (
-                <p className="mt-3 max-w-lg text-sm text-white/70">Trình duyệt đang giảm chuyển động, nên khung mở đầu đứng yên.</p>
-              ) : null}
-              <p className="sr-only">
-                Phần hình kết thúc bằng lộ trình minh họa từ TP. Hồ Chí Minh đến Hà Nội. Đây không phải vị trí GPS đang chạy.
-              </p>
-              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-                <Button asChild size="lg" className="w-auto rounded-full bg-white px-6 text-navy hover:bg-white/90">
-                  <a href="#sau-hanh-trinh" onClick={leaveJourney}>
-                    Khám phá COLDI
-                  </a>
-                </Button>
-                <Button
-                  asChild
-                  size="lg"
-                  variant="outline"
-                  className="w-auto rounded-full border-white/30 bg-transparent px-6 text-white hover:bg-white/10 hover:text-white"
-                >
-                  <Link to={paths.login}>Đăng nhập</Link>
-                </Button>
-              </div>
-              {reduce ? null : <p className="mt-3 text-sm text-white/60">Cuộn để khám phá</p>}
-            </div>
+          <div className="pointer-events-none absolute inset-0 z-20">
+            <p className="sr-only">
+              Phần hình kết thúc bằng lộ trình minh họa từ TP. Hồ Chí Minh đến Hà Nội. Đây không phải vị trí GPS đang chạy.
+            </p>
+            {STORIES.map((story) => (
+              <article
+                key={story.id}
+                id={story.id}
+                data-story=""
+                data-start={story.start}
+                data-end={story.end}
+                data-label={`${story.id}-title`}
+                aria-hidden={story.start === 0 ? undefined : true}
+                inert={story.start === 0 ? undefined : true}
+                style={{ opacity: story.start === 0 ? 1 : 0 }}
+                className={
+                  "map" in story
+                    ? `absolute top-32 left-4 w-[calc(100%-2rem)] max-w-[20rem] sm:left-8 max-md:top-auto ${shortScreen ? "max-md:bottom-1" : "max-md:bottom-2"}`
+                    : story.start >= 0.3 && story.end <= 0.85
+                      ? "absolute top-32 left-4 w-[calc(100%-2rem)] max-w-[20rem] sm:left-8 md:top-auto md:bottom-8"
+                      : "absolute top-32 left-4 w-[calc(100%-2rem)] max-w-[20rem] sm:left-8"
+                }
+              >
+                <div className="pointer-events-none absolute -inset-x-4 -inset-y-3 -z-10 bg-[radial-gradient(ellipse_at_left,rgba(5,9,20,0.78),rgba(5,9,20,0.28)_58%,transparent_78%)]" />
+                <p className={`text-[11px] font-semibold tracking-[0.22em] text-[#9bd8f5] ${"map" in story && shortScreen ? "leading-none" : ""}`}>{story.eyebrow}</p>
+                {story.start === 0 ? (
+                  <h1 id={`${story.id}-title`} className="mt-2 text-xl leading-tight font-extrabold tracking-tight text-balance text-white sm:text-3xl">
+                    {story.title}
+                  </h1>
+                ) : (
+                  <p
+                    id={`${story.id}-title`}
+                    className={`${"map" in story && shortScreen ? "mt-1 text-sm leading-none" : "mt-2 text-xl leading-tight"} font-extrabold tracking-tight text-balance text-white sm:text-3xl sm:leading-tight ${"map" in story && !shortScreen ? "max-md:text-lg" : ""}`}
+                  >
+                    {story.title}
+                  </p>
+                )}
+                <p className={`${"map" in story && shortScreen ? "mt-0.5 text-xs leading-snug" : "mt-2 text-sm leading-relaxed"} text-white/80 ${"map" in story && !shortScreen ? "max-md:text-xs" : ""}`}>{story.caption}</p>
+                {"actions" in story ? (
+                  <>
+                    {reduce ? (
+                      <p className="mt-3 text-sm text-white/70">Trình duyệt đang giảm chuyển động, nên khung mở đầu đứng yên.</p>
+                    ) : shortScreen ? null : (
+                      <p className="mt-3 text-sm text-white/60">Cuộn để khám phá</p>
+                    )}
+                    <div className={`pointer-events-auto flex flex-col gap-2 sm:flex-row ${shortScreen ? "mt-2" : "mt-4 gap-3"}`}>
+                      <Button asChild size={shortScreen ? "default" : "lg"} className="w-auto rounded-full bg-white px-6 text-navy hover:bg-white/90">
+                        <a href="#sau-hanh-trinh" onClick={leaveJourney}>
+                          Khám phá COLDI
+                        </a>
+                      </Button>
+                      <Button
+                        asChild
+                        size={shortScreen ? "default" : "lg"}
+                        variant="outline"
+                        className="w-auto rounded-full border-white/30 bg-transparent px-6 text-white hover:bg-white/10 hover:text-white"
+                      >
+                        <Link to={paths.login}>Đăng nhập</Link>
+                      </Button>
+                    </div>
+                  </>
+                ) : null}
+              </article>
+            ))}
           </div>
         ) : null}
         <div className={shellClass}>
