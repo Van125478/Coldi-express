@@ -1,4 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
+import { paths } from "@/app/paths";
+import { Button } from "@/components/ui/button";
 import interiorStill from "@/features/transition-lab/keyframe-01-open-reefer.jpg";
 import { hanoi, hcmc, hcmcToHanoi, phuQuoc, roadApproach, vietnamCoast } from "@/features/transition-lab/mapArt";
 import { phaseRange } from "@/features/transition-lab/phases";
@@ -70,10 +73,16 @@ function attachScrub(video: HTMLVideoElement) {
   };
 }
 
-export function PhaseOnePreview() {
+export function CinematicJourney() {
+  return <PhaseOnePreview mode="guest" />;
+}
+
+export function PhaseOnePreview({ mode = "lab" }: { mode?: "lab" | "guest" }) {
   const reduce = usePrefersReducedMotion();
+  const guest = mode === "guest";
   const rootRef = useRef<HTMLElement>(null);
   const pinRef = useRef<HTMLDivElement>(null);
+  const heroRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const doorRef = useRef<HTMLVideoElement>(null);
   const pullRef = useRef<HTMLVideoElement>(null);
@@ -149,6 +158,13 @@ export function PhaseOnePreview() {
         writeProgress(root, timeline, mapPhase.end);
         paint(timeline);
         paintRoute(timeline);
+        const hero = heroRef.current;
+        if (hero) {
+          const shown = timeline <= 0.1 ? 1 - timeline / 0.1 : 0;
+          hero.style.opacity = String(shown);
+          if (shown < 0.05) hero.setAttribute("inert", "");
+          else hero.removeAttribute("inert");
+        }
         if (Number.isFinite(door.duration)) {
           if (timeline <= doors.start) doorScrub.seek(0);
           else if (timeline >= doors.end) doorScrub.seek(door.duration);
@@ -310,23 +326,71 @@ export function PhaseOnePreview() {
   }, [reduce]);
 
   return (
-    <section ref={rootRef} id="phase-one" className="bg-[#050914]" aria-labelledby="phase-one-title">
-      <div ref={pinRef} className="flex min-h-svh flex-col justify-center px-4 py-8 sm:px-8">
-        <div className="mx-auto w-full max-w-5xl">
-          <p className="text-[11px] font-semibold tracking-[0.22em] text-white/45 uppercase">Xem trước cuộn · Nhịp 1–6</p>
-          <div className="mt-3 flex items-baseline justify-between gap-4">
-            <h2 id="phase-one-title" className="text-2xl font-extrabold tracking-tight sm:text-4xl">
-              Khoang lạnh đến lộ trình, 0–100%
-            </h2>
-            <p className="shrink-0 text-sm text-white/55">
-              Dòng thời gian <span data-timeline-label>0%</span>
-            </p>
+    <section
+      ref={rootRef}
+      id={guest ? "hanh-trinh" : "phase-one"}
+      className="bg-[#050914] text-white"
+      aria-labelledby={guest ? "guest-hero-title" : "phase-one-title"}
+    >
+      <div ref={pinRef} className="relative flex min-h-svh flex-col justify-center px-4 py-8 sm:px-8">
+        {guest ? (
+          <div ref={heroRef} className="absolute inset-x-0 top-0 z-10 px-4 pt-20 sm:px-8">
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-80 bg-gradient-to-b from-[#050914] via-[#050914]/88 to-transparent" />
+            <div className="relative mx-auto max-w-5xl">
+              <p className="text-[11px] font-semibold tracking-[0.22em] text-white/70 uppercase">Coldi · Giải pháp vận tải lạnh</p>
+              <h1 id="guest-hero-title" className="mt-3 max-w-xl text-3xl leading-[1.05] font-extrabold tracking-tight text-balance sm:text-5xl">
+                Kết nối vận tải lạnh, xuyên suốt hành trình.
+              </h1>
+              <p className="mt-4 max-w-lg text-sm leading-relaxed text-white/80 sm:text-base">
+                Từ đăng nhu cầu vận chuyển, nhận chuyến đến cập nhật giao nhận — một quy trình rõ ràng hơn cho chủ hàng và nhà vận tải.
+              </p>
+              {reduce ? (
+                <p className="mt-3 max-w-lg text-sm text-white/70">Trình duyệt đang giảm chuyển động, nên khung mở đầu đứng yên.</p>
+              ) : null}
+              <p className="sr-only">
+                Phần hình kết thúc bằng lộ trình minh họa từ TP. Hồ Chí Minh đến Hà Nội. Đây không phải vị trí GPS đang chạy.
+              </p>
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                <Button asChild size="lg" className="w-auto rounded-full bg-white px-6 text-navy hover:bg-white/90">
+                  <a href="#sau-hanh-trinh">Khám phá COLDI</a>
+                </Button>
+                <Button
+                  asChild
+                  size="lg"
+                  variant="outline"
+                  className="w-auto rounded-full border-white/30 bg-transparent px-6 text-white hover:bg-white/10 hover:text-white"
+                >
+                  <Link to={paths.login}>Đăng nhập</Link>
+                </Button>
+              </div>
+              <p className="mt-3 text-sm text-white/60">
+                <a href="#sau-hanh-trinh" className="inline-flex min-h-11 items-center font-semibold text-white/80 underline-offset-4 hover:underline">
+                  Bỏ qua hành trình
+                </a>
+                {reduce ? null : <span className="ml-4">Cuộn để khám phá</span>}
+              </p>
+            </div>
           </div>
-          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/65">
-            {reduce
-              ? "Trình duyệt đang giảm chuyển động, nên khung mở đầu đứng yên."
-              : "Kéo trang để máy tiến vào khoang, cửa sau khép, máy lùi sang góc 3/4 đuôi xe, nâng lên nhìn mái thùng, xe chạy trên đường đêm, rồi đường nhập vào lộ trình từ TP. Hồ Chí Minh đến Hà Nội. Kéo ngược để quay lại."}
-          </p>
+        ) : null}
+        <div className="mx-auto w-full max-w-5xl">
+          {guest ? null : (
+            <>
+              <p className="text-[11px] font-semibold tracking-[0.22em] text-white/45 uppercase">Xem trước cuộn · Nhịp 1–6</p>
+              <div className="mt-3 flex items-baseline justify-between gap-4">
+                <h2 id="phase-one-title" className="text-2xl font-extrabold tracking-tight sm:text-4xl">
+                  Khoang lạnh đến lộ trình, 0–100%
+                </h2>
+                <p className="shrink-0 text-sm text-white/55">
+                  Dòng thời gian <span data-timeline-label>0%</span>
+                </p>
+              </div>
+              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/65">
+                {reduce
+                  ? "Trình duyệt đang giảm chuyển động, nên khung mở đầu đứng yên."
+                  : "Kéo trang để máy tiến vào khoang, cửa sau khép, máy lùi sang góc 3/4 đuôi xe, nâng lên nhìn mái thùng, xe chạy trên đường đêm, rồi đường nhập vào lộ trình từ TP. Hồ Chí Minh đến Hà Nội. Kéo ngược để quay lại."}
+              </p>
+            </>
+          )}
           <div className="relative mx-auto mt-6 aspect-video w-[min(100%,calc(68svh*16/9))] max-w-full overflow-hidden bg-[#050914]">
             <img
               ref={imageRef}
@@ -504,7 +568,7 @@ export function PhaseOnePreview() {
               </div>
             )}
           </div>
-          {reduce ? null : (
+          {reduce || guest ? null : (
             <div className="mt-4 h-1 overflow-hidden bg-white/15" aria-hidden="true">
               <div data-timeline-bar className="h-full origin-left bg-[#7dd3fc]" style={{ transform: "scaleX(0)" }} />
             </div>
