@@ -1,10 +1,7 @@
-/** Scroll ranges for the later pinned timeline. The board still shows five stills. */
+/** Scroll ranges for the later pinned timeline. The board shows one still per phase. */
 export const TIMELINE_UNITS = 100;
 
-/**
- * Six-phase scroll contract. The camera rise is its own beat and has no still yet.
- * Stills cover interior, doors, rear, travel, and map.
- */
+/** Six-phase scroll contract. The rise still is the midpoint of that camera move. */
 export const scrollTiming = [
   { id: "interior", from: 0, to: 15 },
   { id: "doors", from: 15, to: 30 },
@@ -37,7 +34,15 @@ export const storyboard = [
     to: 45,
     title: "Đuôi xe lạnh",
     transition:
-      "45–65% là nhịp nâng camera, tách riêng khỏi lúc xe chạy. Mặt sau ngả thành hình chiếu từ trên: đường chỉ cửa thành cạnh sau thùng, sọc navy chạy từ khung đuôi sang thành xe. Vệt dưới gầm kéo dài thành mặt đường.",
+      "Camera đã lùi đủ để đọc cả mặt sau đã đóng. Nhịp sau nâng máy từ đúng mặt này.",
+  },
+  {
+    id: "rise",
+    from: 45,
+    to: 65,
+    title: "Camera nâng lên",
+    transition:
+      "Máy tiếp tục lên và ra sau. Mái thùng hiện dần, sọc navy chạy từ khung đuôi sang thành xe, đến góc cao trên đường.",
   },
   {
     id: "overhead",

@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import interiorStill from "@/features/transition-lab/keyframe-01-open-reefer.jpg";
 import doorsStill from "@/features/transition-lab/keyframe-02-doors-closing.jpg";
 import rearStill from "@/features/transition-lab/keyframe-03-closed-rear.jpg";
+import riseStill from "@/features/transition-lab/keyframe-rise-midpoint.jpg";
 import roadStill from "@/features/transition-lab/keyframe-04-high-angle-road.jpg";
 import routeStill from "@/features/transition-lab/keyframe-05-route.jpg";
 
@@ -31,6 +32,15 @@ export function DoorsFrame() {
 
 export function RearFrame() {
   return <Still src={rearStill} label="Mặt sau xe lạnh đã đóng cửa, cùng khung cửa và sọc navy." />;
+}
+
+export function RiseFrame() {
+  return (
+    <Still
+      src={riseStill}
+      label="Cùng chiếc xe, camera đã lên phía sau: thấy mái thùng và mặt sau cùng lúc."
+    />
+  );
 }
 
 export function OverheadFrame() {

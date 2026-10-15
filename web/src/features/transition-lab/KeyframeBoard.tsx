@@ -1,11 +1,12 @@
 import type { ReactNode } from "react";
 import { storyboard, type PhaseId } from "@/features/transition-lab/phases";
-import { DoorsFrame, InteriorFrame, MapFrame, OverheadFrame, RearFrame } from "@/features/transition-lab/keyframes";
+import { DoorsFrame, InteriorFrame, MapFrame, OverheadFrame, RearFrame, RiseFrame } from "@/features/transition-lab/keyframes";
 
 const scenes: Record<PhaseId, () => ReactNode> = {
   interior: InteriorFrame,
   doors: DoorsFrame,
   rear: RearFrame,
+  rise: RiseFrame,
   overhead: OverheadFrame,
   map: MapFrame,
 };
@@ -16,7 +17,7 @@ export function KeyframeBoard() {
       <header className="max-w-3xl">
         <p className="text-[11px] font-semibold tracking-[0.22em] text-white/45 uppercase">Transition lab · Phase 1</p>
         <h1 className="mt-3 text-3xl leading-tight font-extrabold tracking-tight sm:text-5xl">
-          Năm khung hình, một chiếc xe lạnh.
+          Sáu nhịp, một chiếc xe lạnh.
         </h1>
         <p className="mt-4 max-w-2xl text-base leading-relaxed text-white/65">
           Bảng khóa tĩnh để duyệt ngôn ngữ hình. Chưa gắn cuộn trang. Mỗi khung giữ cùng thùng xe, sọc navy và ánh lạnh.
