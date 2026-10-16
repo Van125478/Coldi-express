@@ -7,7 +7,7 @@ const principles = [
   {
     index: "02",
     title: "Mỗi đơn chỉ một nhà xe nhận thành công",
-    description: "Gọi điện hoặc chat theo đơn không giữ chỗ. Chỉ một nhà xe nhận được đơn đang mở. Nhận chuyến chưa gán xe hay tài xế.",
+    description: "Mỗi đơn đang mở chỉ có một nhà xe nhận chuyến thành công.",
   },
   {
     index: "03",

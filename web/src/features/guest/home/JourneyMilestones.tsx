@@ -47,7 +47,7 @@ const milestones = [
       "Tài xế xác nhận đã giao hàng tại điểm đến. Hệ thống ghi nhận mốc giao hàng để các bên theo dõi tiến độ hoàn tất chuyến.",
     marker: "Mốc giao",
     label: "Đã xác nhận giao hàng",
-    note: "Hoàn tất chuyến là trạng thái hoàn thành riêng. GPS không tự kết thúc chuyến, và mốc này không có nghĩa là đã thanh toán.",
+    note: "Hoàn tất chuyến là trạng thái hoàn thành riêng. Mốc này không có nghĩa là đã thanh toán.",
   },
 ] as const;
 
