@@ -117,10 +117,20 @@ Passwords stay in the untracked `.env` file. The script does not print them.
 
 This authentication setup is for local MVP development. Logout clears the browser cookie, but a previously copied token may remain valid until it expires. Login rate limiting is not implemented. A production deployment needs a separate security review. The React app must currently use `http://127.0.0.1:5173`.
 
+## Shipments
+
+An authenticated SHIPPER can publish a shipment. The listed price is stored as a whole number of Vietnamese đồng (`listedPriceVnd`). This is the displayed freight amount, not a payment or settlement.
+
+| Method | Path | Result |
+| --- | --- | --- |
+| `POST` | `/api/shipments` | `201` with the created shipment, status `PUBLISHED` |
+| `GET` | `/api/shipments/mine` | The caller's shipments |
+| `GET` | `/api/shipments/:id` | The shipment when the caller owns it |
+
+`shipperId` comes from the session. `status`, `shipperId`, `carrierId`, and `driverId` are rejected if the client sends them. The visitor label for `PUBLISHED` is “Đang tìm xe”.
+
 ## Future boundaries
 
-Later APIs will follow the approved COLDI flow: a shipper publishes a shipment, a carrier claims it, that carrier assigns a vehicle and driver, and the assigned driver confirms pickup and delivery.
+Claim, vehicle assignment, driver assignment, GPS, and payment are not implemented. Only one carrier can successfully claim a published shipment. A claim does not assign a vehicle or driver. Phone or chat contact does not reserve a shipment. GPS does not confirm business milestones. Completion does not mean payment.
 
-Only one carrier can successfully claim a published shipment. A claim does not assign a vehicle or driver. Phone or chat contact does not reserve a shipment. GPS does not confirm business milestones. Completion does not mean payment.
-
-Those endpoints are not part of this foundation. Responses should stay independent of MongoDB document shape. Do not add shipment fields or statuses until the approved COLDI documents define them.
+Responses stay independent of MongoDB document shape. Quantity, weight, and pickup time are mentioned in the product flow, but the approved documents do not define their validation rules, so they are not stored yet.

@@ -2,6 +2,7 @@ import { Link, Navigate, useLocation } from "react-router-dom";
 import { authPath, paths } from "@/app/paths";
 import { useAuth } from "@/features/auth/useAuth";
 import { Button } from "@/components/ui/button";
+import { PublishShipmentPage } from "@/features/shipments/PublishShipmentPage";
 
 export function RequireAuth() {
   const location = useLocation();
@@ -40,17 +41,5 @@ export function RequireAuth() {
     );
   }
 
-  return (
-    <section className="mx-auto w-full max-w-2xl px-4 py-12 sm:px-6">
-      <p className="text-sm font-semibold uppercase tracking-wide text-navy">Đăng đơn hàng</p>
-      <h1 className="mt-3 text-3xl font-bold tracking-tight text-ink">Đăng đơn chưa mở</h1>
-      <p className="mt-4 text-base leading-7 text-muted">
-        {snapshot.user.email} đã đăng nhập với vai trò Chủ hàng. API tạo đơn chưa được nối, nên trang này chưa thể
-        phát hành đơn.
-      </p>
-      <Button className="mt-8 w-auto" variant="outline" onClick={() => void logout()}>
-        Đăng xuất
-      </Button>
-    </section>
-  );
+  return <PublishShipmentPage email={snapshot.user.email} onLogout={() => void logout()} />;
 }

@@ -121,7 +121,7 @@ export type SolutionId = keyof typeof solutions;
 export const authMessages = {
   publish: {
     title: "Đăng đơn cần tài khoản Chủ hàng",
-    body: "Đăng nhập được kiểm tra với máy chủ. API tạo đơn chưa được nối, nên đơn chưa thể phát hành từ trang này.",
+    body: "Đăng nhập bằng tài khoản Chủ hàng để niêm yết đơn. Đơn đã đăng ở trạng thái Đang tìm xe. Nhận chuyến vẫn chưa mở.",
   },
   claim: {
     title: "Nhận chuyến cần tài khoản Nhà xe",

@@ -1,11 +1,13 @@
 export class ApiError extends Error {
   readonly status: number;
   readonly code: string;
+  readonly fields?: Readonly<Record<string, string>>;
 
-  constructor(status: number, code: string, message: string) {
+  constructor(status: number, code: string, message: string, fields?: Readonly<Record<string, string>>) {
     super(message);
     this.status = status;
     this.code = code;
+    if (fields) this.fields = fields;
   }
 }
 
@@ -15,6 +17,7 @@ type ErrorBody = {
   error?: {
     code?: string;
     message?: string;
+    fields?: Record<string, string>;
   };
 };
 
@@ -40,6 +43,7 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
       response.status,
       error?.code ?? "request_failed",
       error?.message ?? "Yêu cầu không thành công.",
+      error?.fields,
     );
   }
   return body as T;
