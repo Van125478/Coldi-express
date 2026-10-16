@@ -121,11 +121,11 @@ export type SolutionId = keyof typeof solutions;
 export const authMessages = {
   publish: {
     title: "Đăng đơn cần tài khoản Chủ hàng",
-    body: "Đăng nhập bằng tài khoản Chủ hàng để niêm yết đơn. Đơn đã đăng ở trạng thái Đang tìm xe. Nhận chuyến vẫn chưa mở.",
+    body: "Đăng nhập bằng tài khoản Chủ hàng để niêm yết đơn. Đơn đã đăng ở trạng thái Đang tìm xe.",
   },
   claim: {
     title: "Nhận chuyến cần tài khoản Nhà xe",
-    body: "Gọi điện hoặc nhắn tin không giữ chỗ. Đăng nhập được kiểm tra với máy chủ, nhưng nhận chuyến vẫn chưa mở trên website.",
+    body: "Gọi điện hoặc nhắn tin không giữ chỗ. Nhà xe đăng nhập để xem đơn Đang tìm xe và tự nhận chuyến. Nhận chuyến chưa gán xe hoặc tài xế.",
   },
   account: {
     title: "Tài khoản doanh nghiệp chưa mở",

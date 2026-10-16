@@ -1,18 +1,33 @@
 import { Link } from "react-router-dom";
 import { authPath, paths } from "@/app/paths";
 import { ShipmentPreviewCard } from "@/components/guest/ShipmentPreviewCard";
+import { useAuth } from "@/features/auth/useAuth";
+import { CarrierLoadBoard } from "@/features/shipments/CarrierLoadBoard";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { getIllustrativeShipmentPreview } from "@/services/shipmentPreviewService";
 
 export function FindShipmentsPage() {
   usePageTitle("Tìm chuyến hàng");
+  const { snapshot, logout } = useAuth();
   const shipment = getIllustrativeShipmentPreview();
+
+  if (snapshot.status === "loading") {
+    return (
+      <div className="guest-frame py-10">
+        <p className="text-sm text-muted">Đang kiểm tra phiên đăng nhập.</p>
+      </div>
+    );
+  }
+
+  if (snapshot.status === "authenticated" && snapshot.user.role === "CARRIER") {
+    return <CarrierLoadBoard onLogout={() => void logout()} />;
+  }
 
   return (
     <div className="guest-frame py-10">
       <h1 className="text-3xl font-extrabold tracking-tight text-navy sm:text-4xl">Tìm chuyến hàng</h1>
       <p className="mt-3 max-w-3xl text-base leading-relaxed text-ink">
-        Khách được xem thông tin công khai. Sàn đơn thật chưa nối với máy chủ, nên trang này chỉ hiển thị thẻ minh họa từ bản thiết kế.
+        Khách xem thẻ minh họa. Đây không phải đơn lạnh đang niêm yết và không nhận được chuyến.
       </p>
       <ul className="mt-6 grid gap-3 sm:grid-cols-3">
         <Limit text="Xem được thẻ minh họa, không phải đơn lạnh đang niêm yết." />
@@ -23,7 +38,7 @@ export function FindShipmentsPage() {
         <ShipmentPreviewCard shipment={shipment} presentation="plain" />
       </div>
       <p className="mt-6 max-w-3xl text-sm leading-relaxed text-muted">
-        API niêm yết và tạo đơn đang chờ chốt. Khi có hợp đồng API, danh sách đơn trạng thái “Đang tìm xe” sẽ thay thế thẻ minh họa này.
+        Nhà xe đăng nhập để xem đơn Đang tìm xe và tự nhận chuyến. Thẻ minh họa không phải đơn thật.
       </p>
       <Link
         to={authPath("claim", paths.shipments)}

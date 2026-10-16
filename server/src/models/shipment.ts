@@ -34,6 +34,7 @@ const shipmentSchema = new Schema(
     vehicleRequirement: { type: String, required: true, trim: true },
     listedPriceVnd: { type: Number, required: true },
     status: { type: String, required: true, enum: shipmentStatuses },
+    carrierId: { type: Schema.Types.ObjectId, ref: "User" },
   },
   { timestamps: true },
 );

@@ -129,8 +129,10 @@ An authenticated SHIPPER can publish a shipment. The listed price is stored as a
 
 `shipperId` comes from the session. `status`, `shipperId`, `carrierId`, and `driverId` are rejected if the client sends them. The visitor label for `PUBLISHED` is “Đang tìm xe”.
 
+An authenticated CARRIER lists open shipments at `GET /api/carrier/shipments`, oldest first. `POST /api/carrier/shipments/:id/claim` claims one shipment with a conditional MongoDB update. Success sets `MATCHED` and `carrierId` from the session. A second claim receives 409. The visitor label for `MATCHED` is “Đã có nhà xe nhận chuyến”. The Master Const status table also says “Đã ghép xe”, and the guest journey says “Đã có xe nhận chuyến”. Those guest pages are unchanged. Claim does not assign a vehicle or driver.
+
 ## Future boundaries
 
-Claim, vehicle assignment, driver assignment, GPS, and payment are not implemented. Only one carrier can successfully claim a published shipment. A claim does not assign a vehicle or driver. Phone or chat contact does not reserve a shipment. GPS does not confirm business milestones. Completion does not mean payment.
+Vehicle assignment, driver assignment, GPS, and payment are not implemented. Only one carrier can successfully claim a published shipment. A claim does not assign a vehicle or driver. Phone or chat contact does not reserve a shipment. GPS does not confirm business milestones. Completion does not mean payment.
 
 Responses stay independent of MongoDB document shape. Quantity, weight, and pickup time are mentioned in the product flow, but the approved documents do not define their validation rules, so they are not stored yet.

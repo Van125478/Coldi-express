@@ -245,6 +245,9 @@ export function PublishShipmentPage({ email, onLogout }: { email: string; onLogo
                 <p className="mt-1 text-sm text-muted">
                   {shipment.temperatureLabel} · {shipment.vehicleRequirement} · {money(shipment.listedPriceVnd)}
                 </p>
+                {shipment.status === "MATCHED" ? (
+                  <p className="mt-2 text-sm text-ink">Chưa phân công xe và tài xế.</p>
+                ) : null}
                 <p className="mt-2 text-xs text-muted">Mã đơn {shipment.id}</p>
               </li>
             ))}
