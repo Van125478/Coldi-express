@@ -7,6 +7,7 @@ process.env.PORT ??= "4000";
 process.env.MONGODB_URI ??= "mongodb://127.0.0.1:27017/coldi";
 process.env.FRONTEND_ORIGIN ??= "http://127.0.0.1:5173";
 process.env.NODE_ENV ??= "test";
+process.env.AUTH_SECRET ??= "test-secret-that-is-at-least-32-characters";
 
 const { createApp } = await import("../src/app.js");
 

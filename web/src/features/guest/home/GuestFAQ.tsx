@@ -34,7 +34,8 @@ const questions = [
   {
     id: "faq-start",
     question: "Làm sao để bắt đầu sử dụng COLDI?",
-    answer: "Đọc giải pháp theo vai trò để hiểu cách làm việc. Đăng nhập trên website này chưa tạo phiên, chưa đăng đơn và chưa nhận chuyến.",
+    answer:
+      "Đọc giải pháp theo vai trò để hiểu cách làm việc. Tài khoản đã được cấp có thể đăng nhập, và phiên vẫn còn sau khi tải lại trang. Đăng ký công khai chưa mở. Đăng đơn và các tính năng theo vai trò vẫn đang được phát triển.",
   },
 ] as const;
 

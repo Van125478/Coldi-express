@@ -1,14 +1,16 @@
 import { useState, type FormEvent } from "react";
 import { Eye, EyeOff } from "lucide-react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { parseAuthAction, paths } from "@/app/paths";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/ui/Logo";
+import { useAuth } from "@/features/auth/useAuth";
 import { LogisticsSketch } from "@/features/guest/sketch/LogisticsSketch";
 import { authMessages } from "@/content/publicCopy";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { ApiError } from "@/services/apiClient";
 
 const lanes = [
   { label: "Điểm lấy", places: ["Tiền Giang", "Long An"] },
@@ -17,20 +19,42 @@ const lanes = [
 
 const temperatures = ["Lạnh mát", "Đông", "Cực lạnh"] as const;
 
+function safeNextPath(value: string | null): string | null {
+  if (value === null || !value.startsWith("/") || value.startsWith("//") || value.includes("\\")) return null;
+  return value;
+}
+
 export function LoginPage() {
   usePageTitle("Đăng nhập");
+  const navigate = useNavigate();
   const [params] = useSearchParams();
   const action = parseAuthAction(params.get("action"));
   const message = authMessages[action];
+  const nextPath = safeNextPath(params.get("next"));
+  const { snapshot, login, logout } = useAuth();
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [visible, setVisible] = useState(false);
   const [resetNote, setResetNote] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setPassword("");
-    setSubmitted(true);
+    if (email.trim().length === 0 || password.length === 0) {
+      setError("Nhập email và mật khẩu.");
+      return;
+    }
+    setPending(true);
+    setError(null);
+    try {
+      await login(email, password);
+      if (nextPath) navigate(nextPath, { replace: true });
+    } catch (caught) {
+      setError(caught instanceof ApiError ? caught.message : "Không đăng nhập được. Hãy thử lại.");
+    } finally {
+      setPending(false);
+    }
   }
 
   return (
@@ -43,7 +67,7 @@ export function LoginPage() {
             <p className="text-xs font-bold tracking-[0.18em] text-white/55 uppercase">Chuỗi lạnh đường bộ</p>
             <h2 className="mt-4 text-4xl leading-[1.12] font-extrabold text-balance">Vận tải lạnh, kết nối trực tiếp</h2>
             <p className="mt-4 text-sm leading-relaxed text-white/75">
-              Chủ hàng niêm yết đơn. Nhà xe tự nhận chuyến. Đăng nhập không tạo phiên và không nhận chuyến thay cho Nhà xe.
+              Chủ hàng niêm yết đơn. Nhà xe tự nhận chuyến. Đăng nhập tạo phiên theo vai trò đã cấp, không tự đăng đơn và không tự nhận chuyến.
             </p>
             <div className="mt-8 overflow-hidden rounded-2xl border border-white/10 bg-white">
               <LogisticsSketch className="h-52" />
@@ -93,15 +117,34 @@ export function LoginPage() {
         <div className="flex w-full flex-1 items-start justify-center px-4 pt-2 pb-10 sm:px-8 lg:items-center lg:px-10">
           <div className="w-full max-w-md min-w-0">
             <h1 className="text-3xl font-extrabold tracking-tight text-ink">Đăng nhập</h1>
-            <p className="mt-2 text-sm leading-relaxed text-muted">Dùng tài khoản COLDI khi hệ thống xác thực được nối.</p>
+            <p className="mt-2 text-sm leading-relaxed text-muted">Dùng email và mật khẩu của tài khoản đã được cấp.</p>
             <div className="mt-5 rounded-2xl border border-warning-line bg-warning-bg p-4 text-sm leading-relaxed text-warning">
               <p className="font-semibold">{message.title}</p>
               <p className="mt-1">{message.body}</p>
             </div>
-            <form className="mt-6 space-y-4" onSubmit={handleSubmit} noValidate>
+            {snapshot.status === "authenticated" ? (
+              <div className="mt-6 space-y-4">
+                <p role="status" className="text-sm leading-relaxed text-ink">
+                  Đã đăng nhập bằng {snapshot.user.email}.
+                </p>
+                <Button type="button" variant="outline" size="lg" onClick={() => void logout()}>
+                  Đăng xuất
+                </Button>
+              </div>
+            ) : (
+            <form className="mt-6 space-y-4" onSubmit={(event) => void handleSubmit(event)} noValidate>
               <div className="space-y-2">
                 <Label htmlFor="login-email">Email</Label>
-                <Input id="login-email" name="email" type="email" autoComplete="username" placeholder="ten@congty.vn" />
+                <Input
+                  id="login-email"
+                  name="email"
+                  type="email"
+                  autoComplete="username"
+                  placeholder="ten@congty.vn"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  disabled={pending || snapshot.status === "loading"}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="login-password">Mật khẩu</Label>
@@ -113,6 +156,7 @@ export function LoginPage() {
                     autoComplete="current-password"
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
+                    disabled={pending || snapshot.status === "loading"}
                     className="pr-12"
                   />
                   <Button
@@ -137,15 +181,16 @@ export function LoginPage() {
                   Khôi phục mật khẩu chưa được triển khai.
                 </p>
               ) : null}
-              <Button type="submit" size="lg">
-                Đăng nhập
+              <Button type="submit" size="lg" disabled={pending || snapshot.status === "loading"}>
+                {pending ? "Đang đăng nhập" : "Đăng nhập"}
               </Button>
-              {submitted ? (
-                <p role="status" className="text-sm leading-relaxed text-ink">
-                  Không có yêu cầu đăng nhập nào được gửi. Mật khẩu đã được xóa khỏi ô nhập.
+              {error ? (
+                <p role="alert" className="text-sm leading-relaxed text-ink">
+                  {error}
                 </p>
               ) : null}
             </form>
+            )}
             <p className="mt-6 text-center text-sm text-muted">
               Chưa có tài khoản?{" "}
               <Link to={{ pathname: paths.register, search: params.toString() }} className="font-semibold text-navy">

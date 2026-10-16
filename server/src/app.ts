@@ -3,6 +3,9 @@ import express from "express";
 import helmet from "helmet";
 import { getEnv } from "./config/env.js";
 import { errorHandler, notFoundHandler } from "./middlewares/errorHandler.js";
+import { requireAuth } from "./middlewares/requireAuth.js";
+import { requireRole } from "./middlewares/requireRole.js";
+import { authRouter } from "./routes/auth.routes.js";
 import { healthRouter } from "./routes/health.routes.js";
 
 export function createApp() {
@@ -23,6 +26,12 @@ export function createApp() {
   );
   app.use(express.json({ limit: "1mb" }));
   app.use("/api/health", healthRouter);
+  app.use("/api/auth", authRouter);
+  if (env.NODE_ENV === "test") {
+    app.get("/api/test/shipper-only", requireAuth, requireRole("SHIPPER"), (_request, response) => {
+      response.status(200).json({ ok: true });
+    });
+  }
   app.use(notFoundHandler);
   app.use(errorHandler);
 

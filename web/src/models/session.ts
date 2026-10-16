@@ -1,9 +1,12 @@
 export type BusinessRole = "SHIPPER" | "CARRIER" | "DRIVER" | "ADMIN";
 
-/**
- * Authenticated sessions are reserved for a future auth protocol.
- * The current client only produces the anonymous snapshot.
- */
+export type AuthUser = {
+  id: string;
+  email: string;
+  role: BusinessRole;
+};
+
 export type SessionSnapshot =
+  | { status: "loading" }
   | { status: "anonymous" }
-  | { status: "authenticated"; role: BusinessRole };
+  | { status: "authenticated"; user: AuthUser };

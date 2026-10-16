@@ -5,6 +5,7 @@ export type AppEnv = {
   MONGODB_URI: string;
   FRONTEND_ORIGIN: string;
   NODE_ENV: NodeEnvironment;
+  AUTH_SECRET: string;
 };
 
 const environments = new Set<NodeEnvironment>(["development", "test", "production"]);
@@ -47,10 +48,16 @@ export function getEnv(): AppEnv {
     throw new Error("NODE_ENV must be development, test, or production.");
   }
 
+  const authSecret = read("AUTH_SECRET");
+  if (authSecret.length < 32) {
+    throw new Error("AUTH_SECRET must be at least 32 characters.");
+  }
+
   return {
     PORT: port,
     MONGODB_URI: mongodbUri,
     FRONTEND_ORIGIN: frontendOrigin,
     NODE_ENV: nodeEnv as NodeEnvironment,
+    AUTH_SECRET: authSecret,
   };
 }

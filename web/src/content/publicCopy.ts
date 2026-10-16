@@ -121,18 +121,18 @@ export type SolutionId = keyof typeof solutions;
 export const authMessages = {
   publish: {
     title: "Đăng đơn cần tài khoản Chủ hàng",
-    body: "Khách chưa đăng nhập không thể tạo hoặc niêm yết đơn. Giao thức đăng nhập và API tạo đơn chưa được kết nối, nên biểu mẫu này không gửi dữ liệu và không tạo đơn.",
+    body: "Đăng nhập được kiểm tra với máy chủ. API tạo đơn chưa được nối, nên đơn chưa thể phát hành từ trang này.",
   },
   claim: {
     title: "Nhận chuyến cần tài khoản Nhà xe",
-    body: "Chỉ Nhà xe đã đăng nhập mới được nhận chuyến, và máy chủ phải khóa đơn để chỉ một nhà xe thành công. Bản này chưa gọi API nhận chuyến, nên không giữ chỗ và không đổi trạng thái đơn.",
+    body: "Gọi điện hoặc nhắn tin không giữ chỗ. Đăng nhập được kiểm tra với máy chủ, nhưng nhận chuyến vẫn chưa mở trên website.",
   },
   account: {
-    title: "Chưa có phiên đăng nhập",
-    body: "Khách không xem hồ sơ doanh nghiệp, đội xe, tài xế, chứng từ, chat hay GPS của một chuyến thật.",
+    title: "Tài khoản doanh nghiệp chưa mở",
+    body: "Đăng nhập tạo phiên theo vai trò đã cấp. Hồ sơ doanh nghiệp, đội xe, chứng từ, chat và GPS chưa nằm trong phạm vi này.",
   },
   general: {
-    title: "Đăng nhập chưa được kết nối",
-    body: "Giao thức xác thực, token và phiên làm việc đang chờ quyết định kỹ thuật. Biểu mẫu không xác thực người dùng và không lưu mật khẩu.",
+    title: "Đăng nhập kiểm tra tài khoản đã cấp",
+    body: "Phiên làm việc được tạo sau khi máy chủ xác nhận email và mật khẩu. Đăng nhập không tự đăng đơn và không tự nhận chuyến.",
   },
 } as const;
