@@ -1,13 +1,10 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { ShipmentFacts } from "@/features/shipments/shipmentFacts";
 import type { CarrierDriver, CarrierShipment, CarrierVehicle } from "@/models/publishedShipment";
 import { ApiError } from "@/services/apiClient";
 import { assignShipment, listCarrierDrivers, listCarrierVehicles, listClaimedShipments } from "@/services/shipmentService";
-
-function money(amount: number): string {
-  return `${new Intl.NumberFormat("vi-VN").format(amount)} đ`;
-}
 
 export function ClaimedShipments() {
   const [shipments, setShipments] = useState<CarrierShipment[]>([]);
@@ -94,7 +91,7 @@ export function ClaimedShipments() {
       ) : null}
       {listState === "ready" && shipments.length === 0 ? <p className="mt-8 text-sm text-muted">Chưa có chuyến đã nhận.</p> : null}
       {listState === "ready" && shipments.length > 0 ? (
-        <ul className="mt-8 grid max-w-3xl gap-4">
+        <ul className="mt-8 grid max-w-5xl gap-4">
           {shipments.map((shipment) => {
             const selected = choice(shipment.id);
             const assigned = shipment.vehicleId !== null && shipment.driverId !== null;
@@ -104,12 +101,7 @@ export function ClaimedShipments() {
                   <h2 className="text-lg font-bold text-ink">{shipment.cargoDescription}</h2>
                   <p className="rounded-full bg-canvas px-3 py-1 text-xs font-semibold text-navy">{shipment.statusLabel}</p>
                 </div>
-                <p className="mt-3 text-sm text-muted">
-                  {shipment.pickupLocation} → {shipment.deliveryLocation}
-                </p>
-                <p className="mt-1 text-sm text-muted">
-                  {shipment.temperatureLabel} · {shipment.vehicleRequirement} · {money(shipment.listedPriceVnd)}
-                </p>
+                <ShipmentFacts shipment={shipment} />
                 {assigned ? (
                   <p className="mt-3 text-sm leading-relaxed text-ink">
                     Xe: {shipment.vehicleLabel ?? "Xe đã phân công"}. Tài xế: {shipment.driverName ?? "Tài xế đã phân công"}. Chưa xác nhận lấy hàng.

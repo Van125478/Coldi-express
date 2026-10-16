@@ -112,7 +112,7 @@ export const solutions = {
       "Sau khi nhận, nhà xe tự gán xe và tài xế. Chuyến khi đó đang chờ lấy hàng.",
       "Tài xế trực thuộc không tự mở sàn và không tự nhận chuyến.",
     ],
-    limit: "Tính năng nhận chuyến trực tiếp hiện chưa khả dụng trên website.",
+    limit: "Nhà xe đăng nhập để xem đơn đang tìm xe và tự nhận chuyến. Khách không mở được sàn.",
   },
 } as const;
 

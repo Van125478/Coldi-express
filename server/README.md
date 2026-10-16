@@ -127,7 +127,9 @@ An authenticated SHIPPER can publish a shipment. The listed price is stored as a
 | `GET` | `/api/shipments/mine` | The caller's shipments |
 | `GET` | `/api/shipments/:id` | The shipment when the caller owns it |
 
-`shipperId` comes from the session. `status`, `shipperId`, `carrierId`, and `driverId` are rejected if the client sends them. The visitor label for `PUBLISHED` is “Đang tìm xe”.
+`shipperId` comes from the session. `status`, `shipperId`, `carrierId`, `vehicleId`, and `driverId` are rejected if the client sends them. The visitor label for `PUBLISHED` is “Đang tìm xe”.
+
+A new shipment also stores the pickup and delivery warehouse, contact name, phone, optional email, civil date, and time window, plus cargo weight in tons, volume in cubic metres, and package count. Older shipments can omit those fields. The API returns null for a missing value and does not invent one. Carrier responses include the warehouse, phone, schedule, weight, volume, and package count. They omit notification emails and `shipperId`. Phone numbers are shown because the approved load board includes direct contact. No national numbering plan, maximum cargo capacity, degree threshold, or past-date policy is approved. The checks in use are basic: a real calendar date, a time window whose end is later than its start, a delivery date on or after the pickup date, a positive measure with at most three decimal places and at most 100000, and an integer package count from 1 to 1000000. The 100000 ceiling is a storage guard, not a vehicle rule. Map lookup, the B2B address book, suggested vehicle prices, loading services, mandatory POD, declared value, VAT, and credit terms are not implemented.
 
 An authenticated CARRIER lists open shipments at `GET /api/carrier/shipments`, oldest first. `POST /api/carrier/shipments/:id/claim` claims one shipment with a conditional MongoDB update. Success sets `MATCHED` and `carrierId` from the session. A second claim receives 409. The visitor label for an unassigned `MATCHED` shipment is “Đã có nhà xe nhận chuyến”. The Master Const status table also says “Đã ghép xe”, and the guest journey says “Đã có xe nhận chuyến”. Those guest pages are unchanged. Claim does not assign a vehicle or driver.
 
@@ -141,4 +143,4 @@ Reassignment, vehicle compliance, and a full driver profile are still open quest
 
 GPS and payment are not implemented. Only one carrier can successfully claim a published shipment. A claim does not assign a vehicle or driver. Phone or chat contact does not reserve a shipment. GPS does not confirm business milestones. Completion does not mean payment.
 
-Responses stay independent of MongoDB document shape. Quantity, weight, and pickup time are mentioned in the product flow, but the approved documents do not define their validation rules, so they are not stored yet.
+Responses stay independent of MongoDB document shape. Weight, volume, package count, and the pickup and delivery windows are stored as entered. No approved rule converts units, calculates a price, or rejects a date in the past.
