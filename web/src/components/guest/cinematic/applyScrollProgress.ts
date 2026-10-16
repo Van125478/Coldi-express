@@ -28,7 +28,7 @@ export const scrollChapters: readonly ScrollChapter[] = [
     until: 1,
     index: "04",
     title: "Đến điểm giao",
-    body: "Hàng tới kho nhận. Coldi là nơi chủ hàng và nhà xe gặp nhau trên đơn.",
+    body: "Hàng tới kho nhận. COLDI là nơi chủ hàng và nhà xe gặp nhau trên đơn.",
   },
 ];
 

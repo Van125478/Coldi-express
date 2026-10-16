@@ -17,7 +17,7 @@ export const heroCopy = {
 };
 
 export const trustItems = [
-  { id: "shield", label: "Cam kết Coldi Shield", icon: "shield" },
+  { id: "shield", label: "Cam kết COLDI Shield", icon: "shield" },
   { id: "contract", label: "Hợp đồng điện tử ký số", icon: "file" },
   { id: "rate", label: "Cước phí minh bạch", icon: "receipt" },
 ] as const;
@@ -59,7 +59,7 @@ export const aboutFacts = [
   {
     term: "Sản phẩm",
     detail:
-      "Coldi là nền tảng logistics lạnh B2B. Bản giao diện này là website đáp ứng, dùng chung định hướng một tài khoản với ứng dụng di động khi ứng dụng đó được phát hành.",
+      "COLDI là nền tảng logistics lạnh B2B. Bản giao diện này là website đáp ứng, dùng chung định hướng một tài khoản với ứng dụng di động khi ứng dụng đó được phát hành.",
   },
   {
     term: "Khách",
@@ -69,7 +69,7 @@ export const aboutFacts = [
   {
     term: "Bốn vai trò",
     detail:
-      "Chủ hàng đăng đơn. Nhà xe xem sàn và tự nhận chuyến, rồi tự gán xe và tài xế. Tài xế chỉ xử lý chuyến được giao. Quản trị là vận hành nội bộ Coldi.",
+      "Chủ hàng đăng đơn. Nhà xe xem sàn và tự nhận chuyến, rồi tự gán xe và tài xế. Tài xế chỉ xử lý chuyến được giao. Quản trị là vận hành nội bộ COLDI.",
   },
   {
     term: "Phạm vi pilot",

@@ -77,7 +77,7 @@ export function LoginPage() {
               </p>
             </div>
           </div>
-          <p className="text-sm text-white/55">© 2026 Coldi Freight</p>
+          <p className="text-sm text-white/55">© 2026 COLDI</p>
         </div>
       </aside>
 
@@ -93,7 +93,7 @@ export function LoginPage() {
         <div className="flex w-full flex-1 items-start justify-center px-4 pt-2 pb-10 sm:px-8 lg:items-center lg:px-10">
           <div className="w-full max-w-md min-w-0">
             <h1 className="text-3xl font-extrabold tracking-tight text-ink">Đăng nhập</h1>
-            <p className="mt-2 text-sm leading-relaxed text-muted">Dùng tài khoản Coldi khi hệ thống xác thực được nối.</p>
+            <p className="mt-2 text-sm leading-relaxed text-muted">Dùng tài khoản COLDI khi hệ thống xác thực được nối.</p>
             <div className="mt-5 rounded-2xl border border-warning-line bg-warning-bg p-4 text-sm leading-relaxed text-warning">
               <p className="font-semibold">{message.title}</p>
               <p className="mt-1">{message.body}</p>

@@ -35,7 +35,7 @@ export function StaticJourney({ reason }: { reason: "reduced" | "webgl" }) {
     <section className="bg-[#070d1f] text-white" aria-labelledby="static-journey-title">
       <div className="mx-auto grid max-w-6xl gap-10 px-5 py-24 sm:px-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
         <div>
-          <p className="text-xs font-bold tracking-[0.22em] text-white/60 uppercase">Coldi Freight</p>
+          <p className="text-xs font-bold tracking-[0.22em] text-white/60 uppercase">COLDI</p>
           <h2 id="static-journey-title" className="mt-3 text-4xl leading-[0.95] font-extrabold tracking-tight sm:text-6xl">
             Kết nối vận tải lạnh, minh bạch từng hành trình.
           </h2>

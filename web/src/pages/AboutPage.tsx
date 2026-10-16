@@ -6,7 +6,7 @@ export function AboutPage() {
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-6">
-      <h1 className="text-3xl font-extrabold tracking-tight text-navy sm:text-4xl">Về Coldi</h1>
+      <h1 className="text-3xl font-extrabold tracking-tight text-navy sm:text-4xl">Về COLDI</h1>
       <p className="mt-3 text-base leading-relaxed text-ink">
         Nội dung dưới đây bám tài liệu nghiệp vụ đã chốt. Các giả định tài chính và tính năng giai đoạn sau không được trình bày như chính sách đang áp dụng.
       </p>

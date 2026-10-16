@@ -7,7 +7,7 @@ export function PlatformPage() {
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-6">
-      <h1 className="text-3xl font-extrabold tracking-tight text-navy sm:text-4xl">Nền tảng Coldi</h1>
+      <h1 className="text-3xl font-extrabold tracking-tight text-navy sm:text-4xl">Nền tảng COLDI</h1>
       <p className="mt-3 text-base leading-relaxed text-ink">
         Bản đang mở là website đáp ứng. Có thể dùng trên trình duyệt máy tính, máy tính bảng và điện thoại.
       </p>

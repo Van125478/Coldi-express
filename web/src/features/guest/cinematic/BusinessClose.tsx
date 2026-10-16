@@ -21,7 +21,7 @@ const columns = [
     title: "Nhìn thấy chuyến",
     body: "Khi đã có quyền trên chuyến, vị trí GPS giúp theo dõi. Lấy hàng và giao hàng là thao tác của tài xế được giao. GPS không tự xác nhận hai mốc đó.",
     to: paths.about,
-    label: "Cách Coldi vận hành",
+    label: "Cách COLDI vận hành",
   },
 ] as const;
 
@@ -39,7 +39,7 @@ export function BusinessClose() {
           Minh bạch trên đơn, không tự điều xe.
         </h2>
         <p className="mt-5 max-w-2xl text-lg leading-relaxed text-[#475569]">
-          Coldi nối chủ hàng và nhà xe cho vận tải lạnh đường bộ. Không tự ghép đơn, không tự điều phối, không tự gán xe.
+          COLDI nối chủ hàng và nhà xe cho vận tải lạnh đường bộ. Không tự ghép đơn, không tự điều phối, không tự gán xe.
         </p>
         <div className="mt-12 grid gap-6 lg:grid-cols-3">
           {columns.map((column) => (
