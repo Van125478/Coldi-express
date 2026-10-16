@@ -1,5 +1,3 @@
-import { paths } from "@/app/paths";
-
 export const designPresentationNote =
   "Các chỉ số, điểm đánh giá và dòng cam kết trên trang chủ lấy từ bản thiết kế Guest. Chúng chưa phải số liệu vận hành đã kiểm chứng hay chính sách đã phê duyệt.";
 
@@ -103,26 +101,18 @@ export const solutions = {
       "Trao đổi với nhà xe theo đơn không tạo lượt nhận chuyến và không giữ chỗ.",
       "Xem mốc chuyến và vị trí GPS khi đã có quyền trên chuyến đó.",
     ],
-    limit:
-      "Tạo đơn chưa mở trên website này. Biểu mẫu và API đăng đơn chưa được nối, nên khách không thể niêm yết chuyến.",
-    actionLabel: "Đăng đơn cần đăng nhập",
-    action: "publish" as const,
-    actionNext: paths.publish,
+    limit: "Tính năng đăng đơn trực tiếp hiện chưa khả dụng trên website.",
   },
   "nha-xe": {
     title: "Dành cho nhà xe",
     lede: "Nhà xe tự xem đơn đang tìm xe, tự bấm nhận chuyến, rồi tự chọn xe và tài xế.",
     points: [
       "Xem lộ trình, quy cách hàng, nhóm nhiệt độ và giá niêm yết của đơn đang tìm xe.",
-      "Bấm nhận chuyến. Chỉ một nhà xe thành công sau khi máy chủ xác nhận.",
+      "Bấm nhận chuyến. Chỉ một nhà xe nhận thành công.",
       "Sau khi nhận, nhà xe tự gán xe và tài xế. Chuyến khi đó đang chờ lấy hàng.",
       "Tài xế trực thuộc không tự mở sàn và không tự nhận chuyến.",
     ],
-    limit:
-      "Nút nhận chuyến trên trang khách không gửi yêu cầu. Việc nhận chuyến phải do máy chủ kiểm tra khi tài khoản Nhà xe và API đã sẵn sàng.",
-    actionLabel: "Nhận chuyến cần đăng nhập",
-    action: "claim" as const,
-    actionNext: paths.shipments,
+    limit: "Tính năng nhận chuyến trực tiếp hiện chưa khả dụng trên website.",
   },
 } as const;
 

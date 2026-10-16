@@ -1,5 +1,5 @@
 import { Link, useParams } from "react-router-dom";
-import { authPath, paths } from "@/app/paths";
+import { paths } from "@/app/paths";
 import { solutions, type SolutionId } from "@/content/publicCopy";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
@@ -37,15 +37,7 @@ export function SolutionPage() {
           </li>
         ))}
       </ul>
-      <div className="mt-6 rounded-2xl border border-warning-line bg-warning-bg p-4 text-sm leading-relaxed text-warning">
-        {solution.limit}
-      </div>
-      <Link
-        to={authPath(solution.action, solution.actionNext)}
-        className="mt-6 inline-flex min-h-11 items-center rounded-xl bg-navy px-4 text-sm font-semibold text-white hover:bg-navy-deep"
-      >
-        {solution.actionLabel}
-      </Link>
+      <p className="mt-6 text-sm leading-relaxed text-muted">{solution.limit}</p>
     </div>
   );
 }
