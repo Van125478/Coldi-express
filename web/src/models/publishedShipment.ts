@@ -13,8 +13,22 @@ export type PublishedShipment = {
   status: string;
   statusLabel: string;
   carrierId: string | null;
+  vehicleId: string | null;
+  driverId: string | null;
+  vehicleLabel: string | null;
+  driverName: string | null;
   createdAt: string;
   updatedAt: string;
+};
+
+export type CarrierVehicle = {
+  id: string;
+  label: string;
+};
+
+export type CarrierDriver = {
+  id: string;
+  displayName: string | null;
 };
 
 export type CarrierShipment = {
@@ -29,6 +43,10 @@ export type CarrierShipment = {
   status: string;
   statusLabel: string;
   carrierId: string | null;
+  vehicleId: string | null;
+  driverId: string | null;
+  vehicleLabel: string | null;
+  driverName: string | null;
   createdAt: string;
   updatedAt: string;
 };

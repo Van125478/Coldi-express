@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { ClaimedShipments } from "@/features/shipments/ClaimedShipments";
 import type { CarrierShipment } from "@/models/publishedShipment";
 import { ApiError } from "@/services/apiClient";
 import { claimShipment, listCarrierShipments } from "@/services/shipmentService";
@@ -14,6 +15,7 @@ export function CarrierLoadBoard({ onLogout }: { onLogout: () => void }) {
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [noticeTone, setNoticeTone] = useState<"success" | "conflict" | "error">("success");
+  const [view, setView] = useState<"available" | "claimed">("available");
 
   const load = useCallback(async () => {
     try {
@@ -49,6 +51,7 @@ export function CarrierLoadBoard({ onLogout }: { onLogout: () => void }) {
       const body = await claimShipment(id);
       setNoticeTone("success");
       setNotice(`Đã nhận chuyến. Trạng thái: ${body.shipment.statusLabel}. Chưa phân công xe và tài xế.`);
+      setView("claimed");
       await load();
     } catch (caught) {
       if (caught instanceof ApiError && caught.status === 409) {
@@ -70,7 +73,13 @@ export function CarrierLoadBoard({ onLogout }: { onLogout: () => void }) {
       <p className="mt-3 max-w-3xl text-base leading-relaxed text-ink">
         Nhà xe tự xem đơn đang tìm xe và tự nhận chuyến. Gọi điện hoặc nhắn tin không giữ chỗ. Nhận chuyến chưa gán xe hay tài xế.
       </p>
-      <div className="mt-6">
+      <div className="mt-6 flex flex-wrap gap-2">
+        <Button type="button" variant={view === "available" ? "default" : "outline"} onClick={() => setView("available")}>
+          Đơn đang tìm xe
+        </Button>
+        <Button type="button" variant={view === "claimed" ? "default" : "outline"} onClick={() => setView("claimed")}>
+          Chuyến đã nhận
+        </Button>
         <Button type="button" variant="outline" onClick={onLogout}>
           Đăng xuất
         </Button>
@@ -80,16 +89,17 @@ export function CarrierLoadBoard({ onLogout }: { onLogout: () => void }) {
           {notice}
         </p>
       ) : null}
-      {listState === "loading" ? <p className="mt-8 text-sm text-muted">Đang tải đơn đang tìm xe.</p> : null}
-      {listState === "error" ? (
+      {view === "claimed" ? <ClaimedShipments /> : null}
+      {view === "available" && listState === "loading" ? <p className="mt-8 text-sm text-muted">Đang tải đơn đang tìm xe.</p> : null}
+      {view === "available" && listState === "error" ? (
         <p role="alert" className="mt-8 text-sm text-ink">
           Không tải được danh sách đơn. Hãy tải lại trang.
         </p>
       ) : null}
-      {listState === "ready" && shipments.length === 0 ? (
+      {view === "available" && listState === "ready" && shipments.length === 0 ? (
         <p className="mt-8 text-sm text-muted">Chưa có đơn đang tìm xe.</p>
       ) : null}
-      {listState === "ready" && shipments.length > 0 ? (
+      {view === "available" && listState === "ready" && shipments.length > 0 ? (
         <ul className="mt-8 grid max-w-3xl gap-4">
           {shipments.map((shipment) => (
             <li key={shipment.id} className="rounded-2xl border border-line bg-surface p-5">

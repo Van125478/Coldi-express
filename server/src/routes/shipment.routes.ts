@@ -5,8 +5,8 @@ import { requireAuth } from "../middlewares/requireAuth.js";
 import { requireTrustedOrigin } from "../middlewares/requireOrigin.js";
 import { requireRole } from "../middlewares/requireRole.js";
 import { Shipment } from "../models/shipment.js";
+import { toShipmentView, toShipmentViews } from "../shipments/assignmentView.js";
 import { readPublishInput } from "../shipments/publishInput.js";
-import { toShipmentDto } from "../shipments/shipmentDto.js";
 
 export const shipmentRouter = Router();
 
@@ -22,7 +22,7 @@ shipmentRouter.post("/", requireTrustedOrigin, async (request, response, next) =
       shipperId,
       status: "PUBLISHED",
     });
-    response.status(201).json({ shipment: toShipmentDto(shipment) });
+    response.status(201).json({ shipment: await toShipmentView(shipment) });
   } catch (error) {
     next(error);
   }
@@ -33,7 +33,7 @@ shipmentRouter.get("/mine", async (request, response, next) => {
     const shipperId = request.authUser?.id;
     if (!shipperId) throw new HttpError(401, "unauthenticated", "Cần đăng nhập để tiếp tục.");
     const shipments = await Shipment.find({ shipperId }).sort({ createdAt: -1 });
-    response.status(200).json({ shipments: shipments.map((shipment) => toShipmentDto(shipment)) });
+    response.status(200).json({ shipments: await toShipmentViews(shipments) });
   } catch (error) {
     next(error);
   }
@@ -50,7 +50,7 @@ shipmentRouter.get("/:id", async (request, response, next) => {
     if (shipment.shipperId.toString() !== request.authUser?.id) {
       throw new HttpError(403, "forbidden", "Tài khoản này không có quyền xem đơn.");
     }
-    response.status(200).json({ shipment: toShipmentDto(shipment) });
+    response.status(200).json({ shipment: await toShipmentView(shipment) });
   } catch (error) {
     next(error);
   }

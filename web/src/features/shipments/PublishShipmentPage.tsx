@@ -245,8 +245,13 @@ export function PublishShipmentPage({ email, onLogout }: { email: string; onLogo
                 <p className="mt-1 text-sm text-muted">
                   {shipment.temperatureLabel} · {shipment.vehicleRequirement} · {money(shipment.listedPriceVnd)}
                 </p>
-                {shipment.status === "MATCHED" ? (
+                {shipment.status === "MATCHED" && shipment.vehicleId === null ? (
                   <p className="mt-2 text-sm text-ink">Chưa phân công xe và tài xế.</p>
+                ) : null}
+                {shipment.status === "MATCHED" && shipment.vehicleId !== null ? (
+                  <p className="mt-2 text-sm text-ink">
+                    Xe: {shipment.vehicleLabel ?? "Xe đã phân công"}. Tài xế: {shipment.driverName ?? "Tài xế đã phân công"}. Chưa xác nhận lấy hàng.
+                  </p>
                 ) : null}
                 <p className="mt-2 text-xs text-muted">Mã đơn {shipment.id}</p>
               </li>

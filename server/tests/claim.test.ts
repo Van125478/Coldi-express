@@ -156,8 +156,8 @@ test("a carrier claim is exclusive and visible to the owning shipper", async () 
     assert.equal(claimedBody.shipment.status, "MATCHED");
     assert.equal(claimedBody.shipment.statusLabel, "Đã có nhà xe nhận chuyến");
     assert.equal(claimedBody.shipment.carrierId, carrier._id.toString());
-    assert.equal("vehicleId" in claimedBody.shipment, false);
-    assert.equal("driverId" in claimedBody.shipment, false);
+    assert.equal(claimedBody.shipment.vehicleId, null);
+    assert.equal(claimedBody.shipment.driverId, null);
 
     const again = await claim(baseUrl, await login(baseUrl, otherCarrierEmail), id);
     assert.equal(again.status, 409);

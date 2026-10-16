@@ -13,6 +13,10 @@ export type ShipmentDto = {
   status: ShipmentStatus;
   statusLabel: string;
   carrierId: string | null;
+  vehicleId: string | null;
+  driverId: string | null;
+  vehicleLabel: string | null;
+  driverName: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -29,7 +33,7 @@ const statusLabels: Record<ShipmentStatus, string> = {
   CANCELLED: "Đã hủy",
 };
 
-type ShipmentRecord = {
+export type ShipmentRecord = {
   _id: { toString(): string };
   shipperId: { toString(): string };
   cargoDescription: string;
@@ -40,11 +44,23 @@ type ShipmentRecord = {
   listedPriceVnd: number;
   status: ShipmentStatus;
   carrierId?: { toString(): string } | null;
+  vehicleId?: { toString(): string } | null;
+  driverId?: { toString(): string } | null;
   createdAt: Date;
   updatedAt: Date;
 };
 
-export function toShipmentDto(shipment: ShipmentRecord): ShipmentDto {
+function idOrNull(value: { toString(): string } | null | undefined): string | null {
+  return value ? value.toString() : null;
+}
+
+export function toShipmentDto(
+  shipment: ShipmentRecord,
+  names?: { vehicleLabel: string | null; driverName: string | null },
+): ShipmentDto {
+  const vehicleId = idOrNull(shipment.vehicleId);
+  const driverId = idOrNull(shipment.driverId);
+  const assigned = vehicleId !== null && driverId !== null;
   return {
     id: shipment._id.toString(),
     shipperId: shipment.shipperId.toString(),
@@ -56,8 +72,12 @@ export function toShipmentDto(shipment: ShipmentRecord): ShipmentDto {
     vehicleRequirement: shipment.vehicleRequirement,
     listedPriceVnd: shipment.listedPriceVnd,
     status: shipment.status,
-    statusLabel: statusLabels[shipment.status],
-    carrierId: shipment.carrierId ? shipment.carrierId.toString() : null,
+    statusLabel: shipment.status === "MATCHED" && assigned ? "Chờ lấy hàng" : statusLabels[shipment.status],
+    carrierId: idOrNull(shipment.carrierId),
+    vehicleId,
+    driverId,
+    vehicleLabel: names?.vehicleLabel ?? null,
+    driverName: names?.driverName ?? null,
     createdAt: shipment.createdAt.toISOString(),
     updatedAt: shipment.updatedAt.toISOString(),
   };
@@ -75,12 +95,19 @@ export type CarrierShipmentDto = {
   status: ShipmentStatus;
   statusLabel: string;
   carrierId: string | null;
+  vehicleId: string | null;
+  driverId: string | null;
+  vehicleLabel: string | null;
+  driverName: string | null;
   createdAt: string;
   updatedAt: string;
 };
 
-export function toCarrierShipmentDto(shipment: ShipmentRecord): CarrierShipmentDto {
-  const dto = toShipmentDto(shipment);
+export function toCarrierShipmentDto(
+  shipment: ShipmentRecord,
+  names?: { vehicleLabel: string | null; driverName: string | null },
+): CarrierShipmentDto {
+  const dto = toShipmentDto(shipment, names);
   return {
     id: dto.id,
     cargoDescription: dto.cargoDescription,
@@ -93,6 +120,10 @@ export function toCarrierShipmentDto(shipment: ShipmentRecord): CarrierShipmentD
     status: dto.status,
     statusLabel: dto.statusLabel,
     carrierId: dto.carrierId,
+    vehicleId: dto.vehicleId,
+    driverId: dto.driverId,
+    vehicleLabel: dto.vehicleLabel,
+    driverName: dto.driverName,
     createdAt: dto.createdAt,
     updatedAt: dto.updatedAt,
   };
