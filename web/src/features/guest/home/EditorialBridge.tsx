@@ -15,7 +15,7 @@ export function EditorialBridge() {
           </h2>
         </div>
         <p className="max-w-md text-base leading-relaxed text-[#475569] lg:col-span-5 lg:text-lg">
-          COLDI kết nối chủ hàng và nhà vận tải lạnh trong một quy trình có các bước và trách nhiệm cụ thể.
+          COLDI kết nối chủ hàng và nhà xe vận tải lạnh trong một quy trình có các bước và trách nhiệm cụ thể.
         </p>
       </div>
     </section>

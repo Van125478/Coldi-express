@@ -6,13 +6,13 @@ const questions = [
     id: "faq-who",
     question: "COLDI dành cho những ai?",
     answer:
-      "COLDI là nền tảng logistics lạnh B2B. Chủ hàng niêm yết nhu cầu vận chuyển. Nhà vận tải tự xem sàn và nhận chuyến, rồi phân công xe và tài xế. Tài xế chỉ thực hiện chuyến được giao.",
+      "COLDI là nền tảng logistics lạnh B2B. Chủ hàng niêm yết nhu cầu vận chuyển. Nhà xe tự xem sàn và nhận chuyến, rồi phân công xe và tài xế. Tài xế chỉ thực hiện chuyến được giao.",
   },
   {
     id: "faq-claim",
-    question: "Nhà vận tải có được chủ động lựa chọn chuyến hàng không?",
+    question: "Nhà xe có được chủ động lựa chọn chuyến hàng không?",
     answer:
-      "Có. Nhà vận tải tự xem đơn đang mở và tự nhận chuyến. COLDI không tự ghép, không tự điều phối và không tự gán tài xế. Chỉ một nhà vận tải nhận được mỗi đơn. Nhận chuyến chưa gán xe hay tài xế.",
+      "Có. Nhà xe tự xem đơn đang mở và tự nhận chuyến. COLDI không tự ghép, không tự điều phối và không tự gán tài xế. Chỉ một nhà xe nhận được mỗi đơn. Nhận chuyến chưa gán xe hay tài xế.",
   },
   {
     id: "faq-contact",
@@ -71,7 +71,7 @@ export function GuestFAQ() {
                         Giải pháp cho chủ hàng
                       </Link>
                       <Link to={paths.carrierSolution} className="inline-flex min-h-11 items-center text-sm font-bold text-[#1e3a8a] underline-offset-4 hover:underline">
-                        Giải pháp cho nhà vận tải
+                        Giải pháp cho nhà xe
                       </Link>
                     </p>
                   ) : null}

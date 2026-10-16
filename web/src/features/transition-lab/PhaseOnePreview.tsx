@@ -41,7 +41,7 @@ const STORIES = [
     start: 0.3,
     end: 0.45,
     eyebrow: "03 / KẾT NỐI",
-    title: "Kết nối chủ hàng và nhà vận tải.",
+    title: "Kết nối chủ hàng và nhà xe.",
     caption: "Quy trình tiếp nhận và tổ chức chuyến hàng rõ ràng hơn.",
   },
   {
@@ -50,7 +50,7 @@ const STORIES = [
     end: 0.65,
     eyebrow: "04 / CHỦ ĐỘNG",
     title: "Chủ động trong từng chuyến vận chuyển.",
-    caption: "Nhà vận tải phân công phương tiện và tài xế.",
+    caption: "Nhà xe phân công phương tiện và tài xế.",
   },
   {
     id: "story-five",
@@ -64,9 +64,9 @@ const STORIES = [
     id: "story-six",
     start: 0.85,
     end: 1,
-    eyebrow: "06 / KẾT NỐI",
-    title: "Kết nối vận tải lạnh trên hành trình xuyên Việt.",
-    caption: "TP. Hồ Chí Minh → Hà Nội · Tuyến đường minh họa.",
+    eyebrow: "06 / TẦM NHÌN",
+    title: "Hành trình kết nối vẫn còn ở phía trước.",
+    caption: "TP. Hồ Chí Minh → Hà Nội · Định hướng mở rộng sau pilot.",
     map: true,
   },
 ] as const;
@@ -509,7 +509,7 @@ export function PhaseOnePreview({ mode = "lab" }: { mode?: "lab" | "guest" }) {
         {guest ? (
           <div className="pointer-events-none absolute inset-0 z-20">
             <p className="sr-only">
-              Phần hình kết thúc bằng lộ trình minh họa từ TP. Hồ Chí Minh đến Hà Nội. Đây không phải vị trí GPS đang chạy.
+              Phần hình kết thúc bằng lộ trình minh họa từ TP. Hồ Chí Minh đến Hà Nội. Đây là hướng mở rộng sau, không phải phạm vi pilot và không phải vị trí GPS thực tế.
             </p>
             {STORIES.map((story) => (
               <article

@@ -7,27 +7,27 @@ const milestones = [
       "Chủ hàng cung cấp thông tin hàng hóa, tuyến đường, thời gian, nhóm nhiệt độ và giá cước niêm yết.",
     marker: "Trạng thái",
     label: "Đang tìm xe",
-    note: "Đơn hiện trên sàn cho nhà vận tải được cấp quyền.",
+    note: "Đơn hiện trên sàn cho nhà xe được cấp quyền.",
   },
   {
     index: "02",
-    actor: "Nhà vận tải",
+    actor: "Nhà xe",
     title: "Chủ động nhận chuyến",
     description:
-      "Nhà vận tải xem đơn phù hợp, có thể gọi điện hoặc trao đổi qua chat theo đơn, sau đó chủ động xác nhận nhận chuyến.",
+      "Nhà xe xem đơn phù hợp, có thể gọi điện hoặc trao đổi qua chat theo đơn, sau đó chủ động xác nhận nhận chuyến.",
     marker: "Trạng thái",
     label: "Đã có xe nhận chuyến",
-    note: "Liên hệ không giữ chỗ. Chỉ một nhà vận tải nhận được. Lúc này chưa gán xe hay tài xế.",
+    note: "Liên hệ không giữ chỗ. Chỉ một nhà xe nhận được. Lúc này chưa gán xe hay tài xế.",
   },
   {
     index: "03",
-    actor: "Nhà vận tải",
+    actor: "Nhà xe",
     title: "Phân công phương tiện",
     description:
-      "Sau khi nhận chuyến thành công, nhà vận tải lựa chọn phương tiện và phân công tài xế trực thuộc để thực hiện.",
+      "Sau khi nhận chuyến thành công, nhà xe lựa chọn phương tiện và phân công tài xế trực thuộc để thực hiện.",
     marker: "Tiến độ",
     label: "Chờ lấy hàng",
-    note: "Nhà vận tải tự phân công. Tài xế không tự nhận đơn.",
+    note: "Nhà xe tự phân công. Tài xế không tự nhận đơn.",
   },
   {
     index: "04",
@@ -61,7 +61,7 @@ export function JourneyMilestones() {
           Từ đơn niêm yết đến chuyến hàng hoàn tất.
         </h2>
         <p className="mt-4 max-w-xl text-base leading-relaxed text-[#475569] sm:text-lg">
-          Năm bước kết nối chủ hàng, nhà vận tải và tài xế trong một quy trình có trách nhiệm rõ ràng.
+          Năm bước kết nối chủ hàng, nhà xe và tài xế trong một quy trình có trách nhiệm rõ ràng.
         </p>
 
         <ol className="mt-12 sm:mt-16">

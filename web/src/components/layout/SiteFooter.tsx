@@ -10,7 +10,7 @@ const explore = [
 
 const solutions = [
   { label: "Giải pháp cho chủ hàng", to: paths.shipperSolution },
-  { label: "Giải pháp cho nhà vận tải", to: paths.carrierSolution },
+  { label: "Giải pháp cho nhà xe", to: paths.carrierSolution },
   { label: "Đăng nhập", to: paths.login },
 ] as const;
 
@@ -29,7 +29,7 @@ export function SiteFooter() {
               Rõ ràng từng hành trình.
             </p>
             <p className="mt-4 max-w-md text-base leading-relaxed text-[#475569]">
-              Chủ hàng niêm yết nhu cầu vận chuyển. Nhà vận tải tự nhận chuyến, rồi phân công xe và tài xế.
+              Chủ hàng niêm yết nhu cầu vận chuyển. Nhà xe tự nhận chuyến, rồi phân công xe và tài xế.
             </p>
           </div>
           <nav aria-label="Khám phá" className="xl:pt-12">

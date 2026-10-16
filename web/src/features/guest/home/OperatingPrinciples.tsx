@@ -2,12 +2,12 @@ const principles = [
   {
     index: "01",
     title: "Không tự động ghép chuyến",
-    description: "Nhà vận tải tự xem sàn và tự nhận chuyến. Không tự ghép, không tự điều phối, không tự gán tài xế.",
+    description: "Nhà xe tự xem sàn và tự nhận chuyến. Không tự ghép, không tự điều phối, không tự gán tài xế.",
   },
   {
     index: "02",
-    title: "Mỗi đơn chỉ một nhà vận tải nhận thành công",
-    description: "Gọi điện hoặc chat theo đơn không giữ chỗ. Chỉ một nhà vận tải nhận được đơn đang mở. Nhận chuyến chưa gán xe hay tài xế.",
+    title: "Mỗi đơn chỉ một nhà xe nhận thành công",
+    description: "Gọi điện hoặc chat theo đơn không giữ chỗ. Chỉ một nhà xe nhận được đơn đang mở. Nhận chuyến chưa gán xe hay tài xế.",
   },
   {
     index: "03",

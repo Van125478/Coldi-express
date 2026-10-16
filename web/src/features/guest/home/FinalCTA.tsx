@@ -3,7 +3,7 @@ import { paths } from "@/app/paths";
 
 const choices = [
   { label: "Tôi là chủ hàng", to: paths.shipperSolution },
-  { label: "Tôi là nhà vận tải", to: paths.carrierSolution },
+  { label: "Tôi là nhà xe", to: paths.carrierSolution },
 ] as const;
 
 export function FinalCTA() {

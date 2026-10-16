@@ -58,8 +58,8 @@ export function AudienceSolutions() {
             />
           </figure>
           <div className="order-1 lg:order-none lg:col-span-5 lg:col-start-8 lg:row-start-1">
-            <p className="text-[11px] font-semibold tracking-[0.22em] text-[#1e3a8a]">02 · NHÀ VẬN TẢI</p>
-            <h3 className="mt-3 text-3xl font-extrabold tracking-tight">Nhà vận tải</h3>
+            <p className="text-[11px] font-semibold tracking-[0.22em] text-[#1e3a8a]">02 · NHÀ XE</p>
+            <h3 className="mt-3 text-3xl font-extrabold tracking-tight">Nhà xe</h3>
             <p className="mt-4 max-w-md text-base leading-relaxed text-[#475569]">
               Xem chuyến phù hợp, có thể liên hệ chủ hàng bằng điện thoại hoặc trao đổi theo đơn, rồi tự nhận. Xe và tài xế được phân công sau khi nhận thành công.
             </p>
