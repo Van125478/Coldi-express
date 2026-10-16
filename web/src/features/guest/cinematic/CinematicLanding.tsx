@@ -1,6 +1,8 @@
 import { AudienceSolutions } from "@/features/guest/home/AudienceSolutions";
 import { EditorialBridge } from "@/features/guest/home/EditorialBridge";
 import { JourneyMilestones } from "@/features/guest/home/JourneyMilestones";
+import { OperatingPrinciples } from "@/features/guest/home/OperatingPrinciples";
+import { PilotFocus } from "@/features/guest/home/PilotFocus";
 import { CinematicJourney } from "@/features/transition-lab/PhaseOnePreview";
 
 export function CinematicLanding() {
@@ -10,6 +12,8 @@ export function CinematicLanding() {
       <EditorialBridge />
       <AudienceSolutions />
       <JourneyMilestones />
+      <OperatingPrinciples />
+      <PilotFocus />
     </>
   );
 }
