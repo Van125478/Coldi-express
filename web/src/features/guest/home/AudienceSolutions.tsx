@@ -54,6 +54,7 @@ export function AudienceSolutions() {
             <img
               src={roadStill}
               alt="Xe lạnh trên đường đêm, nhìn từ phía trên."
+              loading="lazy"
               className="aspect-[4/3] w-full object-cover object-center sm:aspect-[16/10] lg:aspect-auto lg:h-full"
             />
           </figure>
