@@ -24,7 +24,7 @@ export function AudienceSolutions() {
     <section className="bg-[#f8fafc] text-[#1e293b]" aria-labelledby="audiences-title">
       <div className="guest-frame pb-12 sm:pb-16">
         <div className="h-px bg-[#1e3a8a]/25" />
-        <h2 id="audiences-title" className="mt-12 max-w-2xl text-[1.75rem] leading-tight font-extrabold tracking-tight text-balance sm:mt-14 sm:text-4xl">
+        <h2 id="audiences-title" className="mt-12 max-w-2xl scroll-mt-20 text-[1.75rem] leading-tight font-extrabold tracking-tight text-balance sm:mt-14 sm:text-4xl">
           Hai phía kết nối. Một hành trình vận chuyển.
         </h2>
 

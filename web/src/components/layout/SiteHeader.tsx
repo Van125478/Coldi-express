@@ -12,6 +12,60 @@ const desktopNav = [
   { to: paths.about, label: "Về chúng tôi", end: false },
 ] as const;
 
+const scrollKeys = new Set(["ArrowDown", "ArrowUp", "PageDown", "PageUp", "Home", "End", " "]);
+
+function alignAudienceHeading() {
+  let cancelled = false;
+  let frame = 0;
+  const cancel = () => {
+    cancelled = true;
+  };
+  const onWheel = () => cancel();
+  const onTouch = () => cancel();
+  const onKey = (event: KeyboardEvent) => {
+    if (scrollKeys.has(event.key)) cancel();
+  };
+  window.addEventListener("wheel", onWheel, { passive: true, capture: true });
+  window.addEventListener("touchmove", onTouch, { passive: true, capture: true });
+  window.addEventListener("keydown", onKey, true);
+
+  const align = () => {
+    if (cancelled) return;
+    const target = document.getElementById("audiences-title");
+    if (!target) return;
+    target.scrollIntoView({ block: "start", behavior: "instant" });
+  };
+  const alignOnce = () => {
+    cancelAnimationFrame(frame);
+    frame = requestAnimationFrame(() => {
+      frame = requestAnimationFrame(align);
+    });
+  };
+
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const pinReady = () => reduced || document.querySelector(".pin-spacer") !== null;
+  let observer: MutationObserver | undefined;
+  if (pinReady()) {
+    alignOnce();
+  } else {
+    observer = new MutationObserver(() => {
+      if (!pinReady()) return;
+      observer?.disconnect();
+      alignOnce();
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+  }
+
+  return () => {
+    cancelled = true;
+    observer?.disconnect();
+    cancelAnimationFrame(frame);
+    window.removeEventListener("wheel", onWheel, true);
+    window.removeEventListener("touchmove", onTouch, true);
+    window.removeEventListener("keydown", onKey, true);
+  };
+}
+
 export function SiteHeader() {
   const location = useLocation();
   const locationKey = `${location.pathname}${location.search}`;
@@ -28,6 +82,11 @@ export function SiteHeader() {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, [cinematic]);
+
+  useEffect(() => {
+    if (location.pathname !== paths.home || location.hash !== "#audiences-title") return;
+    return alignAudienceHeading();
+  }, [location.pathname, location.hash]);
 
   return (
     <header
@@ -66,8 +125,8 @@ export function SiteHeader() {
           <Link
             to={paths.login}
             className={cn(
-              "hidden min-h-11 items-center rounded-full px-4 text-sm font-semibold sm:inline-flex",
-              cinematic ? "bg-white/10 text-white ring-1 ring-white/15 hover:bg-white/15" : "bg-canvas text-ink ring-1 ring-line hover:bg-white",
+              "hidden min-h-11 items-center px-2 text-sm font-semibold min-[1440px]:inline-flex",
+              cinematic ? "text-white/80 hover:text-white" : "text-[#475569] hover:text-navy",
             )}
           >
             Đăng nhập
@@ -75,12 +134,16 @@ export function SiteHeader() {
           <Link
             to={paths.register}
             className={cn(
-              "inline-flex min-h-11 items-center rounded-full px-4 text-sm font-semibold",
-              cinematic ? "bg-white text-navy hover:bg-white/90" : "bg-navy text-white hover:bg-navy-deep",
+              "hidden min-h-11 items-center px-2 text-sm font-semibold min-[1440px]:inline-flex",
+              cinematic ? "text-white/80 hover:text-white" : "text-[#475569] hover:text-navy",
             )}
           >
             Đăng ký
           </Link>
+          <ExploreSolutions
+            cinematic={cinematic}
+            onNavigate={() => setOpenKey(null)}
+          />
           <Link
             to={authPath("account", paths.home)}
             aria-label="Tài khoản, yêu cầu đăng nhập"
@@ -94,7 +157,7 @@ export function SiteHeader() {
           <button
             type="button"
             className={cn(
-              "inline-flex size-11 items-center justify-center rounded-xl min-[1200px]:hidden",
+              "inline-flex size-11 items-center justify-center rounded-xl min-[1440px]:hidden",
               cinematic ? "text-white hover:bg-white/10" : "text-navy hover:bg-canvas",
             )}
             aria-expanded={mobileOpen}
@@ -110,7 +173,7 @@ export function SiteHeader() {
         <nav
           id={menuId}
           className={cn(
-            "border-t px-5 py-3 sm:px-8 xl:px-10 min-[1200px]:hidden",
+            "border-t px-5 py-3 sm:px-8 xl:px-10 min-[1440px]:hidden",
             cinematic ? "site-header-menu border-white/10" : "border-line bg-surface",
           )}
           aria-label="Điều hướng di động"
@@ -149,12 +212,17 @@ export function SiteHeader() {
                 Về chúng tôi
               </MobileLink>
             </li>
-            <li className={cn("mt-2 border-t pt-2 sm:hidden", cinematic ? "border-white/10" : "border-line")}>
+            <li className={cn("mt-2 border-t pt-2 min-[1440px]:hidden", cinematic ? "border-white/10" : "border-line")}>
               <MobileLink to={paths.login} cinematic={cinematic}>
                 Đăng nhập
               </MobileLink>
             </li>
-            <li>
+            <li className="min-[1440px]:hidden">
+              <MobileLink to={paths.register} cinematic={cinematic}>
+                Đăng ký
+              </MobileLink>
+            </li>
+            <li className="min-[1200px]:hidden">
               <MobileLink to={authPath("account", paths.home)} cinematic={cinematic}>
                 Tài khoản
               </MobileLink>
@@ -223,6 +291,31 @@ function MobileLink({
     >
       {children}
     </NavLink>
+  );
+}
+
+function ExploreSolutions({ cinematic, onNavigate }: { cinematic: boolean; onNavigate: () => void }) {
+  const location = useLocation();
+
+  return (
+    <Link
+      to={{ pathname: paths.home, hash: "#audiences-title" }}
+      className={cn(
+        "inline-flex min-h-11 items-center whitespace-nowrap rounded-full px-3 text-sm font-semibold sm:px-4",
+        cinematic ? "bg-[#1e3a8a] text-white ring-1 ring-white/45 hover:bg-[#172554]" : "bg-navy text-white hover:bg-navy-deep",
+      )}
+      onClick={(event) => {
+        onNavigate();
+        if (location.pathname !== paths.home) return;
+        const target = document.getElementById("audiences-title");
+        if (!target) return;
+        event.preventDefault();
+        target.scrollIntoView({ block: "start", behavior: "instant" });
+        window.history.replaceState(null, "", "#audiences-title");
+      }}
+    >
+      Khám phá giải pháp
+    </Link>
   );
 }
 
