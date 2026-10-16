@@ -1,23 +1,30 @@
 import { useState, type FormEvent } from "react";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, LoaderCircle } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { parseAuthAction, paths } from "@/app/paths";
+import { isRolePath, parseAuthAction, paths, workspaceHome } from "@/app/paths";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/ui/Logo";
-import { useAuth } from "@/features/auth/useAuth";
-import { LogisticsSketch } from "@/features/guest/sketch/LogisticsSketch";
 import { authMessages } from "@/content/publicCopy";
+import { useAuth } from "@/features/auth/useAuth";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import type { BusinessRole } from "@/models/session";
 import { ApiError } from "@/services/apiClient";
 
-const lanes = [
-  { label: "Điểm lấy", places: ["Tiền Giang", "Long An"] },
-  { label: "Điểm giao", places: ["TP.HCM", "Bình Dương", "Đồng Nai"] },
-] as const;
+const roleLabels: Record<BusinessRole, string> = {
+  SHIPPER: "Chủ hàng",
+  CARRIER: "Nhà xe",
+  DRIVER: "Tài xế",
+  ADMIN: "Quản trị",
+};
 
-const temperatures = ["Lạnh mát", "Đông", "Cực lạnh"] as const;
+const roleWork: Record<BusinessRole, string> = {
+  SHIPPER: "Niêm yết đơn và theo dõi đơn của tài khoản.",
+  CARRIER: "Xem đơn đang tìm xe, nhận chuyến và phân công đội xe.",
+  DRIVER: "Xem chuyến được nhà xe phân công khi phần này mở.",
+  ADMIN: "Khu vận hành quản trị chưa mở.",
+};
 
 function safeNextPath(value: string | null): string | null {
   if (value === null || !value.startsWith("/") || value.startsWith("//") || value.includes("\\")) return null;
@@ -29,15 +36,14 @@ export function LoginPage() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const action = parseAuthAction(params.get("action"));
-  const message = authMessages[action];
   const nextPath = safeNextPath(params.get("next"));
   const { snapshot, login, logout } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [visible, setVisible] = useState(false);
-  const [resetNote, setResetNote] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const context = action === "general" ? null : authMessages[action];
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -48,8 +54,9 @@ export function LoginPage() {
     setPending(true);
     setError(null);
     try {
-      await login(email, password);
-      if (nextPath) navigate(nextPath, { replace: true });
+      const user = await login(email, password);
+      const destination = nextPath && isRolePath(user.role, nextPath) ? nextPath : workspaceHome(user.role);
+      navigate(destination, { replace: true });
     } catch (caught) {
       setError(caught instanceof ApiError ? caught.message : "Không đăng nhập được. Hãy thử lại.");
     } finally {
@@ -58,148 +65,122 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-svh bg-surface lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-      <aside className="relative hidden min-w-0 bg-[#0b1736] text-white lg:block">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_20%_0%,rgba(37,99,235,0.38),transparent_52%)]" />
-        <div className="relative flex h-svh min-w-0 flex-col justify-between overflow-y-auto px-8 py-8 xl:px-14">
-          <Logo tone="inverse" />
-          <div className="my-10 max-w-lg">
-            <p className="text-xs font-bold tracking-[0.18em] text-white/55 uppercase">Chuỗi lạnh đường bộ</p>
-            <h2 className="mt-4 text-4xl leading-[1.12] font-extrabold text-balance">Vận tải lạnh, kết nối trực tiếp</h2>
-            <p className="mt-4 text-sm leading-relaxed text-white/75">
-              Chủ hàng niêm yết đơn. Nhà xe tự nhận chuyến. Đăng nhập tạo phiên theo vai trò đã cấp, không tự đăng đơn và không tự nhận chuyến.
-            </p>
-            <div className="mt-8 overflow-hidden rounded-2xl border border-white/10 bg-white">
-              <LogisticsSketch className="h-52" />
-            </div>
-            <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-5">
-              <p className="text-[11px] font-bold tracking-[0.16em] text-white/50 uppercase">Phạm vi pilot</p>
-              <div className="mt-4 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start gap-3">
-                {lanes.map((lane, index) => (
-                  <div key={lane.label} className={index === 1 ? "col-start-3" : undefined}>
-                    <p className="text-xs text-white/50">{lane.label}</p>
-                    <ul className="mt-2 space-y-1">
-                      {lane.places.map((place) => (
-                        <li key={place} className="text-sm font-semibold">
-                          {place}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-                <div className="col-start-2 row-start-1 mt-7 h-px w-8 bg-white/35" aria-hidden="true" />
-              </div>
-              <ul className="mt-5 flex flex-wrap gap-2">
-                {temperatures.map((item) => (
-                  <li key={item} className="rounded-full border border-white/15 px-3 py-1 text-xs font-semibold text-white/85">
-                    {item}
-                  </li>
-                ))}
-              </ul>
-              <p className="mt-4 text-xs leading-relaxed text-white/55">
-                Nhóm nhiệt giới thiệu, không gắn mức °C mặc định. Không phải chuyến đang theo dõi.
-              </p>
-            </div>
-          </div>
-          <p className="text-sm text-white/55">© 2026 COLDI</p>
+    <div className="min-h-svh bg-canvas lg:grid lg:grid-cols-[minmax(20rem,0.86fr)_minmax(24rem,1.14fr)]">
+      <aside className="relative hidden overflow-hidden bg-navy-deep text-white lg:flex lg:min-h-svh lg:flex-col lg:justify-between lg:px-12 lg:py-10">
+        <Logo tone="inverse" />
+        <div className="max-w-md">
+          <p className="text-xs font-semibold tracking-[0.16em] text-white/60">VẬN TẢI LẠNH</p>
+          <h2 className="mt-4 text-4xl leading-tight font-extrabold">Kết nối chủ hàng và nhà xe</h2>
+          <ol className="mt-8 space-y-4 text-sm leading-relaxed text-white/80">
+            <li>01 · Chủ hàng niêm yết đơn. Đơn mới ở trạng thái Đang tìm xe.</li>
+            <li>02 · Nhà xe tự nhận chuyến. Gọi điện không giữ chỗ.</li>
+            <li>03 · Sau khi nhận, nhà xe phân công xe và tài xế.</li>
+          </ol>
         </div>
+        <p className="text-sm text-white/55">© 2026 COLDI</p>
       </aside>
-
-      <section className="flex min-h-svh min-w-0 flex-col lg:h-svh lg:overflow-y-auto">
-        <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-4 sm:px-8 lg:px-10">
-          <div className="min-w-0 lg:hidden">
+      <section className="flex min-h-svh flex-col">
+        <header className="flex items-center justify-between gap-4 px-5 py-5 sm:px-10 lg:justify-end">
+          <div className="lg:hidden">
             <Logo />
           </div>
-          <Link to={paths.home} className="ml-auto inline-flex min-h-11 items-center text-sm font-semibold text-navy">
+          <Link to={paths.home} className="inline-flex min-h-11 items-center text-sm font-semibold text-navy">
             Về trang chủ
           </Link>
         </header>
-        <div className="flex w-full flex-1 items-start justify-center px-4 pt-2 pb-10 sm:px-8 lg:items-center lg:px-10">
-          <div className="w-full max-w-md min-w-0">
-            <h1 className="text-3xl font-extrabold tracking-tight text-ink">Đăng nhập</h1>
-            <p className="mt-2 text-sm leading-relaxed text-muted">Dùng email và mật khẩu của tài khoản đã được cấp.</p>
-            <div className="mt-5 rounded-2xl border border-warning-line bg-warning-bg p-4 text-sm leading-relaxed text-warning">
-              <p className="font-semibold">{message.title}</p>
-              <p className="mt-1">{message.body}</p>
-            </div>
+        <div className="flex flex-1 items-center px-5 pb-10 sm:px-10">
+          <div className="mx-auto w-full max-w-lg">
             {snapshot.status === "authenticated" ? (
-              <div className="mt-6 space-y-4">
-                <p role="status" className="text-sm leading-relaxed text-ink">
-                  Đã đăng nhập bằng {snapshot.user.email}.
-                </p>
-                <Button type="button" variant="outline" size="lg" onClick={() => void logout()}>
-                  Đăng xuất
-                </Button>
-              </div>
+              <SignedIn email={snapshot.user.email} role={snapshot.user.role} onLogout={() => void logout()} />
             ) : (
-            <form className="mt-6 space-y-4" onSubmit={(event) => void handleSubmit(event)} noValidate>
-              <div className="space-y-2">
-                <Label htmlFor="login-email">Email</Label>
-                <Input
-                  id="login-email"
-                  name="email"
-                  type="email"
-                  autoComplete="username"
-                  placeholder="ten@congty.vn"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  disabled={pending || snapshot.status === "loading"}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="login-password">Mật khẩu</Label>
-                <div className="relative">
-                  <Input
-                    id="login-password"
-                    name="password"
-                    type={visible ? "text" : "password"}
-                    autoComplete="current-password"
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    disabled={pending || snapshot.status === "loading"}
-                    className="pr-12"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="absolute top-1/2 right-1 -translate-y-1/2 text-muted"
-                    aria-label={visible ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
-                    onClick={() => setVisible((value) => !value)}
-                  >
-                    {visible ? <EyeOff className="size-5" aria-hidden="true" /> : <Eye className="size-5" aria-hidden="true" />}
+              <>
+                <h1 className="text-3xl font-extrabold tracking-tight text-ink">Chào mừng trở lại</h1>
+                <p className="mt-2 text-base leading-relaxed text-muted">Đăng nhập để vào khu làm việc của tài khoản đã cấp.</p>
+                {context ? (
+                  <div className="mt-6 rounded-2xl border border-line bg-surface px-4 py-3 text-sm leading-relaxed">
+                    <p className="font-semibold text-ink">{context.title}</p>
+                    <p className="mt-1 text-muted">{context.body}</p>
+                  </div>
+                ) : null}
+                <form className="mt-8 space-y-5" onSubmit={(event) => void handleSubmit(event)} noValidate>
+                  <div className="space-y-2">
+                    <Label htmlFor="login-email">Email</Label>
+                    <Input
+                      id="login-email"
+                      name="email"
+                      type="email"
+                      autoComplete="username"
+                      placeholder="ten@congty.vn"
+                      value={email}
+                      onChange={(event) => setEmail(event.target.value)}
+                      disabled={pending || snapshot.status === "loading"}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="login-password">Mật khẩu</Label>
+                    <div className="relative">
+                      <Input
+                        id="login-password"
+                        name="password"
+                        type={visible ? "text" : "password"}
+                        autoComplete="current-password"
+                        placeholder="Nhập mật khẩu"
+                        value={password}
+                        onChange={(event) => setPassword(event.target.value)}
+                        disabled={pending || snapshot.status === "loading"}
+                        className="pr-12"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute top-1/2 right-1 -translate-y-1/2 text-muted"
+                        aria-label={visible ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                        onClick={() => setVisible((value) => !value)}
+                      >
+                        {visible ? <EyeOff className="size-5" aria-hidden="true" /> : <Eye className="size-5" aria-hidden="true" />}
+                      </Button>
+                    </div>
+                  </div>
+                  <Button type="submit" size="lg" disabled={pending || snapshot.status === "loading"} aria-busy={pending}>
+                    {pending ? <LoaderCircle className="size-4 animate-spin" aria-hidden="true" /> : null}
+                    {pending ? "Đang đăng nhập" : "Đăng nhập"}
                   </Button>
-                </div>
-              </div>
-              <div className="flex justify-end">
-                <Button type="button" variant="ghost" className="h-auto min-h-11 px-2 text-navy" onClick={() => setResetNote(true)}>
-                  Quên mật khẩu?
-                </Button>
-              </div>
-              {resetNote ? (
-                <p role="status" className="text-sm leading-relaxed text-muted">
-                  Khôi phục mật khẩu chưa được triển khai.
-                </p>
-              ) : null}
-              <Button type="submit" size="lg" disabled={pending || snapshot.status === "loading"}>
-                {pending ? "Đang đăng nhập" : "Đăng nhập"}
-              </Button>
-              {error ? (
-                <p role="alert" className="text-sm leading-relaxed text-ink">
-                  {error}
-                </p>
-              ) : null}
-            </form>
+                  {snapshot.status === "loading" ? <p className="text-sm text-muted">Đang kiểm tra phiên đăng nhập.</p> : null}
+                  {error ? (
+                    <p role="alert" className="text-sm leading-relaxed text-ink">
+                      {error}
+                    </p>
+                  ) : null}
+                </form>
+                <p className="mt-6 text-sm leading-relaxed text-muted">Tài khoản được cấp trước. Đăng ký công khai chưa mở.</p>
+              </>
             )}
-            <p className="mt-6 text-center text-sm text-muted">
-              Chưa có tài khoản?{" "}
-              <Link to={{ pathname: paths.register, search: params.toString() }} className="font-semibold text-navy">
-                Đăng ký
-              </Link>
-            </p>
           </div>
         </div>
       </section>
+    </div>
+  );
+}
+
+function SignedIn({ email, role, onLogout }: { email: string; role: BusinessRole; onLogout: () => void }) {
+  return (
+    <div>
+      <p className="text-xs font-semibold tracking-[0.14em] text-navy">PHIÊN ĐANG MỞ</p>
+      <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-ink">Đã đăng nhập</h1>
+      <p className="mt-2 text-base leading-relaxed text-muted">{roleWork[role]}</p>
+      <div className="mt-8 rounded-2xl border border-line bg-surface p-5">
+        <p className="text-sm text-muted">Tài khoản</p>
+        <p className="mt-1 text-lg font-bold text-ink">{email}</p>
+        <p className="mt-3 text-sm text-muted">Vai trò</p>
+        <p className="mt-1 text-base font-semibold text-navy">{roleLabels[role]}</p>
+      </div>
+      <Link to={workspaceHome(role)} className="mt-6 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-navy px-5 text-sm font-semibold text-white hover:bg-navy-deep">
+        Vào khu làm việc
+      </Link>
+      <Button type="button" variant="outline" size="lg" className="mt-3" onClick={onLogout}>
+        Đăng xuất
+      </Button>
     </div>
   );
 }

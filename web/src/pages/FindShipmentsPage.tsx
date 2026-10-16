@@ -1,7 +1,6 @@
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { authPath, paths } from "@/app/paths";
 import { useAuth } from "@/features/auth/useAuth";
-import { CarrierLoadBoard } from "@/features/shipments/CarrierLoadBoard";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import type { BusinessRole } from "@/models/session";
 
@@ -9,7 +8,7 @@ const carrierSteps = ["Xem đơn đang tìm xe", "Tự nhận chuyến", "Phân 
 
 export function FindShipmentsPage() {
   usePageTitle("Tìm chuyến hàng");
-  const { snapshot, logout } = useAuth();
+  const { snapshot } = useAuth();
 
   if (snapshot.status === "loading") {
     return (
@@ -20,7 +19,7 @@ export function FindShipmentsPage() {
   }
 
   if (snapshot.status === "authenticated" && snapshot.user.role === "CARRIER") {
-    return <CarrierLoadBoard onLogout={() => void logout()} />;
+    return <Navigate to={paths.carrierFind} replace />;
   }
 
   const signedIn = snapshot.status === "authenticated" ? snapshot.user.role : null;

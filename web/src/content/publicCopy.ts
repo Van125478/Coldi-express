@@ -101,7 +101,7 @@ export const solutions = {
       "Trao đổi với nhà xe theo đơn không tạo lượt nhận chuyến và không giữ chỗ.",
       "Xem mốc chuyến và vị trí GPS khi đã có quyền trên chuyến đó.",
     ],
-    limit: "Tính năng đăng đơn trực tiếp hiện chưa khả dụng trên website.",
+    limit: "Chủ hàng đăng nhập để niêm yết đơn trên website.",
   },
   "nha-xe": {
     title: "Dành cho nhà xe",
@@ -128,11 +128,11 @@ export const authMessages = {
     body: "Gọi điện hoặc nhắn tin không giữ chỗ. Nhà xe đăng nhập để xem đơn Đang tìm xe và tự nhận chuyến. Nhận chuyến chưa gán xe hoặc tài xế.",
   },
   account: {
-    title: "Tài khoản doanh nghiệp chưa mở",
-    body: "Đăng nhập tạo phiên theo vai trò đã cấp. Hồ sơ doanh nghiệp, đội xe, chứng từ, chat và GPS chưa nằm trong phạm vi này.",
+    title: "Vào khu làm việc",
+    body: "Dùng tài khoản đã cấp. Hồ sơ doanh nghiệp, chứng từ, trao đổi và vị trí chuyến chưa mở.",
   },
   general: {
-    title: "Đăng nhập kiểm tra tài khoản đã cấp",
-    body: "Phiên làm việc được tạo sau khi máy chủ xác nhận email và mật khẩu. Đăng nhập không tự đăng đơn và không tự nhận chuyến.",
+    title: "Đăng nhập",
+    body: "Dùng email và mật khẩu của tài khoản đã được cấp.",
   },
 } as const;

@@ -10,13 +10,72 @@ import { NotFoundPage } from "@/pages/NotFoundPage";
 import { PlatformPage } from "@/pages/PlatformPage";
 import { RegisterPage } from "@/pages/RegisterPage";
 import { SolutionPage } from "@/pages/SolutionPage";
-import { RequireAuth } from "@/app/RequireAuth";
+import { LegacyPublishRedirect } from "@/app/LegacyPublishRedirect";
+import { RoleGate } from "@/app/RoleGate";
+import { WorkspaceLayout } from "@/components/layout/WorkspaceLayout";
+import { CarrierLoadBoard } from "@/features/shipments/CarrierLoadBoard";
+import { ClaimedShipments } from "@/features/shipments/ClaimedShipments";
 import { MotionLabPage } from "@/features/motion-lab/MotionLabPage";
 import { TransitionLabPage } from "@/pages/TransitionLabPage";
+import { AdminHome } from "@/features/workspace/admin/AdminHome";
+import { CarrierDashboard } from "@/features/workspace/carrier/CarrierDashboard";
+import { CarrierTripDetail } from "@/features/workspace/carrier/CarrierTripDetail";
+import { CreateShipmentPage } from "@/features/workspace/CreateShipmentPage";
+import { DriverHome } from "@/features/workspace/driver/DriverHome";
+import { ShipperDashboard } from "@/features/workspace/shipper/ShipperDashboard";
+import { ShipperShipmentDetail } from "@/features/workspace/shipper/ShipperShipmentDetail";
+import { ShipperShipments } from "@/features/workspace/shipper/ShipperShipments";
 
 export const router = createBrowserRouter([
   { path: "/motion-lab", element: <MotionLabPage /> },
   { path: "/transition-lab", element: <TransitionLabPage /> },
+  { path: "/dang-don", element: <LegacyPublishRedirect /> },
+  {
+    element: <RoleGate role="SHIPPER" />,
+    children: [
+      {
+        element: <WorkspaceLayout />,
+        children: [
+          { path: "/shipper", element: <ShipperDashboard /> },
+          { path: "/shipper/tao-don", element: <CreateShipmentPage /> },
+          { path: "/shipper/don-hang", element: <ShipperShipments /> },
+          { path: "/shipper/don-hang/:id", element: <ShipperShipmentDetail /> },
+        ],
+      },
+    ],
+  },
+  {
+    element: <RoleGate role="CARRIER" />,
+    children: [
+      {
+        element: <WorkspaceLayout />,
+        children: [
+          { path: "/carrier", element: <CarrierDashboard /> },
+          { path: "/carrier/tim-chuyen", element: <CarrierLoadBoard /> },
+          { path: "/carrier/chuyen-cua-toi", element: <ClaimedShipments /> },
+          { path: "/carrier/chuyen/:id", element: <CarrierTripDetail /> },
+        ],
+      },
+    ],
+  },
+  {
+    element: <RoleGate role="DRIVER" />,
+    children: [
+      {
+        element: <WorkspaceLayout />,
+        children: [{ path: "/driver", element: <DriverHome /> }],
+      },
+    ],
+  },
+  {
+    element: <RoleGate role="ADMIN" />,
+    children: [
+      {
+        element: <WorkspaceLayout />,
+        children: [{ path: "/admin", element: <AdminHome /> }],
+      },
+    ],
+  },
   {
     element: <GuestLayout />,
     children: [
@@ -26,7 +85,6 @@ export const router = createBrowserRouter([
       { path: "ve-chung-toi", element: <AboutPage /> },
       { path: "giai-phap/:audience", element: <SolutionPage /> },
       { path: "nen-tang", element: <PlatformPage /> },
-      { path: "dang-don", element: <RequireAuth /> },
       { path: "*", element: <NotFoundPage /> },
     ],
   },

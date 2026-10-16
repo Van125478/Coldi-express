@@ -18,6 +18,10 @@ export function listMyShipments(): Promise<{ shipments: PublishedShipment[] }> {
   return apiRequest("/api/shipments/mine");
 }
 
+export function getMyShipment(id: string): Promise<{ shipment: PublishedShipment }> {
+  return apiRequest(`/api/shipments/${id}`);
+}
+
 export function listCarrierShipments(): Promise<{ shipments: CarrierShipment[] }> {
   return apiRequest("/api/carrier/shipments");
 }

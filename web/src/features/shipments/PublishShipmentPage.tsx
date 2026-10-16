@@ -1,10 +1,12 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { cloneElement, isValidElement, useEffect, useRef, useState, type FormEvent, type ReactElement, type ReactNode } from "react";
+import { Link } from "react-router-dom";
+import { paths } from "@/app/paths";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { PublishedShipment, PublishShipmentInput, TemperatureGroup } from "@/models/publishedShipment";
 import { ApiError } from "@/services/apiClient";
-import { listMyShipments, publishShipment } from "@/services/shipmentService";
+import { publishShipment } from "@/services/shipmentService";
 
 const temperatures: readonly { value: TemperatureGroup; label: string }[] = [
   { value: "COOL", label: "Lạnh mát" },
@@ -70,6 +72,32 @@ const emptyForm: FormState = {
   listedPriceVnd: "",
 };
 
+const fieldMeta: Record<FieldName, { id: string; label: string }> = {
+  pickupCompany: { id: "pickup-company", label: "Tên công ty / kho gửi" },
+  pickupLocation: { id: "pickup-location", label: "Địa chỉ lấy hàng" },
+  pickupContactName: { id: "pickup-contact", label: "Người bốc hàng" },
+  pickupPhone: { id: "pickup-phone", label: "Số điện thoại lấy hàng" },
+  pickupEmail: { id: "pickup-email", label: "Email nhận thông báo" },
+  pickupDate: { id: "pickup-date", label: "Ngày lấy hàng" },
+  pickupTimeFrom: { id: "pickup-from", label: "Giờ bắt đầu bốc hàng" },
+  pickupTimeTo: { id: "pickup-to", label: "Giờ kết thúc bốc hàng" },
+  deliveryCompany: { id: "delivery-company", label: "Tên công ty / kho nhận" },
+  deliveryLocation: { id: "delivery-location", label: "Địa chỉ giao hàng" },
+  deliveryContactName: { id: "delivery-contact", label: "Người nhận hàng" },
+  deliveryPhone: { id: "delivery-phone", label: "Số điện thoại giao hàng" },
+  deliveryEmail: { id: "delivery-email", label: "Email kho nhận" },
+  deliveryDate: { id: "delivery-date", label: "Ngày giao hàng muộn nhất" },
+  deliveryTimeFrom: { id: "delivery-from", label: "Giờ bắt đầu nhận hàng" },
+  deliveryTimeTo: { id: "delivery-to", label: "Giờ kết thúc nhận hàng" },
+  cargoDescription: { id: "cargo-description", label: "Mô tả hàng hóa" },
+  temperatureGroup: { id: "temperature-group", label: "Nhóm nhiệt" },
+  cargoWeightTon: { id: "cargo-weight", label: "Trọng lượng" },
+  cargoVolumeM3: { id: "cargo-volume", label: "Thể tích" },
+  packageCount: { id: "package-count", label: "Số thùng" },
+  vehicleRequirement: { id: "vehicle-requirement", label: "Yêu cầu xe" },
+  listedPriceVnd: { id: "listed-price", label: "Giá cước niêm yết" },
+};
+
 const stepFields: Record<Step, readonly FieldName[]> = {
   1: ["pickupCompany", "pickupLocation", "pickupContactName", "pickupPhone", "pickupEmail", "pickupDate", "pickupTimeFrom", "pickupTimeTo"],
   2: ["deliveryCompany", "deliveryLocation", "deliveryContactName", "deliveryPhone", "deliveryEmail", "deliveryDate", "deliveryTimeFrom", "deliveryTimeTo"],
@@ -84,6 +112,48 @@ function civil(date: string): string {
   const [year, month, day] = date.split("-");
   if (!year || !month || !day) return date;
   return `${day}/${month}/${year}`;
+}
+
+function filled(value: string): string | null {
+  const text = value.trim();
+  return text === "" ? null : text;
+}
+
+function joinFilled(parts: Array<string | null>): string | null {
+  const values = parts.filter((part): part is string => part !== null);
+  return values.length > 0 ? values.join(" · ") : null;
+}
+
+function summaryRows(form: FormState): { label: string; value: string }[] {
+  const rows: { label: string; value: string }[] = [];
+  const pickup = joinFilled([filled(form.pickupCompany), filled(form.pickupLocation)]);
+  if (pickup) rows.push({ label: "Điểm lấy", value: pickup });
+  const pickupWhen = joinFilled([
+    form.pickupDate ? civil(form.pickupDate) : null,
+    form.pickupTimeFrom && form.pickupTimeTo ? `${form.pickupTimeFrom}–${form.pickupTimeTo}` : filled(form.pickupTimeFrom) ?? filled(form.pickupTimeTo),
+  ]);
+  if (pickupWhen) rows.push({ label: "Lịch lấy", value: pickupWhen });
+  const delivery = joinFilled([filled(form.deliveryCompany), filled(form.deliveryLocation)]);
+  if (delivery) rows.push({ label: "Điểm giao", value: delivery });
+  const deliveryWhen = joinFilled([
+    form.deliveryDate ? civil(form.deliveryDate) : null,
+    form.deliveryTimeFrom && form.deliveryTimeTo ? `${form.deliveryTimeFrom}–${form.deliveryTimeTo}` : filled(form.deliveryTimeFrom) ?? filled(form.deliveryTimeTo),
+  ]);
+  if (deliveryWhen) rows.push({ label: "Lịch giao", value: deliveryWhen });
+  const cargo = filled(form.cargoDescription);
+  if (cargo) rows.push({ label: "Hàng hóa", value: cargo });
+  const temperature = temperatures.find((item) => item.value === form.temperatureGroup)?.label ?? null;
+  if (temperature) rows.push({ label: "Nhóm nhiệt", value: temperature });
+  const measure = joinFilled([
+    filled(form.cargoWeightTon) ? `${form.cargoWeightTon.trim()} tấn` : null,
+    filled(form.cargoVolumeM3) ? `${form.cargoVolumeM3.trim()} m³` : null,
+    filled(form.packageCount) ? `${form.packageCount.trim()} thùng` : null,
+  ]);
+  if (measure) rows.push({ label: "Khối lượng", value: measure });
+  const vehicle = filled(form.vehicleRequirement);
+  if (vehicle) rows.push({ label: "Yêu cầu xe", value: vehicle });
+  if (/^[1-9]\d*$/.test(form.listedPriceVnd)) rows.push({ label: "Giá niêm yết", value: money(Number(form.listedPriceVnd)) });
+  return rows;
 }
 
 function digits(value: string): string {
@@ -184,31 +254,20 @@ function toInput(form: FormState): PublishShipmentInput {
   };
 }
 
-export function PublishShipmentPage({ email, onLogout }: { email: string; onLogout: () => void }) {
+export function PublishShipmentPage({ email }: { email: string }) {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [step, setStep] = useState<Step>(1);
   const [errors, setErrors] = useState<Partial<Record<FieldName, string>>>({});
   const [pending, setPending] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [published, setPublished] = useState<PublishedShipment | null>(null);
-  const [shipments, setShipments] = useState<PublishedShipment[]>([]);
-  const [listState, setListState] = useState<"loading" | "ready" | "error">("loading");
+  const [summary, setSummary] = useState<FieldName[]>([]);
+  const summaryRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    let active = true;
-    listMyShipments()
-      .then((body) => {
-        if (!active) return;
-        setShipments(body.shipments);
-        setListState("ready");
-      })
-      .catch(() => {
-        if (active) setListState("error");
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
+    if (summary.length === 0) return;
+    summaryRef.current?.focus();
+  }, [summary]);
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -217,7 +276,12 @@ export function PublishShipmentPage({ email, onLogout }: { email: string; onLogo
   function next() {
     const stepErrors = errorsForStep(form, step);
     setErrors(stepErrors);
-    if (Object.keys(stepErrors).length > 0) return;
+    const names = Object.keys(stepErrors) as FieldName[];
+    if (names.length > 0) {
+      setSummary(names);
+      return;
+    }
+    setSummary([]);
     setStep((current) => (current === 3 ? 3 : ((current + 1) as Step)));
   }
 
@@ -228,23 +292,25 @@ export function PublishShipmentPage({ email, onLogout }: { email: string; onLogo
     const dateError = localErrors(form).deliveryDate;
     if (dateError) stepErrors.deliveryDate = dateError;
     setErrors(stepErrors);
-    if (Object.keys(stepErrors).length > 0) {
-      if (stepErrors.deliveryDate && Object.keys(stepErrors).length === 1) setStep(2);
+    const names = Object.keys(stepErrors) as FieldName[];
+    if (names.length > 0) {
+      setSummary(names);
+      if (stepErrors.deliveryDate && names.length === 1) setStep(2);
       return;
     }
+    setSummary([]);
     setPending(true);
     setFormError(null);
     try {
       const body = await publishShipment(toInput(form));
       setPublished(body.shipment);
-      setShipments((current) => [body.shipment, ...current.filter((item) => item.id !== body.shipment.id)]);
-      setListState("ready");
       setForm(emptyForm);
       setStep(1);
     } catch (caught) {
       if (caught instanceof ApiError && caught.fields) {
         const serverErrors = caught.fields as Partial<Record<FieldName, string>>;
         setErrors(serverErrors);
+        setSummary(Object.keys(serverErrors) as FieldName[]);
         const names = Object.keys(serverErrors);
         const earlier = names.some((name) => stepFields[1].includes(name as FieldName));
         const middle = names.some((name) => stepFields[2].includes(name as FieldName));
@@ -258,13 +324,14 @@ export function PublishShipmentPage({ email, onLogout }: { email: string; onLogo
   }
 
   return (
-    <section className="mx-auto w-full max-w-3xl px-4 py-12 sm:px-6">
-      <p className="text-sm font-semibold uppercase tracking-wide text-navy">Đăng đơn hàng</p>
-      <h1 className="mt-3 text-3xl font-bold tracking-tight text-ink">Niêm yết nhu cầu vận chuyển</h1>
-      <p className="mt-4 max-w-2xl text-base leading-7 text-muted">
-        {email} đăng đơn với vai trò Chủ hàng. Đơn được niêm yết ở trạng thái Đang tìm xe. Bước này chưa gán nhà xe, xe hoặc tài xế, và chưa có nghĩa là đã thanh toán.
+    <section className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
+      <div>
+      <p className="text-sm font-semibold tracking-[0.14em] text-navy">BƯỚC {step}/3</p>
+      <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-ink">Tạo đơn vận chuyển</h1>
+      <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted">
+        {email} đăng đơn ở trạng thái Đang tìm xe. Đơn chưa gán nhà xe, xe hoặc tài xế, và chưa phải thanh toán.
       </p>
-      <ol className="mt-8 grid gap-3 sm:grid-cols-3">
+      <ol className="mt-6 grid gap-3 sm:grid-cols-3">
         {steps.map((label, index) => {
           const number = (index + 1) as Step;
           const active = step === number;
@@ -280,11 +347,36 @@ export function PublishShipmentPage({ email, onLogout }: { email: string; onLogo
         })}
       </ol>
 
-      <form className="mt-8 space-y-8" onSubmit={(event) => void handleSubmit(event)} noValidate>
+      <form className="mt-6 space-y-6 rounded-2xl border border-line bg-surface p-5 sm:p-6" onSubmit={(event) => void handleSubmit(event)} noValidate>
+        {summary.length > 0 ? (
+          <div ref={summaryRef} tabIndex={-1} role="alert" aria-labelledby="form-error-title" className="rounded-xl border border-warning-line bg-warning-bg p-4 outline-none">
+            <h2 id="form-error-title" className="text-sm font-bold text-ink">
+              Còn thông tin chưa hợp lệ
+            </h2>
+            <ul className="mt-2 space-y-1 text-sm">
+              {summary.map((name) => (
+                <li key={name}>
+                  <a
+                    className="font-semibold text-navy underline-offset-4 hover:underline"
+                    href={`#${fieldMeta[name].id}`}
+                    onClick={(event) => {
+                      const control = document.getElementById(fieldMeta[name].id);
+                      if (!(control instanceof HTMLElement)) return;
+                      event.preventDefault();
+                      control.focus();
+                    }}
+                  >
+                    {fieldMeta[name].label}
+                  </a>
+                  <span className="text-ink"> — {errors[name]}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
         {step === 1 ? (
           <fieldset className="space-y-4" disabled={pending}>
             <legend className="text-lg font-bold text-ink">Địa chỉ kho gửi và lấy hàng</legend>
-            <p className="text-sm leading-relaxed text-muted">Sổ địa chỉ và bản đồ chưa mở. Thông tin dưới đây được lưu cùng đơn.</p>
             <Field label="Tên công ty / kho gửi" id="pickup-company" error={errors.pickupCompany}>
               <Input id="pickup-company" value={form.pickupCompany} onChange={(event) => update("pickupCompany", event.target.value)} aria-invalid={errors.pickupCompany !== undefined} />
             </Field>
@@ -302,10 +394,10 @@ export function PublishShipmentPage({ email, onLogout }: { email: string; onLogo
             <Field label="Email nhận thông báo (tùy chọn)" id="pickup-email" error={errors.pickupEmail}>
               <Input id="pickup-email" type="email" value={form.pickupEmail} onChange={(event) => update("pickupEmail", event.target.value)} aria-invalid={errors.pickupEmail !== undefined} />
             </Field>
-            <Field label="Ngày lấy hàng" id="pickup-date" error={errors.pickupDate}>
-              <Input id="pickup-date" type="date" value={form.pickupDate} onChange={(event) => update("pickupDate", event.target.value)} aria-invalid={errors.pickupDate !== undefined} />
+            <div className="grid gap-4 lg:grid-cols-3">
+            <Field label="Ngày lấy hàng" id="pickup-date" error={errors.pickupDate} hint={form.pickupDate ? civil(form.pickupDate) : undefined}>
+              <Input id="pickup-date" lang="vi" type="date" value={form.pickupDate} onChange={(event) => update("pickupDate", event.target.value)} aria-invalid={errors.pickupDate !== undefined} />
             </Field>
-            <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Khung giờ bốc hàng từ" id="pickup-from" error={errors.pickupTimeFrom}>
                 <Input id="pickup-from" type="time" value={form.pickupTimeFrom} onChange={(event) => update("pickupTimeFrom", event.target.value)} aria-invalid={errors.pickupTimeFrom !== undefined} />
               </Field>
@@ -319,7 +411,6 @@ export function PublishShipmentPage({ email, onLogout }: { email: string; onLogo
         {step === 2 ? (
           <fieldset className="space-y-4" disabled={pending}>
             <legend className="text-lg font-bold text-ink">Thông tin kho nhận và điểm giao</legend>
-            <p className="text-sm leading-relaxed text-muted">Sổ địa chỉ và bản đồ chưa mở. Thông tin dưới đây được lưu cùng đơn.</p>
             <Field label="Tên công ty / kho nhận" id="delivery-company" error={errors.deliveryCompany}>
               <Input id="delivery-company" value={form.deliveryCompany} onChange={(event) => update("deliveryCompany", event.target.value)} aria-invalid={errors.deliveryCompany !== undefined} />
             </Field>
@@ -337,10 +428,10 @@ export function PublishShipmentPage({ email, onLogout }: { email: string; onLogo
             <Field label="Email kho nhận (không bắt buộc)" id="delivery-email" error={errors.deliveryEmail}>
               <Input id="delivery-email" type="email" value={form.deliveryEmail} onChange={(event) => update("deliveryEmail", event.target.value)} aria-invalid={errors.deliveryEmail !== undefined} />
             </Field>
-            <Field label="Ngày giao hàng muộn nhất" id="delivery-date" error={errors.deliveryDate}>
-              <Input id="delivery-date" type="date" value={form.deliveryDate} onChange={(event) => update("deliveryDate", event.target.value)} aria-invalid={errors.deliveryDate !== undefined} />
+            <div className="grid gap-4 lg:grid-cols-3">
+            <Field label="Ngày giao hàng muộn nhất" id="delivery-date" error={errors.deliveryDate} hint={form.deliveryDate ? civil(form.deliveryDate) : undefined}>
+              <Input id="delivery-date" lang="vi" type="date" value={form.deliveryDate} onChange={(event) => update("deliveryDate", event.target.value)} aria-invalid={errors.deliveryDate !== undefined} />
             </Field>
-            <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Khung giờ nhận hàng từ" id="delivery-from" error={errors.deliveryTimeFrom}>
                 <Input id="delivery-from" type="time" value={form.deliveryTimeFrom} onChange={(event) => update("deliveryTimeFrom", event.target.value)} aria-invalid={errors.deliveryTimeFrom !== undefined} />
               </Field>
@@ -354,9 +445,7 @@ export function PublishShipmentPage({ email, onLogout }: { email: string; onLogo
         {step === 3 ? (
           <fieldset className="space-y-4" disabled={pending}>
             <legend className="text-lg font-bold text-ink">Hàng hóa và yêu cầu xe</legend>
-            <p className="text-sm leading-relaxed text-muted">
-              Gợi ý loại xe, cước tự tính, dịch vụ bốc xếp, chứng từ bắt buộc, giá trị khai báo và hạn mức công nợ chưa được áp dụng. Cước niêm yết do chủ hàng nhập. Nhóm nhiệt chưa dùng ngưỡng °C.
-            </p>
+            <p className="text-sm leading-relaxed text-muted">Nhập mô tả hàng, nhóm nhiệt, khối lượng và giá niêm yết. Giá do chủ hàng nhập.</p>
             <Field label="Mô tả hàng hóa" id="cargo-description" error={errors.cargoDescription}>
               <textarea
                 id="cargo-description"
@@ -429,9 +518,6 @@ export function PublishShipmentPage({ email, onLogout }: { email: string; onLogo
               {pending ? "Đang đăng đơn" : "Hoàn tất và đăng đơn"}
             </Button>
           )}
-          <Button type="button" variant="outline" onClick={onLogout}>
-            Đăng xuất
-          </Button>
         </div>
         {formError ? (
           <p role="alert" className="text-sm leading-relaxed text-ink">
@@ -461,51 +547,31 @@ export function PublishShipmentPage({ email, onLogout }: { email: string; onLogo
             <div>Yêu cầu xe: {published.vehicleRequirement}</div>
             <div>Cước niêm yết: {money(published.listedPriceVnd)}</div>
           </dl>
+          <Link to={`${paths.shipperShipments}/${published.id}`} className="mt-4 inline-flex min-h-11 items-center text-sm font-semibold text-navy underline-offset-4 hover:underline">
+            Xem đơn
+          </Link>
         </div>
       ) : null}
-
-      <div className="mt-12">
-        <h2 className="text-xl font-bold text-ink">Đơn đã niêm yết</h2>
-        {listState === "loading" ? <p className="mt-4 text-sm text-muted">Đang tải đơn đã niêm yết.</p> : null}
-        {listState === "error" ? (
-          <p role="alert" className="mt-4 text-sm text-ink">
-            Không tải được danh sách đơn. Hãy tải lại trang.
-          </p>
-        ) : null}
-        {listState === "ready" && shipments.length === 0 ? <p className="mt-4 text-sm text-muted">Chưa có đơn nào.</p> : null}
-        {listState === "ready" && shipments.length > 0 ? (
-          <ul className="mt-4 space-y-3">
-            {shipments.map((shipment) => (
-              <li key={shipment.id} className="rounded-2xl border border-line bg-surface p-4">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="font-semibold text-ink">{shipment.cargoDescription}</p>
-                  <p className="rounded-full bg-canvas px-3 py-1 text-xs font-semibold text-navy">{shipment.statusLabel}</p>
-                </div>
-                <p className="mt-2 text-sm text-muted">
-                  {[shipment.pickupCompany, shipment.pickupLocation].filter(Boolean).join(" — ")} →{" "}
-                  {[shipment.deliveryCompany, shipment.deliveryLocation].filter(Boolean).join(" — ")}
-                </p>
-                <p className="mt-1 text-sm text-muted">
-                  {shipment.temperatureLabel}
-                  {shipment.cargoWeightTon !== null ? ` · ${shipment.cargoWeightTon} tấn` : ""} · {shipment.vehicleRequirement} · {money(shipment.listedPriceVnd)}
-                </p>
-                {shipment.pickupDate && shipment.pickupTimeFrom && shipment.pickupTimeTo ? (
-                  <p className="mt-1 text-sm text-muted">
-                    Lấy hàng: {civil(shipment.pickupDate)}, {shipment.pickupTimeFrom}–{shipment.pickupTimeTo}
-                  </p>
-                ) : null}
-                {shipment.status === "MATCHED" && shipment.vehicleId === null ? <p className="mt-2 text-sm text-ink">Chưa phân công xe và tài xế.</p> : null}
-                {shipment.status === "MATCHED" && shipment.vehicleId !== null ? (
-                  <p className="mt-2 text-sm text-ink">
-                    Xe: {shipment.vehicleLabel ?? "Xe đã phân công"}. Tài xế: {shipment.driverName ?? "Tài xế đã phân công"}. Chưa xác nhận lấy hàng.
-                  </p>
-                ) : null}
-                <p className="mt-2 text-xs text-muted">Mã đơn {shipment.id}</p>
-              </li>
-            ))}
-          </ul>
-        ) : null}
       </div>
+      <aside className="rounded-2xl border border-line bg-surface p-5 xl:sticky xl:top-24">
+        <h2 className="text-sm font-bold text-navy">Thông tin đã nhập</h2>
+        <ol className="mt-4 space-y-3 text-sm">
+          {steps.map((label, index) => (
+            <li key={label} className={step === index + 1 ? "font-semibold text-navy" : "text-muted"}>
+              {index + 1}. {label}
+            </li>
+          ))}
+        </ol>
+        <dl className="mt-5 space-y-3 text-sm">
+          {summaryRows(form).map((row) => (
+            <div key={row.label}>
+              <dt className="text-muted">{row.label}</dt>
+              <dd className="font-semibold text-ink">{row.value}</dd>
+            </div>
+          ))}
+        </dl>
+        {summaryRows(form).length === 0 ? <p className="mt-5 text-sm text-muted">Chưa nhập thông tin.</p> : null}
+      </aside>
     </section>
   );
 }
@@ -514,22 +580,32 @@ function Field({
   id,
   label,
   error,
+  hint,
   children,
 }: {
   id: string;
   label: string;
   error?: string;
+  hint?: string;
   children: ReactNode;
 }) {
+  const errorId = `${id}-error`;
+  const control = isValidElement(children)
+    ? cloneElement(children as ReactElement<{ "aria-describedby"?: string; "aria-invalid"?: boolean }>, {
+        "aria-describedby": error ? errorId : undefined,
+        "aria-invalid": error ? true : undefined,
+      })
+    : children;
   return (
     <div className="space-y-2">
       <Label htmlFor={id}>{label}</Label>
-      {children}
+      {control}
       {error ? (
-        <p id={`${id}-error`} className="text-sm text-ink">
+        <p id={errorId} className="text-sm text-ink">
           {error}
         </p>
       ) : null}
+      {hint ? <p className="text-sm text-muted">{hint}</p> : null}
     </div>
   );
 }

@@ -1,12 +1,17 @@
 import { useEffect, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { paths } from "@/app/paths";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { ShipmentFacts } from "@/features/shipments/shipmentFacts";
+import { money, shipmentTone, windowText } from "@/features/workspace/format";
+import { EmptyPanel, PageHeader, StatusBadge } from "@/features/workspace/ui";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import type { CarrierDriver, CarrierShipment, CarrierVehicle } from "@/models/publishedShipment";
 import { ApiError } from "@/services/apiClient";
 import { assignShipment, listCarrierDrivers, listCarrierVehicles, listClaimedShipments } from "@/services/shipmentService";
 
 export function ClaimedShipments() {
+  usePageTitle("Chuyến của tôi");
   const [shipments, setShipments] = useState<CarrierShipment[]>([]);
   const [vehicles, setVehicles] = useState<CarrierVehicle[]>([]);
   const [drivers, setDrivers] = useState<CarrierDriver[]>([]);
@@ -74,10 +79,23 @@ export function ClaimedShipments() {
     }
   }
 
+  const location = useLocation();
   const resourcesReady = vehicles.length > 0 && drivers.length > 0;
+  const waiting = shipments.filter((item) => item.vehicleId === null || item.driverId === null);
+  const assignedTrips = shipments.filter((item) => item.vehicleId !== null && item.driverId !== null);
+
+  useEffect(() => {
+    if (listState !== "ready" || !location.hash.startsWith("#phan-cong-")) return;
+    const node = document.getElementById(location.hash.slice(1));
+    if (!node) return;
+    node.scrollIntoView({ block: "center" });
+    const select = node.querySelector("select");
+    if (select instanceof HTMLSelectElement) select.focus();
+  }, [listState, location.hash]);
 
   return (
-    <div>
+    <section className="space-y-6">
+      <PageHeader title="Chuyến của tôi" summary="Chuyến chờ phân công nằm ở nhóm phía trên. Chuyến đã có xe và tài xế vẫn xem được bên dưới." />
       {notice ? (
         <p role="status" className={`mt-6 max-w-3xl text-sm leading-relaxed ${noticeTone === "success" ? "text-success" : "text-ink"}`}>
           {notice}
@@ -89,33 +107,66 @@ export function ClaimedShipments() {
           Không tải được chuyến đã nhận. Hãy tải lại trang.
         </p>
       ) : null}
-      {listState === "ready" && shipments.length === 0 ? <p className="mt-8 text-sm text-muted">Chưa có chuyến đã nhận.</p> : null}
+      {listState === "ready" && shipments.length === 0 ? (
+        <EmptyPanel title="Chưa có chuyến đã nhận" body="Khi nhận một đơn đang tìm xe, chuyến sẽ hiện tại đây để phân công xe và tài xế." />
+      ) : null}
       {listState === "ready" && shipments.length > 0 ? (
-        <ul className="mt-8 grid max-w-5xl gap-4">
-          {shipments.map((shipment) => {
+        <div className="space-y-8">
+          {waiting.length > 0 ? (
+            <section className="space-y-3">
+              <h2 className="text-base font-bold text-ink">Chờ phân công</h2>
+              <ul className="grid gap-4">{waiting.map((shipment) => renderTrip(shipment))}</ul>
+            </section>
+          ) : null}
+          {assignedTrips.length > 0 ? (
+            <section className="space-y-3">
+              <h2 className="text-base font-bold text-ink">Đã phân công</h2>
+              <ul className="grid gap-4">{assignedTrips.map((shipment) => renderTrip(shipment))}</ul>
+            </section>
+          ) : null}
+        </div>
+      ) : null}
+    </section>
+  );
+
+  function renderTrip(shipment: CarrierShipment) {
             const selected = choice(shipment.id);
             const assigned = shipment.vehicleId !== null && shipment.driverId !== null;
             return (
-              <li key={shipment.id} className="rounded-2xl border border-line bg-surface p-5">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <h2 className="text-lg font-bold text-ink">{shipment.cargoDescription}</h2>
-                  <p className="rounded-full bg-canvas px-3 py-1 text-xs font-semibold text-navy">{shipment.statusLabel}</p>
+              <li id={`phan-cong-${shipment.id}`} key={shipment.id} className="scroll-mt-24 rounded-2xl border border-line bg-surface">
+                <div className="flex flex-wrap items-start justify-between gap-3 border-b border-line px-5 py-4">
+                  <div>
+                    <StatusBadge tone={shipmentTone(shipment.status, shipment.vehicleId, shipment.driverId)}>{shipment.statusLabel}</StatusBadge>
+                    <h3 className="mt-2 text-lg font-bold text-ink">
+                      <Link to={`${paths.carrierHome}/chuyen/${shipment.id}`} className="hover:text-navy">
+                        {shipment.pickupLocation} → {shipment.deliveryLocation}
+                      </Link>
+                    </h3>
+                    <p className="mt-1 text-sm text-muted">{shipment.cargoDescription}</p>
+                  </div>
+                  <p className="text-sm font-semibold text-ink">{money(shipment.listedPriceVnd)}</p>
                 </div>
-                <ShipmentFacts shipment={shipment} />
+                <div className="grid gap-2 px-5 py-4 text-sm text-muted sm:grid-cols-3">
+                  <p>{shipment.temperatureLabel} · {shipment.vehicleRequirement}</p>
+                  <p>Lấy: {windowText(shipment.pickupDate, shipment.pickupTimeFrom, shipment.pickupTimeTo)}</p>
+                  <p>Giao: {windowText(shipment.deliveryDate, shipment.deliveryTimeFrom, shipment.deliveryTimeTo)}</p>
+                </div>
                 {assigned ? (
-                  <p className="mt-3 text-sm leading-relaxed text-ink">
-                    Xe: {shipment.vehicleLabel ?? "Xe đã phân công"}. Tài xế: {shipment.driverName ?? "Tài xế đã phân công"}. Chưa xác nhận lấy hàng.
-                  </p>
+                  <div className="grid gap-3 border-t border-line bg-canvas px-5 py-4 text-sm text-ink sm:grid-cols-2">
+                    <p>Xe: {shipment.vehicleLabel ?? "Xe đã phân công"}</p>
+                    <p>Tài xế: {shipment.driverName ?? "Tài xế đã phân công"}</p>
+                    <p className="sm:col-span-2 text-muted">Chưa xác nhận lấy hàng. Chưa đổi phân công.</p>
+                  </div>
                 ) : (
                   <form
-                    className="mt-4 grid gap-3"
+                    className="grid gap-4 border-t border-line bg-canvas px-5 py-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-end"
                     onSubmit={(event) => {
                       event.preventDefault();
                       void assign(shipment.id);
                     }}
                   >
                     {resourcesReady ? null : (
-                      <p className="text-sm text-ink">Nhà xe chưa có xe hoặc tài xế để phân công.</p>
+                      <p className="text-sm text-ink lg:col-span-3">Nhà xe chưa có xe hoặc tài xế để phân công.</p>
                     )}
                     <div className="space-y-2">
                       <Label htmlFor={`${shipment.id}-vehicle`}>Xe</Label>
@@ -167,10 +218,6 @@ export function ClaimedShipments() {
                   </form>
                 )}
               </li>
-            );
-          })}
-        </ul>
-      ) : null}
-    </div>
-  );
+    );
+  }
 }

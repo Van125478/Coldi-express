@@ -1,18 +1,22 @@
 import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { paths } from "@/app/paths";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { Button } from "@/components/ui/button";
-import { ClaimedShipments } from "@/features/shipments/ClaimedShipments";
 import { ShipmentFacts } from "@/features/shipments/shipmentFacts";
+import { primaryLinkClass, shipmentTone } from "@/features/workspace/format";
+import { EmptyPanel, PageHeader, StatusBadge } from "@/features/workspace/ui";
 import type { CarrierShipment } from "@/models/publishedShipment";
 import { ApiError } from "@/services/apiClient";
 import { claimShipment, listCarrierShipments } from "@/services/shipmentService";
 
-export function CarrierLoadBoard({ onLogout }: { onLogout: () => void }) {
+export function CarrierLoadBoard() {
+  usePageTitle("Tìm chuyến");
   const [shipments, setShipments] = useState<CarrierShipment[]>([]);
   const [listState, setListState] = useState<"loading" | "ready" | "error">("loading");
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [noticeTone, setNoticeTone] = useState<"success" | "conflict" | "error">("success");
-  const [view, setView] = useState<"available" | "claimed">("available");
 
   const load = useCallback(async () => {
     try {
@@ -48,7 +52,6 @@ export function CarrierLoadBoard({ onLogout }: { onLogout: () => void }) {
       const body = await claimShipment(id);
       setNoticeTone("success");
       setNotice(`Đã nhận chuyến. Trạng thái: ${body.shipment.statusLabel}. Chưa phân công xe và tài xế.`);
-      setView("claimed");
       await load();
     } catch (caught) {
       if (caught instanceof ApiError && caught.status === 409) {
@@ -65,44 +68,46 @@ export function CarrierLoadBoard({ onLogout }: { onLogout: () => void }) {
   }
 
   return (
-    <div className="guest-frame py-10">
-      <h1 className="text-3xl font-extrabold tracking-tight text-navy sm:text-4xl">Tìm chuyến hàng</h1>
-      <p className="mt-3 max-w-3xl text-base leading-relaxed text-ink">
-        Nhà xe tự xem đơn đang tìm xe và tự nhận chuyến. Gọi điện hoặc nhắn tin không giữ chỗ. Nhận chuyến chưa gán xe hay tài xế.
-      </p>
-      <div className="mt-6 flex flex-wrap items-center gap-2">
-        <Button type="button" variant={view === "available" ? "default" : "outline"} onClick={() => setView("available")}>
-          Đơn đang tìm xe
-        </Button>
-        <Button type="button" variant={view === "claimed" ? "default" : "outline"} onClick={() => setView("claimed")}>
-          Chuyến đã nhận
-        </Button>
-        <Button type="button" variant="outline" className="lg:ml-auto" onClick={onLogout}>
-          Đăng xuất
-        </Button>
-      </div>
+    <section className="space-y-6">
+      <PageHeader title="Tìm chuyến hàng" summary="Nhà xe tự xem đơn đang tìm xe và tự nhận chuyến. Gọi điện hoặc nhắn tin không giữ chỗ. Nhận chuyến chưa gán xe hay tài xế." />
       {notice ? (
         <p role="status" className={`mt-6 max-w-3xl text-sm leading-relaxed ${noticeTone === "success" ? "text-success" : "text-ink"}`}>
-          {notice}
+          {notice}{" "}
+          {noticeTone === "success" ? (
+            <Link to={paths.carrierTrips} className="font-semibold text-navy underline-offset-4 hover:underline">
+              Xem trong chuyến của tôi
+            </Link>
+          ) : null}
         </p>
       ) : null}
-      {view === "claimed" ? <ClaimedShipments /> : null}
-      {view === "available" && listState === "loading" ? <p className="mt-8 text-sm text-muted">Đang tải đơn đang tìm xe.</p> : null}
-      {view === "available" && listState === "error" ? (
+      {listState === "loading" ? <p className="mt-8 text-sm text-muted">Đang tải đơn đang tìm xe.</p> : null}
+      {listState === "error" ? (
         <p role="alert" className="mt-8 text-sm text-ink">
           Không tải được danh sách đơn. Hãy tải lại trang.
         </p>
       ) : null}
-      {view === "available" && listState === "ready" && shipments.length === 0 ? (
-        <p className="mt-8 text-sm text-muted">Chưa có đơn đang tìm xe.</p>
+      {listState === "ready" && shipments.length === 0 ? (
+        <EmptyPanel
+          title="Không có đơn đang tìm xe"
+          body="Hiện không có đơn mở. Đơn mới hiện tại đây khi chủ hàng niêm yết."
+          action={
+            <Link to={paths.carrierHome} className={primaryLinkClass}>
+              Về tổng quan
+            </Link>
+          }
+        />
       ) : null}
-      {view === "available" && listState === "ready" && shipments.length > 0 ? (
+      {listState === "ready" && shipments.length > 0 ? (
         <ul className="mt-8 grid gap-4 xl:grid-cols-2">
           {shipments.map((shipment) => (
             <li key={shipment.id} className="rounded-2xl border border-line bg-surface p-5">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <h2 className="text-lg font-bold text-ink">{shipment.cargoDescription}</h2>
-                <p className="rounded-full bg-canvas px-3 py-1 text-xs font-semibold text-navy">{shipment.statusLabel}</p>
+                <h2 className="text-lg font-bold text-ink">
+                  <Link to={`${paths.carrierHome}/chuyen/${shipment.id}`} className="hover:text-navy">
+                    {shipment.cargoDescription}
+                  </Link>
+                </h2>
+                <StatusBadge tone={shipmentTone(shipment.status, shipment.vehicleId, shipment.driverId)}>{shipment.statusLabel}</StatusBadge>
               </div>
               <ShipmentFacts shipment={shipment} />
               <Button className="mt-4" type="button" disabled={pendingId !== null} onClick={() => void claim(shipment.id)}>
@@ -112,6 +117,6 @@ export function CarrierLoadBoard({ onLogout }: { onLogout: () => void }) {
           ))}
         </ul>
       ) : null}
-    </div>
+    </section>
   );
 }
