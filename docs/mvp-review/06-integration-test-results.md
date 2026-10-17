@@ -1,5 +1,7 @@
 # MVP-02 — Kết quả kiểm thử tích hợp
 
+> Historical Snapshot. 45 test và SHA trong file này là kết quả của ngày chạy, không phải bộ test hiện tại. Số mới nằm ở [MVP_STATUS_2026-10-18.md](MVP_STATUS_2026-10-18.md).
+
 Ngày chạy: 2026-10-17. HEAD vẫn `69ec1a198f0729efc10a3d534dd92d264b1738eb`. Không commit.
 
 ## Database

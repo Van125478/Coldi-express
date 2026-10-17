@@ -3,7 +3,7 @@ import { ChatThread } from "@/features/workspace/chat/ChatThread";
 import type { ChatConversation } from "@/features/workspace/chat/types";
 import { getShipperMessages, listShipmentConversations, sendShipperMessage } from "@/services/shipmentService";
 
-export function ShipperChat({ shipmentId }: { shipmentId: string }) {
+export function ShipperChat({ shipmentId, route }: { shipmentId: string; route?: string }) {
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
@@ -45,8 +45,12 @@ export function ShipperChat({ shipmentId }: { shipmentId: string }) {
 
   return (
     <section className="space-y-3">
-      <h2 className="text-base font-bold text-ink">Trao đổi với nhà xe</h2>
-      <p className="text-sm text-muted">Nhắn tin không nhận chuyến và không đổi trạng thái đơn. Chỉ thấy cuộc trao đổi của đơn này.</p>
+      {selected ? null : (
+        <>
+          <h2 className="text-base font-bold text-ink">Trao đổi với nhà xe</h2>
+          <p className="text-sm text-muted">Nhắn tin không nhận chuyến và không đổi trạng thái đơn. Chỉ thấy cuộc trao đổi của đơn này.</p>
+        </>
+      )}
       {state === "loading" ? <p className="text-sm text-muted">Đang tải cuộc trao đổi.</p> : null}
       {state === "error" ? (
         <div role="alert" className="space-y-2">
@@ -60,12 +64,14 @@ export function ShipperChat({ shipmentId }: { shipmentId: string }) {
         <p className="rounded-2xl border border-dashed border-line bg-surface px-4 py-4 text-sm text-ink">Chưa có nhà xe nào nhắn tin về đơn này.</p>
       ) : null}
       {conversations.length > 1 ? (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2" role="tablist" aria-label="Cuộc trao đổi theo nhà xe">
           {conversations.map((item) => (
             <button
               key={item.id}
               type="button"
-              className={`min-h-11 rounded-full px-4 text-sm font-semibold ${item.id === selectedId ? "bg-navy text-white" : "border border-line text-ink"}`}
+              role="tab"
+              aria-selected={item.id === selectedId}
+              className={`min-h-11 rounded-full px-4 text-sm font-semibold ${item.id === selectedId ? "bg-navy text-white" : "border border-line bg-surface text-ink"}`}
               onClick={() => setSelectedId(item.id)}
             >
               {item.carrierLabel}
@@ -76,9 +82,11 @@ export function ShipperChat({ shipmentId }: { shipmentId: string }) {
       {selected ? (
         <ChatThread
           key={selected.id}
-          title={selected.carrierLabel}
+          title="Trao đổi với nhà xe"
           viewer="SHIPPER"
           carrierLabel={selected.carrierLabel}
+          counterpart={selected.carrierLabel}
+          route={route}
           writable={selected.writable}
           threadKey={selected.id}
           load={load}

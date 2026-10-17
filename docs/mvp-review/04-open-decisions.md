@@ -1,6 +1,8 @@
 # MVP-01 — Quyết định chủ sản phẩm cần chốt
 
-Chỉ những chỗ tài liệu v2.3 hoặc mã đang để mở. Không đề xuất làm trước khi duyệt.
+> Historical Snapshot. Câu trong file này nói tạo tài khoản tài xế còn bị chặn là trạng thái lúc rà soát. Core 14 đã triển khai việc đó. Quyết định mới hơn nằm ở [quyết định sản phẩm](../product/COLDI_v2.4_Product_Decisions_2026-10-17.md) và [MVP_STATUS_2026-10-18.md](MVP_STATUS_2026-10-18.md).
+
+Chỉ những chỗ tài liệu v2.3 hoặc mã đang để mở lúc viết file. Không đề xuất làm trước khi duyệt.
 
 Bổ sung 17/10/2026, chưa triển khai: SHIPPER và CARRIER sẽ tự đăng ký và dùng được khi tài khoản hợp lệ; DRIVER do CARRIER cấp; WAREHOUSE do SHIPPER cấp nhưng chưa phải role MVP; dấu xác thực doanh nghiệp do Admin cấp hoặc thu hồi và không tự khóa tài khoản. Chi tiết ở `docs/product/COLDI_v2.4_Product_Decisions_2026-10-17.md`. Bản đồ tuyến lấy → giao vẫn chờ tọa độ hoặc geocoding được duyệt. Không suy ra rằng các mục đó đã có trong code.
 

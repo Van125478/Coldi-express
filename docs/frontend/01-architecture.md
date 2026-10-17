@@ -1,8 +1,10 @@
 # Kiến trúc frontend COLDI
 
+> Historical Snapshot của nền FE-01. Nhánh và câu “Core 09–11 chưa commit” bên dưới không phải hướng dẫn lấy mã. Người mới dùng `main` theo [Team Testing Guide](../team-testing/TEAM_TESTING_GUIDE.md).
+
 Tài liệu này mô tả nền tảng frontend sau FE-01. FE-01 không thêm nghiệp vụ mới và không phải bản thiết kế lại giao diện.
 
-Nhánh làm việc: `feature/cinematic-scroll`. Commit đã đẩy: `69ec1a198f0729efc10a3d534dd92d264b1738eb`. Core 09 GPS, Core 10 Chat và Core 11 Đội xe nằm trong cây làm việc, chưa commit.
+Nhánh lúc viết: `feature/cinematic-scroll`. Commit đã đẩy lúc đó: `69ec1a198f0729efc10a3d534dd92d264b1738eb`. Câu sau ghi nhận cây làm việc ngày đó, không phải kho hiện tại: Core 09 GPS, Core 10 Chat và Core 11 Đội xe lúc ấy nằm trong cây làm việc, chưa commit.
 
 Dự án mẫu `prjLopADiep` không có trong workspace. Cấu trúc thư mục lấy theo mô tả đã được duyệt, rồi chỉnh cho đúng feature đang có của COLDI. Không sao chép nghiệp vụ hay đăng nhập của dự án mẫu.
 

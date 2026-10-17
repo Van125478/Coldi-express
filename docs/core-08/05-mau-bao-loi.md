@@ -11,8 +11,8 @@ Tiêu đề:
 Người kiểm thử:
 Ngày:
 Nhánh và commit:
-  Ví dụ trên nhánh làm việc: feature/cinematic-scroll, timeline cd5045300ac4c788deba3c08053ed1a439481d95. Ghi HEAD thật lúc báo lỗi.
-  Sau khi merge vào main, ghi hash main thật. Đừng điền hash giả.
+  Bản team testing dùng main. Chạy git rev-parse HEAD và ghi SHA đó.
+  Đừng điền feature/cinematic-scroll hay một SHA cũ.
 Môi trường: Windows, Node, MongoDB local hoặc Docker
 Trình duyệt:
 Vai trò: SHIPPER | CARRIER | DRIVER | ADMIN | khách

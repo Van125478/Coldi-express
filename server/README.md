@@ -1,71 +1,68 @@
 # COLDI API
 
-Node.js API for the COLDI local workflow on `integration/coldi-v2.3-mvp`. Authentication is cookie-based. A signed-in shipper can publish a shipment. A carrier can search the open board, claim one published shipment, and assign a vehicle and driver. The assigned driver can confirm pickup, send a latest GPS sample while the trip is `IN_TRANSIT`, and then confirm delivery. The shipper and the winning carrier can use a private shipment thread.
+API Node.js cho bản team testing trên máy local. Không phải production. Không phải MVP đã hoàn thành. Package Management chưa có.
 
-This is not a production deployment and it is not the whole v2.3 MVP. These additions are on the integration branch. They are not merged into `main`. Browser acceptance has not been run for this branch.
+Người mới cài máy theo [hướng dẫn nhóm](../docs/team-testing/TEAM_TESTING_GUIDE.md). File này giải thích API. SHA hiện tại lấy bằng `git rev-parse HEAD` sau `git pull`. Đừng dùng SHA cũ trong mục lịch sử làm HEAD.
 
-The shipment event timeline began in commit `cd5045300ac4c788deba3c08053ed1a439481d95`. Core 08, the team setup guide, is `69ec1a198f0729efc10a3d534dd92d264b1738eb`. New `ASSIGNED` events on this branch also store the vehicle label and driver display name from that assignment. Older events without those fields stay readable and still follow the current records.
+Cookie phiên tên `coldi_session`. Chủ hàng đăng đơn. Nhà xe tìm đơn đang mở, nhận một đơn, phân công xe và tài xế thuộc nhà xe đó. Tài xế được gán xác nhận lấy, gửi một điểm GPS khi `IN_TRANSIT`, rồi xác nhận giao. Chủ hàng đọc điểm của đơn mình. Nhà xe đã nhận đọc điểm qua API riêng. Chat không nhận chuyến và không đổi giá niêm yết.
 
-## Requirements
+## Máy cần có
 
-- Node.js 20.19 or newer
+- Node.js `>= 20.19.0`, đúng `engines` trong `package.json`
 - npm
-- MongoDB listening at the URI in `.env`
+- MongoDB tại URI trong `.env`
 
-Docker is optional. A local MongoDB on `127.0.0.1:27017` is enough.
+Docker không bắt buộc. MongoDB sẵn trên `127.0.0.1:27017` là đủ. Nếu dùng Docker, file `docker-compose.yml` chạy image `mongo:7`, cổng chỉ `127.0.0.1:27017`, volume `coldi-mongo`. Đừng bật Docker khi cổng 27017 đã có MongoDB. `docker compose stop` tắt container và giữ volume. Hướng dẫn này không bảo xóa volume.
 
-## Setup
+## Cài và chạy
 
-```bash
+Thư mục này là `server`, không phải thư mục gốc của kho.
+
+```powershell
 cd server
-npm install
-cp .env.example .env
+npm ci
+Copy-Item .env.example .env
+npm run dev
 ```
 
-`.env.example` uses a local database without a username or password:
+Sửa `.env` trước `npm run dev`. Biến bắt buộc, kiểm tra trong `src/config/env.ts`:
 
-```text
-mongodb://127.0.0.1:27017/coldi
-```
-
-Replace that URI locally if your database requires credentials. Do not commit `.env`.
-
-### Optional local MongoDB with Docker
-
-Docker is not required when MongoDB is already running.
-
-```bash
-docker compose up -d
-```
-
-This publishes MongoDB only on `127.0.0.1:27017` and stores data in a local volume. It does not set a database password.
-
-## Commands
-
-| Command | Purpose |
+| Biến | Ràng buộc |
 | --- | --- |
-| `npm run dev` | Start the API with reload |
-| `npm run typecheck` | Type-check without emitting files |
-| `npm run lint` | Lint `src` and `tests` |
-| `npm test` | Run the test files named in `package.json` |
-| `npm run build` | Compile TypeScript to `dist/` |
-| `npm start` | Run the compiled server |
-| `npm run seed:demo` | Create or update the four local demo accounts |
-| `npm run seed:fleet` | Link the demo driver to the demo carrier and ensure one demo vehicle |
+| `PORT` | Số nguyên 1–65535. Local: `4000` |
+| `MONGODB_URI` | Bắt đầu bằng `mongodb://` hoặc `mongodb+srv://` |
+| `FRONTEND_ORIGIN` | URL http hoặc https, không được `*` |
+| `NODE_ENV` | `development`, `test`, hoặc `production` |
+| `AUTH_SECRET` | Ít nhất 32 ký tự |
 
-`npm test` does not drop the development database `coldi`. Each workflow test file points `MONGODB_URI` at its own database name and refuses to continue if that name does not match. Health tests do not delete a database.
+Thiếu biến thì API không lên, báo `Missing required environment variable`. `AUTH_SECRET` ngắn hơn 32 ký tự báo `AUTH_SECRET must be at least 32 characters.`
 
-The integration branch test script adds GPS, chat, fleet, security, marketplace, marketplace form, and full lifecycle files to the Core 08 list. A clean worktree of commit `95d913284e854e8af4fd058e9310909b4873370c` reported 51 passed and 0 failed. That run used isolated test databases and did not seed demo accounts. It is not manual UI acceptance. The earlier timeline commit still reported 29 passed for its smaller script.
+`FRONTEND_ORIGIN` local là `http://127.0.0.1:5173`. Trang mở bằng `localhost` là nguồn khác, đăng nhập trả 403 `invalid_origin`.
 
-`npm run seed:demo` rewrites `passwordHash` and `role` for the four demo emails. Use it for a new local database or an intentional reset of those accounts. It does not delete shipments. `npm run seed:fleet` must run after it. This branch does not contain a password-reset script.
+## Lệnh trong package.json đã commit
 
-The development frontend origin expected by `.env.example` is `http://127.0.0.1:5173`.
+| Lệnh | Việc |
+| --- | --- |
+| `npm run dev` | API tự tải lại khi sửa mã |
+| `npm run typecheck` | Kiểm tra kiểu, không ghi `dist` |
+| `npm run lint` | oxlint `src` và `tests` |
+| `npm test` | Các file test kể tên trong `package.json`, lần lượt |
+| `npm run build` | Biên TypeScript ra `dist` |
+| `npm start` | Chạy bản đã build |
+| `npm run seed:demo` | Tạo hoặc cập nhật bốn tài khoản demo |
+| `npm run seed:fleet` | Gắn tài xế demo với nhà xe demo, tạo một xe demo nếu chưa có |
+
+`npm test` đổi tên database sang các tên `*_test` và từ chối nếu tên nối không khớp. Không xóa database `coldi`. Không seed trong test.
+
+`npm run seed:demo` ghi lại `passwordHash` và `role` của bốn email demo. Chỉ dùng database mới hoặc database dùng một lần. Không xóa đơn. Từ chối khi `NODE_ENV=production`. `seed:fleet` chạy sau đó. Bản đã commit không có lệnh đặt lại mật khẩu demo.
+
+Kết quả test của lượt chuẩn bị trước tài liệu người mới nằm ở `docs/mvp-review/MVP_STATUS_2026-10-18.md`. Số đó không phải nghiệm thu trình duyệt.
 
 ## Health
 
 `GET /api/health`
 
-Connected database:
+MongoDB đã nối, HTTP 200:
 
 ```json
 {
@@ -75,9 +72,7 @@ Connected database:
 }
 ```
 
-HTTP 200.
-
-Database unavailable:
+API sống nhưng MongoDB chưa nối, HTTP 503:
 
 ```json
 {
@@ -87,93 +82,66 @@ Database unavailable:
 }
 ```
 
-HTTP 503. The process can stay up so this check remains reachable. `degraded` is not full readiness.
+Câu trả lời không chứa URI.
 
-The response never includes the connection URI.
+## Đăng nhập
 
-## Authentication
+Cookie `coldi_session`, 12 giờ, `HttpOnly`, `SameSite=Lax`, `Secure` chỉ khi `NODE_ENV=production`. Bí mật ký là `AUTH_SECRET`. Token không nằm trong `localStorage`.
 
-Sessions use an HTTP-only cookie named `coldi_session`. It lasts 12 hours, uses `SameSite=Lax`, and is marked `Secure` only when `NODE_ENV=production`. The signing secret is `AUTH_SECRET` from the local environment. Tokens are not stored in browser `localStorage`.
-
-The React app and this API must share the host `127.0.0.1`. `localhost` and `127.0.0.1` are different sites, so a page opened at `http://localhost:5173` will not send the cookie to `http://127.0.0.1:4000`. `FRONTEND_ORIGIN` must stay `http://127.0.0.1:5173` for local development.
-
-State-changing auth requests reject an `Origin` header that does not match `FRONTEND_ORIGIN`.
-
-| Method | Path | Result |
+| Phương thức | Đường dẫn | Kết quả |
 | --- | --- | --- |
-| `POST` | `/api/auth/login` | Sets the cookie and returns `{ "user": { "id", "email", "role", "accountStatus", "mustChangePassword" } }` |
-| `GET` | `/api/auth/me` | Returns the same user shape, or 401 |
-| `POST` | `/api/auth/change-required-password` | Replaces a temporary password when `mustChangePassword` is true, then issues a new cookie |
-| `POST` | `/api/auth/logout` | Clears the cookie |
+| `POST` | `/api/auth/login` | Đặt cookie. Trả `user` gồm `id`, `email`, `role`, `accountStatus`, `mustChangePassword` |
+| `GET` | `/api/auth/me` | Cùng dạng user, hoặc 401 |
+| `POST` | `/api/auth/change-required-password` | Đổi mật khẩu tạm khi đang bị yêu cầu, rồi cấp cookie mới |
+| `POST` | `/api/auth/logout` | Xóa cookie |
 
-Invalid login returns 401 `{ "error": { "code": "invalid_credentials", "message" } }` for both unknown emails and wrong passwords. A correct password on a locked account returns 403 `account_locked` and does not set a cookie. The role in the database is the only role used. A role sent by the client is ignored. A missing `accountStatus` means active. A missing `mustChangePassword` means the password change is not required. The session token carries `sv`. A token without `sv` matches version 0. Lock, password reset, and the required password change increment that version, so the previous cookie no longer passes `requireAuth`.
+Sai email hoặc sai mật khẩu: 401, câu `Email hoặc mật khẩu không đúng.` Đúng mật khẩu nhưng tài khoản khóa: 403 `account_locked`, không đặt cookie. Vai gửi từ client bị bỏ qua. Khóa, đặt lại mật khẩu và đổi mật khẩu bắt buộc tăng phiên bản phiên, cookie cũ hết hiệu lực.
 
-### Demo accounts
+Bốn email gợi ý: `shipper.demo@coldi.local`, `carrier.demo@coldi.local`, `driver.demo@coldi.local`, `admin.demo@coldi.local`. Mật khẩu chỉ ở `.env`.
 
-Set the demo emails and passwords in `server/.env`, then run:
+Chưa có giới hạn số lần đăng nhập. Chưa đủ cho production.
 
-```bash
-npm run seed:demo
-```
+## Đơn và nhà xe
 
-The command refuses to run when `NODE_ENV=production`. It upserts by email, so running it again does not create duplicates. Suggested local emails:
-
-- `shipper.demo@coldi.local` — SHIPPER
-- `carrier.demo@coldi.local` — CARRIER
-- `driver.demo@coldi.local` — DRIVER
-- `admin.demo@coldi.local` — ADMIN
-
-Passwords stay in the untracked `.env` file. The script does not print them.
-
-### Known limitations
-
-This authentication setup is for local MVP development. Logout clears the browser cookie. A previously copied token remains valid until it expires unless lock, reset, or the required password change increments `sessionVersion`. Login rate limiting is not implemented. A production deployment needs a separate security review. The React app must currently use `http://127.0.0.1:5173`. Driver account rules are in `docs/core-14/01-driver-account-management.md`.
-
-## Shipments
-
-An authenticated SHIPPER can publish a shipment. The listed price is stored as a whole number of Vietnamese đồng (`listedPriceVnd`). This is the displayed freight amount, not a payment or settlement.
-
-| Method | Path | Result |
+| Phương thức | Đường dẫn | Ai |
 | --- | --- | --- |
-| `POST` | `/api/shipments` | `201` with the created shipment, status `PUBLISHED` |
-| `GET` | `/api/shipments/mine` | The caller's shipments |
-| `GET` | `/api/shipments/:id` | The shipment when the caller owns it |
+| `POST` | `/api/shipments` | SHIPPER đang đăng nhập. Tạo `PUBLISHED`. `shipperId` lấy từ phiên |
+| `GET` | `/api/shipments/mine` | Đơn của chủ hàng đó |
+| `GET` | `/api/shipments/:id` | Chủ hàng sở hữu đơn |
+| `GET` | `/api/shipments/:id/location` | Đúng chủ hàng. Chủ hàng khác: 403 |
+| `GET` | `/api/carrier/shipments` | CARRIER, đơn đang mở. Quét tối đa 500, trả tối đa 100 |
+| `POST` | `/api/carrier/shipments/:id/claim` | Một nhà xe thắng. Nhà xe thứ hai: 409 |
+| `GET` | `/api/carrier/shipments/claimed` | Chuyến nhà xe đã nhận |
+| `POST` | `/api/carrier/shipments/:id/assign` | Xe và tài xế thuộc nhà xe, đơn `MATCHED` chưa gán. Lần hai: 409 |
+| `GET` | `/api/carrier/shipments/:id/location` | Đúng `shipment.carrierId`. Sai hoặc không có: 404 |
 
-`shipperId` comes from the session. `status`, `shipperId`, `carrierId`, `vehicleId`, and `driverId` are rejected if the client sends them. The visitor label for `PUBLISHED` is “Đang tìm xe”.
+Giá lưu là số nguyên đồng, `listedPriceVnd`, chưa phải thanh toán. Nhãn `PUBLISHED` là “Đang tìm xe”. `MATCHED` chưa gán là “Đã có nhà xe nhận chuyến”. Đã gán xe và tài xế thì nhãn vận hành “Chờ lấy hàng”, mã trạng thái vẫn `MATCHED`.
 
-A new shipment also stores the pickup and delivery warehouse, contact name, phone, optional email, civil date, and time window, plus cargo weight in tons, volume in cubic metres, and package count. Older shipments can omit those fields. The API returns null for a missing value and does not invent one. Carrier responses include the warehouse, phone, schedule, weight, volume, and package count. They omit notification emails and `shipperId`. Phone numbers are shown because the approved load board includes direct contact. No national numbering plan, maximum cargo capacity, degree threshold, or past-date policy is approved. The checks in use are basic: a real calendar date, a time window whose end is later than its start, a delivery date on or after the pickup date, a positive measure with at most three decimal places and at most 100000, and an integer package count from 1 to 1000000. The 100000 ceiling is a storage guard, not a vehicle rule. Map lookup, the B2B address book, suggested vehicle prices, loading services, mandatory POD, declared value, VAT, and credit terms are not implemented.
+Chat nhà xe: `POST /api/carrier/conversations/by-shipment/:shipmentId` mở cuộc. Tin nằm dưới `/api/carrier/conversations/:conversationId/messages`. Chat chủ hàng nằm dưới `/api/shipments/:id/conversations`. Gửi tin không claim.
 
-An authenticated CARRIER lists open shipments at `GET /api/carrier/shipments`, oldest first. `POST /api/carrier/shipments/:id/claim` claims one shipment with a conditional MongoDB update. Success sets `MATCHED` and `carrierId` from the session. A second claim receives 409. The visitor label for an unassigned `MATCHED` shipment is “Đã có nhà xe nhận chuyến”. The Master Const status table also says “Đã ghép xe”, and the guest journey says “Đã có xe nhận chuyến”. Those guest pages are unchanged. Claim does not assign a vehicle or driver.
+Đội xe, vai CARRIER: `GET` và `POST /api/carrier/fleet/vehicles`, `GET` và `PATCH /api/carrier/fleet/vehicles/:id`. Không có xóa xe. Tài xế: `GET` và `POST /api/carrier/fleet/drivers`, `PATCH /api/carrier/fleet/drivers/:id` sửa tên, `POST .../lock`, `.../unlock`, `.../reset-password`. Quy tắc Core 14 nằm ở `docs/core-14/01-driver-account-management.md`. Mật khẩu tạm trả một lần. Khóa và đặt lại mật khẩu bị chặn khi tài xế còn chuyến `MATCHED` hoặc `IN_TRANSIT`.
 
-After a successful claim, the winning carrier lists that shipment at `GET /api/carrier/shipments/claimed`. Eligible resources are `GET /api/carrier/fleet/vehicles` and `GET /api/carrier/fleet/drivers`. A vehicle belongs to one carrier. A driver is eligible when the user role is `DRIVER`, `carrierId` is that carrier, the account is active, and a temporary password has already been changed. `POST /api/carrier/shipments/:id/assign` checks ownership first. A missing or foreign vehicle or driver still returns 400. An owned driver who is locked, still on a temporary password, or already held for that shipment returns 409. The shipment update still requires the session carrier, status `MATCHED`, and no existing `vehicleId` or `driverId`. The canonical status stays `MATCHED`. When both resources are stored, the operating label is “Chờ lấy hàng”. A second assignment of the same shipment receives 409 and does not replace the first pair. Assignment does not confirm pickup or delivery.
+## Tài xế
 
-Before that shipment update, the server adds the shipment id to the driver `heldShipmentIds` array with a conditional user update. A failed shipment update removes that id unless the shipment already names this driver. Delivery removes it as well. The same driver may still be named on more than one claimed shipment. Lock and password reset stay blocked while the array is not empty or a `MATCHED` / `IN_TRANSIT` shipment names the driver. MongoDB does not wrap the user update and the shipment update in one transaction. `npm run seed:fleet` prepares one local demo vehicle and links the demo driver to the demo carrier. It refuses production and does not print passwords. Run `npm run seed:demo` first.
-
-The carrier creates a driver with `POST /api/carrier/fleet/drivers`. The response includes the temporary password once. Lock, unlock, and reset are `POST /api/carrier/fleet/drivers/:id/lock`, `/unlock`, and `/reset-password`. See `docs/core-14/01-driver-account-management.md`. Reassignment, vehicle compliance, driver transfer, and document checks are not implemented.
-
-## Driver milestones
-
-An authenticated DRIVER does not browse the load board and cannot claim. These routes are in the pushed commit:
-
-| Method | Path | Result |
+| Phương thức | Đường dẫn | Kết quả |
 | --- | --- | --- |
-| `GET` | `/api/driver/shipments` | Trips assigned to the session driver that already have a vehicle |
-| `GET` | `/api/driver/shipments/:id` | One of those trips, or 404 |
-| `POST` | `/api/driver/shipments/:id/pickup` | From assigned `MATCHED` to `IN_TRANSIT`, with a server pickup time |
-| `POST` | `/api/driver/shipments/:id/delivery` | From `IN_TRANSIT` with a pickup time to `DELIVERY_CONFIRMED` |
+| `GET` | `/api/driver/shipments` | Chuyến đã gán cho tài xế này và đã có xe |
+| `GET` | `/api/driver/shipments/:id` | Một chuyến đó, hoặc 404 |
+| `POST` | `/api/driver/shipments/:id/pickup` | Từ `MATCHED` đã gán sang `IN_TRANSIT` |
+| `POST` | `/api/driver/shipments/:id/delivery` | Từ `IN_TRANSIT` sang `DELIVERY_CONFIRMED` |
+| `POST` | `/api/driver/shipments/:id/location` | Gửi điểm chỉ khi đang `IN_TRANSIT` và đúng tài xế |
+| `GET` | `/api/driver/shipments/:id/location` | Tài xế đọc điểm của chuyến mình |
 
-Another driver, a shipper, or a carrier cannot call these routes successfully. A second pickup or delivery does not move the milestone backward and does not replace the stored time. Delivery does not set `COMPLETED` and does not record a payment.
+Xác nhận lần hai không kéo trạng thái lùi. Giao không sang `COMPLETED` và không ghi thanh toán. GPS không đổi trạng thái và không thêm mốc timeline.
 
-## Shipment timeline
+Sự kiện timeline: `PUBLISHED`, `CLAIMED`, `ASSIGNED`, `PICKUP_CONFIRMED`, `DELIVERY_CONFIRMED`. `ASSIGNED` mới lưu tên xe và tên tài xế lúc gán. Sự kiện cũ không có hai trường đó vẫn đọc được và dùng tên hiện tại, nên câu đó không phải ảnh lịch sử bất biến.
 
-In the timeline commit, a successful publish, claim, assignment, pickup, or delivery appends one event on the same shipment document. Failed authorization and losing concurrent updates do not append a success event. Detail reads for the owning shipper, the authorized carrier, and the assigned driver return that history.
+ADMIN không có router nghiệp vụ. Khách 401. Sai vai 403 trên route yêu cầu vai.
 
-Event types in that commit are `PUBLISHED`, `CLAIMED`, `ASSIGNED`, `PICKUP_CONFIRMED`, and `DELIVERY_CONFIRMED`. A shipment saved before these fields existed is not rewritten. Its read shows only milestones that already have a stored time, and it says claim and assignment times are not inferred.
+## Việc còn mở
 
-The original timeline commit is `cd5045300ac4c788deba3c08053ed1a439481d95`. On this integration branch, a new `ASSIGNED` event also stores `assignedVehicleLabel` and `assignedDriverName` from the server vehicle and driver records. A later fleet rename does not change that sentence. An older event without those fields still uses the current name, so that sentence is not an immutable historical snapshot. Neither case was checked in a browser for this branch.
+Một nhà xe nhận một đơn. Nhận chuyến không gán xe. Chat không giữ chỗ. Tile Mapbox chưa được chứng minh khi render thật. Thời gian lưu tin và quyền đọc của nhà xe thua claim chưa chốt. Không có tenant tổ chức. Audit ghi sau khi nghiệp vụ thành công và có thể mất nếu tiến trình dừng trước insert. Không có gói dịch vụ, hạn mức, hay thanh toán.
 
-## Boundaries still open
+## Lịch sử
 
-Only one carrier can successfully claim a published shipment. A claim does not assign a vehicle or driver. Phone or chat contact does not reserve a shipment. GPS stores one latest sample and does not confirm pickup or delivery. The shipper page can open a Mapbox GL JS map of that sample when a public `pk.` token is configured. Live tiles were not verified in this change. Chat retention and whether a losing carrier should keep reading an old thread are not settled. Fleet editing creates and locks carrier-owned driver accounts as described in Core 14, and does not verify vehicle compliance. Audit rows are written after a successful business update and can be missing if the process stops before the insert. There is no organization tenant. The open load board scans at most 500 shipments and returns at most 100. Delivery does not set `COMPLETED` and does not record a payment.
-
-Responses stay independent of MongoDB document shape. Weight, volume, package count, and the pickup and delivery windows are stored as entered. No approved rule converts units, calculates a price, or rejects a date in the past.
+Timeline bắt đầu ở commit `cd5045300ac4c788deba3c08053ed1a439481d95`. Core 08 từng gắn với `69ec1a198f0729efc10a3d534dd92d264b1738eb`. Hai mã đó không phải HEAD bản team testing hôm nay.

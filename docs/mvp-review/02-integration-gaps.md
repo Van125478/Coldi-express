@@ -1,6 +1,8 @@
 # MVP-01 — Khoảng trống tích hợp
 
-Rà trên mã đang có trong cây làm việc. Không suy ra từ báo cáo Core 13 nếu chưa thấy trong file.
+> Historical Snapshot. Các câu bên dưới về README, `feature/cinematic-scroll` và `main` chỉ có commit khởi tạo là trạng thái lúc rà soát. Hướng dẫn hiện hành là [Team Testing Guide](../team-testing/TEAM_TESTING_GUIDE.md). Trạng thái mới nằm ở [MVP_STATUS_2026-10-18.md](MVP_STATUS_2026-10-18.md).
+
+Rà trên mã đang có trong cây làm việc lúc viết file. Không suy ra từ báo cáo Core 13 nếu chưa thấy trong file.
 
 ## Năm chỗ Core 13 nói đã nối lại
 

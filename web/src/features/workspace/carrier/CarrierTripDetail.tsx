@@ -8,12 +8,13 @@ import { lostSession } from "@/features/workspace/sessionLoss";
 import { assignedDriverLine, cargoMeasures, stopFacts } from "@/features/workspace/carrier/carrierCopy";
 import { money, primaryLinkClass, progressNote, shipmentTone, windowText } from "@/features/workspace/format";
 import { CarrierChat } from "@/features/workspace/chat/CarrierChat";
+import { ShipmentLocation } from "@/features/workspace/gps/ShipmentLocation";
 import { ShipmentTimeline } from "@/features/workspace/ShipmentTimeline";
 import { DetailBlock, PageHeader, StatusBadge } from "@/features/workspace/ui";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import type { CarrierShipment } from "@/models/publishedShipment";
 import { ApiError } from "@/services/apiClient";
-import { claimShipment, getCarrierShipment } from "@/services/shipmentService";
+import { claimShipment, getCarrierShipment, getCarrierShipmentLocation } from "@/services/shipmentService";
 
 function Stop({ label, place, schedule, contactValue }: { label: string; place: string; schedule: string; contactValue: string }) {
   const facts = stopFacts(schedule, contactValue);
@@ -157,9 +158,7 @@ export function CarrierTripDetail() {
                   {shipment.vehicleRequirement}
                 </p>
               </DetailBlock>
-              <div id="tro-chuyen">
-                <CarrierChat shipmentId={shipment.id} />
-              </div>
+              <CarrierChat shipmentId={shipment.id} route={`${shipment.pickupLocation} → ${shipment.deliveryLocation}`} />
               <ShipmentTimeline timeline={shipment.timeline} technical={false} />
             </div>
             <div className="space-y-4">
@@ -196,8 +195,9 @@ export function CarrierTripDetail() {
                   </p>
                 ) : null}
               </DetailBlock>
+              {open ? null : <ShipmentLocation shipmentId={shipment.id} title="Theo dõi vị trí xe" load={getCarrierShipmentLocation} />}
               <DetailBlock title="Bản đồ lộ trình">
-                <p className="text-sm leading-relaxed text-ink">Chưa có bản đồ tuyến. Địa chỉ lấy hàng và giao hàng chưa gắn được vị trí.</p>
+                <p className="text-sm leading-relaxed text-ink">Chưa có bản đồ tuyến giữa điểm lấy và điểm giao. Địa chỉ chưa gắn được vị trí. Mục này không phải vị trí xe.</p>
               </DetailBlock>
             </div>
           </div>

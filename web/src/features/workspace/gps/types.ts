@@ -14,9 +14,9 @@ export type ShipmentTracking = {
 };
 
 export const trackingLabels: Record<TrackingPhase, string> = {
-  not_started: "Chưa bắt đầu vận chuyển",
-  waiting_for_fix: "Đang vận chuyển — chưa có vị trí GPS",
-  current: "Đang vận chuyển — vị trí mới cập nhật",
-  stale: "Đang vận chuyển — vị trí cập nhật đã lâu",
-  ended: "Đã xác nhận giao hàng — ngừng theo dõi trực tiếp",
+  not_started: "Chưa có vị trí xe được cập nhật.",
+  waiting_for_fix: "Chưa có vị trí xe được cập nhật.",
+  current: "Đang vận chuyển.",
+  stale: "Vị trí cập nhật đã lâu.",
+  ended: "Theo dõi trực tiếp đã kết thúc.",
 };

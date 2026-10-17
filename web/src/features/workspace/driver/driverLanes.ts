@@ -33,6 +33,10 @@ export function currentDriverTrip<T extends { nextAction: "pickup" | "delivery" 
   return items.find((item) => item.nextAction === "delivery") ?? items.find((item) => item.nextAction === "pickup") ?? null;
 }
 
+export function otherActionableTrips<T extends { nextAction: "pickup" | "delivery" | "none" }>(items: readonly T[], current: T | null): T[] {
+  return items.filter((item) => item !== current && item.nextAction !== "none").slice(0, 3);
+}
+
 export function compareDriverTrips(left: { status: string }, right: { status: string }): number {
   return laneRank[driverLane(left.status)] - laneRank[driverLane(right.status)];
 }

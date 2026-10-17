@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { paths } from "@/app/paths";
 import { useAuth } from "@/features/auth/useAuth";
 import { lostSession } from "@/features/workspace/sessionLoss";
-import { civil, money, progressNote, shipmentTone, windowText } from "@/features/workspace/format";
+import { civil, money, shipmentTone, windowText } from "@/features/workspace/format";
 import { ShipperChat } from "@/features/workspace/chat/ShipperChat";
 import { ShipmentLocation } from "@/features/workspace/gps/ShipmentLocation";
 import { ShipmentTimeline } from "@/features/workspace/ShipmentTimeline";
@@ -20,6 +20,12 @@ function FactTile({ label, value }: { label: string; value: string }) {
       <p className="mt-1 text-sm font-semibold leading-relaxed text-ink">{value}</p>
     </div>
   );
+}
+
+function assignmentNote(status: string): string {
+  if (status === "IN_TRANSIT") return "Đang vận chuyển.";
+  if (status === "DELIVERY_CONFIRMED") return "Đã xác nhận giao hàng.";
+  return "Chưa xác nhận lấy hàng.";
 }
 
 function contact(name: string | null, phone: string | null, email: string | null): string {
@@ -69,7 +75,9 @@ export function ShipperShipmentDetail() {
           <PageHeader title={`${shipment.pickupLocation} → ${shipment.deliveryLocation}`} summary={shipment.cargoDescription} />
           <div className="flex flex-wrap items-center gap-3">
             <StatusBadge tone={shipmentTone(shipment.status, shipment.vehicleId, shipment.driverId)}>{shipment.statusLabel}</StatusBadge>
-            <p className="text-sm text-muted">Trạng thái lưu: {shipment.status}. Mã đơn {shipment.id}.</p>
+            <p className="text-sm text-muted">
+              Mã đơn <span className="font-medium text-ink">{shipment.id}</span>
+            </p>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <FactTile label="Loại hàng" value={shipment.cargoDescription} />
@@ -106,7 +114,7 @@ export function ShipperShipmentDetail() {
                   <>
                     <FactLine term="Xe" value={shipment.vehicleLabel ?? "Xe đã phân công"} />
                     <FactLine term="Tài xế" value={shipment.driverName ?? "Tài xế đã phân công"} />
-                    <p className="text-sm text-muted">{progressNote(shipment.status)}</p>
+                    <p className="text-sm text-muted">{assignmentNote(shipment.status)}</p>
                   </>
                 ) : (
                   <p className="text-sm leading-relaxed text-ink">
@@ -117,11 +125,10 @@ export function ShipperShipmentDetail() {
               </DetailBlock>
             </div>
           </div>
-          <div id="vi-tri" className="scroll-mt-24 space-y-2">
-            <p className="text-sm text-muted">Vị trí do tài xế gửi. GPS không tự xác nhận lấy hàng hoặc giao hàng, và không tạo mốc lịch sử.</p>
+          <div id="vi-tri" className="scroll-mt-24">
             <ShipmentLocation shipmentId={shipment.id} />
           </div>
-          <ShipperChat shipmentId={shipment.id} />
+          <ShipperChat shipmentId={shipment.id} route={`${shipment.pickupLocation} → ${shipment.deliveryLocation}`} />
           <ShipmentTimeline timeline={shipment.timeline} />
         </>
       ) : null}

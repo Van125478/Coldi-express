@@ -57,7 +57,7 @@ export function DriverLocationShare({ shipmentId, active, phase = "waiting" }: {
       if (document.visibilityState === "hidden") {
         window.clearTimeout(timerRef.current);
         setShare("paused");
-        setNotice("Trang không còn ở trước màn hình. Trình duyệt không bảo đảm gửi vị trí khi ẩn hoặc đã đóng.");
+        setNotice("Đã tạm dừng vì trang không còn mở trước màn hình.");
         return;
       }
       setShare("sharing");
@@ -139,22 +139,22 @@ export function DriverLocationShare({ shipmentId, active, phase = "waiting" }: {
     }
     sharingRef.current = true;
     setShare("requesting");
-    setNotice("Trình duyệt sẽ hỏi quyền vị trí. Chỉ trang này, khi đang mở, mới gửi vị trí.");
+    setNotice("Trình duyệt sẽ hỏi quyền vị trí. Vị trí chỉ được gửi khi trang này đang mở.");
     void sample(true);
   }
 
   return (
     <DetailBlock title="Chia sẻ vị trí">
       <p className="inline-flex min-h-8 items-center rounded-full border border-line bg-canvas px-3 text-xs font-semibold text-ink">{active ? shareLabel[share] : phase === "delivered" ? "Đã kết thúc" : "Chưa mở"}</p>
-      {phase === "delivered" ? <p className="text-sm leading-relaxed text-ink">Đã giao. Theo dõi vị trí đã kết thúc.</p> : null}
+      {phase === "delivered" ? <p className="text-sm leading-relaxed text-ink">Đã giao. Theo dõi trực tiếp đã kết thúc.</p> : null}
       {phase === "waiting" ? <p className="text-sm leading-relaxed text-ink">Chia sẻ vị trí mở sau khi xác nhận lấy hàng.</p> : null}
       {active && share === "sharing" ? <p className="text-sm leading-relaxed text-ink">Đang chia sẻ vị trí trên trang này.</p> : null}
       {active && share !== "sharing" && share !== "requesting" && share !== "paused" ? <p className="text-sm leading-relaxed text-ink">Chuyến đang vận chuyển. Chưa chia sẻ vị trí.</p> : null}
-      {active ? <p className="text-sm leading-relaxed text-muted">Trình duyệt không gửi vị trí khi trang bị ẩn hoặc đã đóng.</p> : null}
+      {active ? <p className="text-sm leading-relaxed text-muted">Vị trí chỉ gửi khi trang này đang mở.</p> : null}
       {share === "denied" ? <p className="text-sm text-ink">Trình duyệt đã từ chối quyền vị trí. Xác nhận lấy hàng và giao hàng vẫn thực hiện được.</p> : null}
       {share === "timeout" ? <p className="text-sm text-ink">Hết thời gian chờ vị trí. Sẽ thử lại khi trang vẫn đang mở.</p> : null}
       {share === "unsupported" ? <p className="text-sm text-ink">Trình duyệt này không cung cấp vị trí.</p> : null}
-      {share === "unavailable" ? <p className="text-sm text-ink">Thiết bị chưa có vị trí. Không tạo tọa độ giả.</p> : null}
+      {share === "unavailable" ? <p className="text-sm text-ink">Thiết bị chưa có vị trí.</p> : null}
       {share === "paused" ? <p className="text-sm text-ink">Đã tạm dừng vì trang không còn ở trước màn hình.</p> : null}
       {notice ? (
         <p className="text-sm text-ink" aria-live="polite">

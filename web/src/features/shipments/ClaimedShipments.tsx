@@ -165,8 +165,8 @@ export function ClaimedShipments() {
               {assignPreview.shipment.pickupLocation} → {assignPreview.shipment.deliveryLocation}
             </p>
             <p className="mt-1 text-sm text-muted">{assignPreview.shipment.cargoDescription}</p>
-            <p className="mt-3 text-sm text-ink">Xe: {vehicleText(assignPreview.vehicle)}</p>
-            <p className="mt-1 text-sm text-ink">Tài xế: {assignPreview.driver?.displayName ?? "Tài xế đã chọn"}</p>
+            <p className="mt-3 text-sm text-ink">{namedLine("Xe", vehicleText(assignPreview.vehicle))}</p>
+            <p className="mt-1 text-sm text-ink">{namedLine("Tài xế", assignPreview.driver?.displayName ?? "Tài xế đã chọn")}</p>
             <p className="mt-3 text-sm leading-relaxed text-ink">Phân công chưa phải xác nhận lấy hàng. Tài xế phải tự xác nhận khi đã nhận hàng.</p>
             <div className="mt-5 flex flex-wrap gap-2">
               <Button type="button" variant="outline" disabled={pendingId !== null} onClick={() => setAssignTarget(null)}>
@@ -185,6 +185,14 @@ export function ClaimedShipments() {
   function vehicleText(vehicle: CarrierVehicle | undefined): string {
   if (!vehicle) return "Xe đã chọn";
   return vehicle.plate ? `${vehicle.label} · ${vehicle.plate}` : vehicle.label;
+}
+
+function namedLine(prefix: "Xe" | "Tài xế", value: string): string {
+  const trimmed = value.trim();
+  const lead = prefix.toLocaleLowerCase("vi");
+  const folded = trimmed.toLocaleLowerCase("vi");
+  if (folded === lead || folded.startsWith(`${lead} `)) return trimmed;
+  return `${prefix}: ${trimmed}`;
 }
 
 function TripGroup({ title, shipments: items, renderTrip: render }: { title: string; shipments: CarrierShipment[]; renderTrip: (shipment: CarrierShipment) => ReactElement }) {
@@ -221,13 +229,13 @@ function renderTrip(shipment: CarrierShipment) {
                 </div>
                 {assigned ? (
                   <div className="grid gap-3 border-t border-line bg-canvas px-5 py-4 text-sm text-ink sm:grid-cols-2">
-                    <p>Xe: {shipment.vehicleLabel ?? "Xe đã phân công"}</p>
-                    <p>Tài xế: {shipment.driverName ?? "Tài xế đã phân công"}</p>
+                    <p>{namedLine("Xe", shipment.vehicleLabel ?? "Xe đã phân công")}</p>
+                    <p>{namedLine("Tài xế", shipment.driverName ?? "Tài xế đã phân công")}</p>
                     <p className="sm:col-span-2 text-muted">{progressNote(shipment.status)}</p>
                   </div>
                 ) : (
                   <form
-                    className="grid gap-4 border-t border-line bg-canvas px-5 py-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-end"
+                    className="border-t border-line bg-canvas px-5 py-4"
                     onSubmit={(event) => {
                       event.preventDefault();
                       if (selected.vehicleId === "" || selected.driverId === "") return;
@@ -235,55 +243,57 @@ function renderTrip(shipment: CarrierShipment) {
                     }}
                   >
                     {resourcesReady ? null : (
-                      <p className="text-sm text-ink lg:col-span-3">Nhà xe chưa có xe hoặc tài xế để phân công.</p>
+                      <p className="mb-3 text-sm text-ink">Nhà xe chưa có xe hoặc tài xế để phân công.</p>
                     )}
-                    <div className="space-y-2">
-                      <Label htmlFor={`${shipment.id}-vehicle`}>Xe</Label>
-                      <select
-                        id={`${shipment.id}-vehicle`}
-                        className="flex h-12 w-full rounded-xl border border-line bg-surface px-3 text-base text-ink disabled:opacity-50"
-                        value={selected.vehicleId}
-                        disabled={pendingId !== null || !resourcesReady}
-                        onChange={(event) =>
-                          setChoices((current) => ({
-                            ...current,
-                            [shipment.id]: { vehicleId: event.target.value, driverId: selected.driverId },
-                          }))
-                        }
-                      >
-                        <option value="">Chọn xe</option>
-                        {vehicles.map((vehicle) => (
-                          <option key={vehicle.id} value={vehicle.id}>
-                            {vehicle.plate ? `${vehicle.label} · ${vehicle.plate}` : vehicle.label}
-                          </option>
-                        ))}
-                      </select>
+                    <div className="grid items-end gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+                      <div className="space-y-2">
+                        <Label htmlFor={`${shipment.id}-vehicle`}>Xe</Label>
+                        <select
+                          id={`${shipment.id}-vehicle`}
+                          className="flex h-12 w-full rounded-xl border border-line bg-surface px-3 text-sm text-ink disabled:opacity-50"
+                          value={selected.vehicleId}
+                          disabled={pendingId !== null || !resourcesReady}
+                          onChange={(event) =>
+                            setChoices((current) => ({
+                              ...current,
+                              [shipment.id]: { vehicleId: event.target.value, driverId: selected.driverId },
+                            }))
+                          }
+                        >
+                          <option value="">Chọn xe</option>
+                          {vehicles.map((vehicle) => (
+                            <option key={vehicle.id} value={vehicle.id}>
+                              {vehicle.plate ? `${vehicle.label} · ${vehicle.plate}` : vehicle.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor={`${shipment.id}-driver`}>Tài xế</Label>
+                        <select
+                          id={`${shipment.id}-driver`}
+                          className="flex h-12 w-full rounded-xl border border-line bg-surface px-3 text-sm text-ink disabled:opacity-50"
+                          value={selected.driverId}
+                          disabled={pendingId !== null || !resourcesReady}
+                          onChange={(event) =>
+                            setChoices((current) => ({
+                              ...current,
+                              [shipment.id]: { vehicleId: selected.vehicleId, driverId: event.target.value },
+                            }))
+                          }
+                        >
+                          <option value="">Chọn tài xế</option>
+                          {drivers.filter(isAssignableDriver).map((driver) => (
+                            <option key={driver.id} value={driver.id}>
+                              {driver.displayName ?? "Tài xế chưa có tên"}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <Button type="submit" className="h-12 w-full px-4 lg:w-auto" disabled={pendingId !== null || !resourcesReady || selected.vehicleId === "" || selected.driverId === ""}>
+                        {pendingId === shipment.id ? "Đang phân công" : "Phân công xe và tài xế"}
+                      </Button>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor={`${shipment.id}-driver`}>Tài xế</Label>
-                      <select
-                        id={`${shipment.id}-driver`}
-                        className="flex h-12 w-full rounded-xl border border-line bg-surface px-3 text-base text-ink disabled:opacity-50"
-                        value={selected.driverId}
-                        disabled={pendingId !== null || !resourcesReady}
-                        onChange={(event) =>
-                          setChoices((current) => ({
-                            ...current,
-                            [shipment.id]: { vehicleId: selected.vehicleId, driverId: event.target.value },
-                          }))
-                        }
-                      >
-                        <option value="">Chọn tài xế</option>
-                        {drivers.filter(isAssignableDriver).map((driver) => (
-                          <option key={driver.id} value={driver.id}>
-                            {driver.displayName ?? "Tài xế chưa có tên"}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <Button type="submit" className="min-h-12 lg:min-w-44" disabled={pendingId !== null || !resourcesReady || selected.vehicleId === "" || selected.driverId === ""}>
-                      {pendingId === shipment.id ? "Đang phân công" : "Phân công xe và tài xế"}
-                    </Button>
                   </form>
                 )}
               </li>

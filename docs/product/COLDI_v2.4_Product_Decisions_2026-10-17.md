@@ -181,3 +181,58 @@ Chưa làm, và tài liệu này không cho phép làm trong FE-05A:
 - Ảnh hàng thật. Sàn phát triển lúc ghi mục này có 0 đơn PUBLISHED, nên lưới ba thẻ với đơn thật chưa được bấm trên trình duyệt.
 
 Gói nguồn `docs/product/COLDI_Docs_Update_2026-10-17/` được giữ nguyên như bản nhận. File này là bản đã đưa vào `docs/product/`.
+
+## 13. Bổ sung đã duyệt, 18/10/2026
+
+Chủ dự án đã duyệt ba việc. Mục này ghi quyết định và phần đã code. **Chưa visual accepted.** Không mở FE-05B.
+
+### Vị trí xe
+
+SHIPPER vẫn xem vị trí trên đơn do chính tài khoản đó tạo. CARRIER được xem vị trí trên đơn nhà xe đó đã nhận, qua `GET /api/carrier/shipments/:id/location`. Quyền lấy từ phiên đăng nhập và `shipment.carrierId`, không lấy từ tham số do client gửi. Nhà xe chưa nhận đơn, nhà xe khác, chủ hàng khác, tài xế gọi nhầm API đọc của chủ hàng hoặc nhà xe, quản trị và khách đều bị từ chối.
+
+DRIVER vẫn chỉ gửi vị trí khi chuyến đang vận chuyển và đúng tài xế được gán. ADMIN và khách không được thêm quyền xem. Bản đồ tuyến điểm lấy/điểm giao vẫn chưa làm. Một điểm GPS không biến thành tuyến, ETA hay khoảng cách.
+
+Câu ở mục 7, “Không dùng sai quyền để cấp GPS cho Carrier”, được thay bằng quyền đọc này. Carrier không dùng API GPS của Shipper.
+
+### Hộp thoại
+
+Giao diện nhắn tin của chủ hàng và nhà xe chuyển từ form soạn thư sang một khung chat: đầu cuộc trò chuyện, vùng bong bóng, ô nhập và nút gửi cùng hàng. Enter gửi, Shift+Enter xuống dòng. Quyền chat, việc đóng thread, và việc chat không nhận chuyến, không giữ chỗ, không đổi giá hay trạng thái đều giữ nguyên. Không thêm WebSocket, biên nhận đã đọc, tệp đính kèm hay trạng thái online.
+
+### Trang chủ tài xế
+
+Ba số đếm trải theo bề ngang nội dung. Chuyến cần làm nằm bên dưới, chiếm phần chính. Chuyến cần làm khác chỉ hiện khi còn chuyến thật với việc lấy hoặc giao, tối đa ba mục theo thứ tự API đang trả. Một chuyến thì thẻ chính trải ra, không chừa cột trống.
+
+## 14. Cập nhật phạm vi, 18/10/2026
+
+Mục 13 giữ quyết định đã duyệt trong ngày. Mục này ghi phần chủ dự án chốt thêm khi đóng gói FE-05A. Không mở FE-05B và không triển khai gói trong lượt này.
+
+### GPS
+
+- SHIPPER xem vị trí đơn mình tạo, qua `GET /api/shipments/:id/location`.
+- CARRIER xem vị trí chuyến mình đã nhận, qua `GET /api/carrier/shipments/:id/location`.
+- DRIVER gửi vị trí theo quyền hiện tại: đúng tài xế được gán, chỉ khi `IN_TRANSIT`.
+- ADMIN và khách không được cấp quyền GPS mặc định.
+
+### UI
+
+- Bố cục trang chủ tài xế theo nhiệm vụ đã được review và chấp nhận về bố cục.
+- Chủ hàng và nhà xe dùng giao diện chatbox mới.
+- Chat vẫn không Claim và không đổi giá.
+- Các màn FE-05A còn lại chưa được chấp nhận hình ảnh. Chuỗi logistics đầu-cuối chưa được nghiệm thu. Tile Mapbox chưa được kiểm chứng.
+
+### MVP SCOPE — OPTION B, APPROVED
+
+Phương án B thay thế phương án A.
+
+MVP cuối cùng bắt buộc có:
+
+- Logistics workflows.
+- Package Management.
+- Package entitlements.
+- Usage limits and backend enforcement.
+
+Package Management hiện chưa triển khai.
+
+Thanh toán online triển khai sau MVP.
+
+Chưa được tự đặt số lượng gói, tên gói, giá tiền, hạn mức, chu kỳ, cách nâng hoặc hạ gói, hoặc mô hình tổ chức.
