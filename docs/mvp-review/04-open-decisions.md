@@ -4,15 +4,11 @@ Chỉ những chỗ tài liệu v2.3 hoặc mã đang để mở. Không đề x
 
 ## 1. Provider bản đồ
 
-Nguồn: Master Const §5. Ứng viên là Goong hoặc Mapbox. Phải xác nhận SDK, key, quota và điều khoản trước production.
+Đã chốt cho MVP này: Mapbox GL JS v3. Goong không phải provider của bản đồ. Goong vẫn có thể được xét sau cho geocoding địa chỉ Việt Nam.
 
-Hiện có tọa độ, thời điểm và phase. Chưa có bản đồ.
+Mã dùng Mapbox GL JS 3.33.0, token công khai `pk.` trong `web/.env.local`, và chỉ tạo map khi chủ hàng mở bản đồ. Không có token thì vẫn hiện tọa độ và thời điểm. Tile thật chưa được bấm vì chưa có token hợp lệ trong đợt này. Cách cấu hình, hạn chế URL với `127.0.0.1`, và checklist nghiệm thu nằm ở `09-mapbox-live-map.md`.
 
-Tradeoff: gắn SDK sớm thì có hình bản đồ nhưng vướng key, chi phí và điều khoản. Giữ panel tọa độ thì đúng dữ liệu đã test, nhưng chưa phải Live Map địa lý.
-
-Có chặn MVP web không: chặn việc gọi là “Live Map đã xong”. Không chặn chuỗi đăng đơn → claim → gán → lấy → giao nếu chủ sản phẩm chấp nhận panel tọa độ cho đợt này.
-
-Đề xuất an toàn: chấp nhận panel tọa độ là mặt GPS của đợt đóng web. Chọn provider bằng một quyết định riêng trước khi viết SDK.
+Chưa làm: Dynamic ETA, routing, geocoding, và ping gần kho.
 
 ## 2. Tọa độ kho và geocode
 

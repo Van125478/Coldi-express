@@ -13,7 +13,7 @@ Tạo một đơn mới. Không gửi tọa độ thật trong ảnh chụp ho�
 
 Test API trong `server/tests/gps.test.ts` dùng tọa độ cố định và cơ sở dữ liệu `coldi_gps_test`. Đó không phải vị trí thiết bị thật.
 
-Buổi bấm tay dùng vị trí trình duyệt trên chuyến mới. Không có bản đồ nền. Goong.io và Mapbox chưa được chọn.
+Buổi bấm tay dùng vị trí trình duyệt trên chuyến mới. Bản đồ, nếu chủ hàng mở, dùng Mapbox GL JS và token công khai. Cách cấu hình, hạn chế `127.0.0.1`, và checklist bản đồ nằm ở `docs/mvp-review/09-mapbox-live-map.md`. Tile thật chưa được nghiệm thu trong lúc viết tài liệu này.
 
 ## Các bước
 

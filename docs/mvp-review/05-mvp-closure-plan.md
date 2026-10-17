@@ -57,7 +57,7 @@ Nghiệm thu tay: gán một chuyến mới, sửa tên xe, mở timeline. Bư�
 
 ## Checkpoint D — Những việc không làm trong đợt đóng
 
-- Không gắn Goong hoặc Mapbox.
+- Không gắn Goong hoặc Mapbox trong đợt đóng MVP-01. MVP-04 sau đó gắn Mapbox GL JS v3. Tile thật chưa được nghiệm thu. Xem `09-mapbox-live-map.md`.
 - Không thêm `tenant_id` và không migration.
 - Không màn audit.
 - Không mời tài xế, không xóa xe.

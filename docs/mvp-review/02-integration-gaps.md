@@ -38,7 +38,7 @@ Năm chỗ này có trong mã. Chưa có nghiệm thu tay sau khi nối.
 | 18. Timeline | Người có quyền xem đơn | Gắn lúc đọc | `ShipmentTimeline` | Event trong document đơn | GET không ghi | Đã test. Lần gán mới giữ tên lúc gán; xem `08-timeline-history-fix.md` |
 | 19. Audit | Sau ghi thành công | `recordSuccessfulAudit` | Không có màn | Collection `AuditLog` | Insert lỗi thì nghiệp vụ vẫn 200 | Đã test một lần. Chưa test mất log |
 
-Không thấy bước nào trong chuỗi 19 bị thiếu endpoint, trừ bản đồ địa lý ở mục GPS bên dưới. Các bước UI từ chat, popup Claim, đội xe, GPS trình duyệt chưa được người dùng bấm trong đợt này.
+Không thấy bước nào trong chuỗi 19 bị thiếu endpoint. Bản đồ địa lý dùng GET vị trí đã có; tile Mapbox chưa được bấm, xem mục GPS bên dưới. Các bước UI từ chat, popup Claim, đội xe, GPS trình duyệt chưa được người dùng bấm trong đợt này.
 
 ## Core theo mã
 
@@ -72,7 +72,7 @@ README gốc và `server/README.md` dừng ở ảnh Core 08: chúng nói GPS, c
 
 Backend vị trí chạy và đã được test: chỉ IN_TRANSIT, đúng tài xế, một `latestLocation`, chủ hàng đọc của mình, sàn không có tọa độ.
 
-Chưa có Live Map địa lý. Không có Goong hay Mapbox trong web. Phase `stale` có trong DTO. Ping gần kho không chạy vì địa chỉ kho là chữ. Chia sẻ trình duyệt dừng khi rời trang; đó là giới hạn đã ghi trong policy, chưa được bấm thử. Không có retention lịch sử vì không lưu lịch sử.
+MVP-04 gắn Mapbox GL JS 3.33.0 cho chủ hàng khi có token `pk.` và bấm mở bản đồ. Tile thật chưa được bấm. Phase `stale` có trong DTO. Ping gần kho không chạy vì địa chỉ kho là chữ. Chia sẻ trình duyệt dừng khi rời trang; đó là giới hạn đã ghi trong policy, chưa được bấm thử. Không có retention lịch sử vì không lưu lịch sử.
 
 ### Core 10 — Chat
 

@@ -38,7 +38,7 @@ API đã đi hết chuỗi bốn vai trò trên database `coldi_integration_test
 
 ## Chưa chặn chuỗi, nhưng chưa được gọi là xong
 
-- Bản đồ địa lý, cho đến khi chọn Goong hoặc Mapbox.
+- Bản đồ Mapbox GL JS đã có trong mã. Tile và marker thật chưa được bấm. Checklist ở `09-mapbox-live-map.md`.
 - Audit có thể mất nếu process chết giữa ghi đơn và ghi log.
 - Nhà xe thua vẫn đọc thread cũ là quy tắc tạm.
 - Không có tenant tổ chức, không có mời tài xế, không có xóa xe, không có thanh toán.

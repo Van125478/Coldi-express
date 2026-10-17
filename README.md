@@ -38,12 +38,12 @@ Core 08 mô tả máy local và luồng đã nghiệm thu trước GPS, chat, đ
 | --- | --- | --- | --- |
 | Đăng, nhận, gán, lấy, giao | Đã có | Checklist Core 08 đã bấm luồng chính trước đó. Chưa bấm lại trên nhánh này | Giao hàng không phải thanh toán và không sang `COMPLETED` |
 | Timeline năm sự kiện | Đã có | Chưa bấm lại | Event `ASSIGNED` mới giữ tên xe và tên tài xế lúc gán. Event cũ không có snapshot vẫn đọc tên hiện tại, không phải bản lịch sử đã chứng minh |
-| GPS vị trí mới nhất | Đã có | Chưa | Không có bản đồ Goong hay Mapbox. Gần kho luôn không áp dụng |
+| GPS vị trí mới nhất và bản đồ Mapbox | Đã có mã. Chưa bấm tile thật | Chưa | Mapbox GL JS 3.33.0 khi có token `pk.` và chủ hàng mở bản đồ. Gần kho luôn không áp dụng. Không có ETA hay lộ trình |
 | Chat riêng theo đơn và nhà xe | Đã có | Chưa | Chưa chốt thời gian lưu tin. Nhà xe thua vẫn đọc thread cũ là quy tắc tạm |
 | Đội xe: thêm, sửa, xem xe; sửa tên tài xế đã gắn | Đã có | Chưa | Chưa có tạo tài khoản tài xế. Chưa có kiểm định xe |
 | Audit sau ghi thành công | Đã có | Không có màn hình | Process chết giữa ghi đơn và ghi log có thể mất audit. Không có tenant tổ chức |
 | Sàn: tìm, lọc, sắp xếp, so sánh, xác nhận Claim | Đã có | Chưa | Danh sách quét tối đa 500 đơn và trả tối đa 100 dòng |
-| Thanh toán, bản đồ, tenant | Chưa làm | — | Còn chờ quyết định ở `docs/mvp-review/04-open-decisions.md` |
+| Thanh toán, tenant | Chưa làm | — | Còn chờ quyết định ở `docs/mvp-review/04-open-decisions.md`. Bản đồ MVP ghi ở `docs/mvp-review/09-mapbox-live-map.md` |
 
 Worktree sạch của commit code `95d913284e854e8af4fd058e9310909b4873370c` báo `npm test` 51 pass, 0 fail. Web `npm run lint`, `npx tsc -b` và `npm run build` pass trên cùng worktree. Commit README sau commit đó chỉ sửa hai file hướng dẫn. Đó không phải nghiệm thu trình duyệt và không phải clone mới từ GitHub.
 
@@ -64,3 +64,5 @@ npm run dev
 ```
 
 Mở `http://127.0.0.1:5173`. API nghe `http://127.0.0.1:4000`. Dùng đúng hai địa chỉ đó, không dùng `localhost`: trên máy này `localhost` phân giải IPv6 trước, và cookie phiên được cấp cho `127.0.0.1`.
+
+Bản đồ GPS cần token công khai Mapbox, bắt đầu bằng `pk.`, trong `web/.env.local` với tên `VITE_MAPBOX_PUBLIC_TOKEN`. File đó không được commit. Mẫu và lý do token hạn chế URL sẽ trả 403 tại `127.0.0.1` nằm trong `web/.env.example` và [docs/mvp-review/09-mapbox-live-map.md](docs/mvp-review/09-mapbox-live-map.md). Không có token thì trang vẫn chạy và vẫn hiện tọa độ, nhưng không vẽ bản đồ. Tile thật chưa được bấm.

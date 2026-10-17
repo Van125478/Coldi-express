@@ -84,7 +84,7 @@ NOT RUN. Web không có runner test giao diện. Không mở trình duyệt, kh�
 
 ## Live Map
 
-Chưa có SDK bản đồ. Provider Goong hoặc Mapbox vẫn chưa được chọn. Suite chỉ chứng minh tọa độ và phase.
+MVP-04 thêm `server/tests/mapboxMap.test.ts`. Suite đó kiểm tra thứ tự kinh độ–vĩ độ, tọa độ hỏng, token `pk.`, trạng thái cũ hoặc đã giao, và việc một lần poll không tạo map mới. Không mở tile Mapbox và không dùng token thật. Chi tiết ở `09-mapbox-live-map.md`.
 
 ## Quyết định còn mở
 

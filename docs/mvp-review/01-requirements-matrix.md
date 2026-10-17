@@ -15,15 +15,15 @@ Web không có Vitest, Playwright hay runner test giao diện trong `web/package
 | Trạng thái | Số |
 | --- | ---: |
 | IMPLEMENTED AND AUTOMATED TESTED | 13 |
-| IMPLEMENTED BUT NOT MANUALLY TESTED | 4 |
+| IMPLEMENTED BUT NOT MANUALLY TESTED | 5 |
 | PARTIALLY IMPLEMENTED | 3 |
 | NOT IMPLEMENTED | 3 |
-| BLOCKED BY DECISION | 6 |
+| BLOCKED BY DECISION | 5 |
 | OUT OF MVP SCOPE | 3 |
 
 Các mục đã có test API vẫn chưa có nghiệm thu tay trên trình duyệt. Bảng không gộp hai việc đó thành “xong”.
 
-M14 và hai số đếm phía trên được sửa sau MVP-03. Các số còn lại giữ kết quả rà soát lúc viết.
+M14 được sửa sau MVP-03. M17 chuyển từ BLOCKED BY DECISION sang IMPLEMENTED BUT NOT MANUALLY TESTED sau MVP-04, nên hai số đếm tương ứng ở trên là 5 và 5. Các số còn lại giữ kết quả rà soát lúc viết.
 
 ## Ma trận
 
@@ -45,7 +45,7 @@ M14 và hai số đếm phía trên được sửa sau MVP-03. Các số còn l�
 | M14 | Câu ASSIGNED giữ đúng xe tại thời điểm gán | Master §4.2 “nguồn sự thật” | Người xem timeline | MVP hiển thị | Lần gán mới lưu `assignedVehicleLabel` và `assignedDriverName`. Event cũ không có hai field vẫn đọc tên hiện tại | `shipmentEvents.ts`, `carrierShipment.routes.ts` | Timeline dùng `detail` từ API | `integration.test.ts` | Chưa bấm tay | IMPLEMENTED AND AUTOMATED TESTED | Event cũ không có snapshot vẫn đổi câu theo tên hiện tại | — | Xem `08-timeline-history-fix.md` |
 | M15 | GPS khi IN_TRANSIT, chủ hàng đọc vị trí của đơn mình | Master §5; D-04 | DRIVER, SHIPPER | MVP dữ liệu | Upload từ chối ngoài IN_TRANSIT. `GET /api/shipments/:id/location` trả chủ đơn, chủ hàng khác 403 | `driverShipment.routes.ts`, `shipment.routes.ts` dòng 65–80 | `getShipmentLocation` | `gps.test.ts`, `security.test.ts` | Chưa trên trình duyệt | IMPLEMENTED AND AUTOMATED TESTED | Chưa có tọa độ kho | — | Không suy lấy/giao từ tọa độ |
 | M16 | Chủ hàng thấy thời điểm và phase; tài xế chia sẻ khi đang vận chuyển | Master §5 “không trình bày dữ liệu cũ như trực tiếp” | SHIPPER, DRIVER | MVP | Poll 90 giây. Phase current/stale/ended. Panel tài xế gắn khi IN_TRANSIT | DTO `toTrackingDto` | `ShipmentLocation.tsx`, `DriverTripDetail.tsx` dòng 141 | Không test trình duyệt | Chưa | IMPLEMENTED BUT NOT MANUALLY TESTED | Quyền vị trí, nền tab, mất sóng chưa được bấm thử | P1 quy trình | Nghiệm thu GPS trên trình duyệt |
-| M17 | Live Map địa lý | Master §5, provider Goong hoặc Mapbox “phải xác nhận trước production” | SHIPPER | MVP chữ, provider chưa chọn | Không có SDK bản đồ trong `web/src` | Không | Không có map | Không | Không | BLOCKED BY DECISION | Có tọa độ, chưa có bản đồ | P1 cho đến khi chủ sản phẩm chấp nhận panel tọa độ hoặc chọn provider | Không gắn SDK trước khi chọn |
+| M17 | Live Map địa lý | Master §5. Chủ sản phẩm chọn Mapbox GL JS v3 cho MVP này | SHIPPER | MVP | Mapbox GL JS 3.33.0. Bản đồ chỉ tạo khi chủ hàng bấm mở và có token `pk.` | API GPS không đổi | `ShipmentLiveMap.tsx`, `ShipmentLocation.tsx` | `mapboxMap.test.ts` cho thứ tự tọa độ, trạng thái, token và một instance | Chưa bấm tile | IMPLEMENTED BUT NOT MANUALLY TESTED | Chưa có token thật nên chưa thấy tile hay marker trên trình duyệt | P1 nghiệm thu | Xem `09-mapbox-live-map.md`. Không thêm ETA hay lộ trình |
 | M18 | Adaptive Ping, kể cả gần kho 1 phút | Master §5.1 | DRIVER | MVP tham chiếu | Policy test đúng mốc 15 phút và 3–5 phút / 2 km. Gần kho luôn `unavailable` | `server/src/gps/pingPolicy.ts` | Bản trùng ở web | `gps.test.ts` test policy | Chưa | PARTIALLY IMPLEMENTED | Thiếu tọa độ kho nên không áp dụng nhánh 1 phút | P2 | Không bịa tọa độ |
 | M19 | Nhà xe quản lý xe của mình và sửa tên tài xế đã liên kết | Phụ lục E, F; D-07 chỉ là đề xuất | CARRIER | MVP danh sách | Create/update xe, PATCH tên. Không có DELETE | `carrierFleet.routes.ts` | `/carrier/doi-xe` | `fleet.test.ts` | Màn thêm/sửa chưa nghiệm thu tay | IMPLEMENTED AND AUTOMATED TESTED | API đã test; UI chưa | — | Xem M20 |
 | M20 | Màn đội xe và lối vào Đội xe | Phụ lục E | CARRIER | MVP UI | Nav có `/carrier/doi-xe` | Như M19 | `WorkspaceLayout.tsx`, `carrier/fleet/` | Không | Chưa | IMPLEMENTED BUT NOT MANUALLY TESTED | Đăng kiểm không được dùng để chặn gán | P2 | Nghiệm thu thêm/sửa xe |
@@ -66,6 +66,6 @@ M14 và hai số đếm phía trên được sửa sau MVP-03. Các số còn l�
 
 1. Master §4.1 yêu cầu Role Switcher. Code và D-01 thực tế đang là một tài khoản một role. Handoff còn để active tenant là TBD. M03 giữ BLOCKED.
 2. Master §4.2 có status `PICKUP_CONFIRMED`. Luồng đã test ghi event `PICKUP_CONFIRMED` và status `IN_TRANSIT`. Khớp bước 12–13 của yêu cầu rà soát này. Không đổi trong đợt đóng trừ khi chủ sản phẩm muốn một status đứng riêng.
-3. Master §5 gọi Live Map là MVP và đồng thời bắt xác nhận provider trước production. M17 không được triển khai bằng cách tự chọn Goong hay Mapbox.
+3. Chủ sản phẩm đã chọn Mapbox GL JS v3 cho Live Map của MVP. Goong không dùng cho bản đồ này. Tile và marker thật chưa được bấm. Chi tiết ở `09-mapbox-live-map.md`.
 4. Master §7.1 bắt `tenant_id`. Decisions và Core 12 chưa có quy tắc tổ chức. Test hiện chứng minh cách ly theo quan hệ, không chứng minh tenant.
 5. `README.md` dòng 5 nói GPS, chat và đội xe chưa làm. Câu đó đúng với commit `69ec1a1` và sai với cây làm việc chưa commit.
