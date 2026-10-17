@@ -17,6 +17,22 @@
   --color-warning-line: #fde68a;
   --color-danger: #dc2626;
   --color-muted: #475569;
+  --color-background: #f8fafc;
+  --color-foreground: #1e293b;
+  --color-card: #ffffff;
+  --color-card-foreground: #1e293b;
+  --color-primary: #1e3a8a;
+  --color-primary-foreground: #ffffff;
+  --color-primary-deep: #172554;
+  --color-secondary: #f8fafc;
+  --color-secondary-foreground: #1e293b;
+  --color-destructive: #dc2626;
+  --color-destructive-foreground: #ffffff;
+  --color-border: #e2e8f0;
+  --color-input: #e2e8f0;
+  --color-ring: #1e3a8a;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #1e293b;
 }
 
 @layer base {
