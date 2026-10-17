@@ -93,8 +93,13 @@ export function CarrierVehicleForm({ mode }: { mode: "create" | "edit" }) {
             void save();
           }}
         >
-          <Field label="Tên xe" value={draft.label} onChange={(value) => update("label", value)} />
-          <Field label="Biển số" value={draft.plate} onChange={(value) => update("plate", value)} />
+          <fieldset className="space-y-4">
+            <legend className="text-sm font-bold text-navy">Nhận diện xe</legend>
+            <Field label="Tên xe" value={draft.label} onChange={(value) => update("label", value)} />
+            <Field label="Biển số" value={draft.plate} onChange={(value) => update("plate", value)} />
+          </fieldset>
+          <fieldset className="space-y-4">
+            <legend className="text-sm font-bold text-navy">Khả năng chở</legend>
           <label className="block space-y-2 text-sm font-semibold text-ink">
             Loại phương tiện
             <select className={fieldClass} value={draft.vehicleKind} onChange={(event) => update("vehicleKind", event.target.value)}>
@@ -114,6 +119,7 @@ export function CarrierVehicleForm({ mode }: { mode: "create" | "edit" }) {
             </select>
           </label>
           <Field label="Tải trọng (tấn)" value={draft.capacityTon} onChange={(value) => update("capacityTon", value)} inputMode="decimal" />
+          </fieldset>
           {notice ? (
             <p role="alert" className="text-sm text-ink">
               {notice}

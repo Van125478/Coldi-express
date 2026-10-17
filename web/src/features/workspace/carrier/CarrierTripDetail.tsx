@@ -9,11 +9,22 @@ import { money, primaryLinkClass, progressNote, shipmentTone, windowText } from 
 import { CarrierChat } from "@/features/workspace/chat/CarrierChat";
 import { ShipmentTimeline } from "@/features/workspace/ShipmentTimeline";
 import { DetailBlock, FactLine, PageHeader, StatusBadge } from "@/features/workspace/ui";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import type { CarrierShipment } from "@/models/publishedShipment";
 import { ApiError } from "@/services/apiClient";
 import { claimShipment, getCarrierShipment } from "@/services/shipmentService";
 
+function FactTile({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-line bg-surface p-4">
+      <p className="text-xs font-semibold tracking-wide text-muted">{label}</p>
+      <p className="mt-1 text-sm font-semibold leading-relaxed text-ink">{value}</p>
+    </div>
+  );
+}
+
 export function CarrierTripDetail() {
+  usePageTitle("Chi tiết chuyến");
   const { id } = useParams();
   const { logout } = useAuth();
   const [shipment, setShipment] = useState<CarrierShipment | null>(null);
@@ -85,7 +96,28 @@ export function CarrierTripDetail() {
       {state === "ready" && shipment ? (
         <>
           <PageHeader title={`${shipment.pickupLocation} → ${shipment.deliveryLocation}`} summary={shipment.cargoDescription} />
-          <StatusBadge tone={shipmentTone(shipment.status, shipment.vehicleId, shipment.driverId)}>{shipment.statusLabel}</StatusBadge>
+          <div className="flex flex-wrap items-center gap-3">
+            <StatusBadge tone={shipmentTone(shipment.status, shipment.vehicleId, shipment.driverId)}>{shipment.statusLabel}</StatusBadge>
+            <p className="text-sm text-muted">Trạng thái lưu: {shipment.status}. Nhãn trên là cách đọc vận hành.</p>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="rounded-2xl border border-line bg-surface p-4">
+              <p className="text-xs font-semibold tracking-wide text-muted">Điểm lấy</p>
+              <p className="mt-1 text-lg font-bold text-ink">{shipment.pickupLocation}</p>
+              <p className="mt-1 text-sm text-muted">{windowText(shipment.pickupDate, shipment.pickupTimeFrom, shipment.pickupTimeTo)}</p>
+            </div>
+            <div className="rounded-2xl border border-line bg-surface p-4">
+              <p className="text-xs font-semibold tracking-wide text-muted">Điểm giao</p>
+              <p className="mt-1 text-lg font-bold text-ink">{shipment.deliveryLocation}</p>
+              <p className="mt-1 text-sm text-muted">{windowText(shipment.deliveryDate, shipment.deliveryTimeFrom, shipment.deliveryTimeTo)}</p>
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <FactTile label="Loại hàng" value={shipment.cargoDescription} />
+            <FactTile label="Tải trọng" value={shipment.cargoWeightTon === null ? "Chưa có" : `${shipment.cargoWeightTon} tấn`} />
+            <FactTile label="Yêu cầu xe" value={shipment.vehicleRequirement} />
+            <FactTile label="Bốc hàng" value={windowText(shipment.pickupDate, shipment.pickupTimeFrom, shipment.pickupTimeTo)} />
+          </div>
           <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(18rem,0.7fr)]">
             <div className="space-y-4">
               <DetailBlock title="Lộ trình">
@@ -159,6 +191,8 @@ export function CarrierTripDetail() {
             pending={pending}
             cargo={shipment.cargoDescription}
             route={`${shipment.pickupLocation} → ${shipment.deliveryLocation}`}
+            price={money(shipment.listedPriceVnd)}
+            temperature={shipment.temperatureLabel}
             onCancel={() => {
               if (!pending) setConfirming(false);
             }}

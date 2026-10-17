@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { paths } from "@/app/paths";
 import { FleetNav } from "@/features/workspace/carrier/fleet/FleetNav";
-import { PageHeader } from "@/features/workspace/ui";
+import { EmptyPanel, PageHeader } from "@/features/workspace/ui";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import type { CarrierVehicle } from "@/models/publishedShipment";
 import { listCarrierVehicles } from "@/services/shipmentService";
@@ -46,7 +46,9 @@ export function CarrierVehicles() {
           Không tải được danh sách xe. Hãy tải lại trang.
         </p>
       ) : null}
-      {state === "ready" && vehicles.length === 0 ? <p className="text-sm text-ink">Chưa có xe nào. Hãy thêm phương tiện khi nhà xe đã có xe lạnh.</p> : null}
+      {state === "ready" && vehicles.length === 0 ? (
+        <EmptyPanel title="Chưa có xe" body="Thêm xe lạnh của nhà xe. Thêm xe không nhận chuyến và không tự phân công." />
+      ) : null}
       {state === "ready" && vehicles.length > 0 ? (
         <ul className="grid gap-4 lg:grid-cols-2">
           {vehicles.map((vehicle) => (

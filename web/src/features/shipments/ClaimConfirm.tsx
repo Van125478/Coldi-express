@@ -6,11 +6,13 @@ type ClaimConfirmProps = {
   pending: boolean;
   cargo: string;
   route: string;
+  price?: string;
+  temperature?: string;
   onCancel: () => void;
   onConfirm: () => void;
 };
 
-export function ClaimConfirm({ open, pending, cargo, route, onCancel, onConfirm }: ClaimConfirmProps) {
+export function ClaimConfirm({ open, pending, cargo, route, price, temperature, onCancel, onConfirm }: ClaimConfirmProps) {
   const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -35,9 +37,11 @@ export function ClaimConfirm({ open, pending, cargo, route, onCancel, onConfirm 
         <h2 id="claim-confirm-title" className="text-lg font-bold text-ink">
           Xác nhận nhận chuyến
         </h2>
-        <p className="mt-2 text-sm leading-relaxed text-ink">
-          {cargo}. {route}. Nhận chuyến khóa đơn cho nhà xe này. Chưa gán xe hay tài xế.
-        </p>
+        <p className="mt-3 text-base font-semibold text-ink">{route}</p>
+        <p className="mt-1 text-sm leading-relaxed text-ink">{cargo}</p>
+        {temperature ? <p className="mt-1 text-sm text-muted">{temperature}</p> : null}
+        {price ? <p className="mt-2 text-lg font-extrabold text-navy">{price}</p> : null}
+        <p className="mt-3 text-sm leading-relaxed text-ink">Nhận chuyến khóa đơn cho nhà xe này. Chưa gán xe hay tài xế. Gọi điện và nhắn tin không giữ chỗ.</p>
         <div className="mt-5 flex flex-wrap gap-2">
           <Button type="button" variant="outline" disabled={pending} onClick={onCancel}>
             Để sau

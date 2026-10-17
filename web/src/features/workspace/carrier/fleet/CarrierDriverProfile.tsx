@@ -119,29 +119,46 @@ export function CarrierDriverProfile() {
           </DetailBlock>
           <DetailBlock title="Tài khoản">
             <p className="text-sm leading-relaxed text-muted">Không khóa và không đặt lại mật khẩu khi tài xế đang phụ trách chuyến đã phân công hoặc đang vận chuyển.</p>
-            {confirming ? (
-              <div className="space-y-3">
-                <p className="text-sm text-ink">
-                  {confirming === "lock" ? "Khóa tài khoản này? Tài xế không đăng nhập được cho đến khi mở khóa." : null}
-                  {confirming === "unlock" ? "Mở khóa tài khoản này? Chuyến hàng không đổi." : null}
-                  {confirming === "reset" ? "Đặt mật khẩu tạm mới? Mật khẩu cũ và phiên đang đăng nhập sẽ hết hiệu lực." : null}
+            <div className="flex flex-wrap gap-2">
+              {driver.accountStatus === "LOCKED" ? (
+                <Button type="button" onClick={() => setConfirming("unlock")}>Mở khóa</Button>
+              ) : (
+                <Button type="button" variant="outline" onClick={() => setConfirming("lock")}>Khóa tài khoản</Button>
+              )}
+              <Button type="button" variant="outline" onClick={() => setConfirming("reset")}>Đặt lại mật khẩu</Button>
+            </div>
+          </DetailBlock>
+          {confirming ? (
+            <div className="fixed inset-0 z-50 flex items-end justify-center bg-[#1E293B]/40 p-4 sm:items-center">
+              <div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="driver-action-title"
+                tabIndex={-1}
+                className="w-full max-w-md rounded-2xl border border-line bg-surface p-5 outline-none"
+                onKeyDown={(event) => {
+                  if (event.key === "Escape" && !pending) setConfirming(null);
+                }}
+              >
+                <h2 id="driver-action-title" className="text-lg font-bold text-ink">
+                  {confirming === "lock" ? "Khóa tài khoản" : confirming === "unlock" ? "Mở khóa tài khoản" : "Đặt lại mật khẩu"}
+                </h2>
+                <p className="mt-3 text-sm leading-relaxed text-ink">
+                  {confirming === "lock" ? "Tài xế không đăng nhập được cho đến khi mở khóa. Chuyến đang chạy sẽ chặn thao tác này." : null}
+                  {confirming === "unlock" ? "Mở khóa không đổi chuyến hàng và không hiện lại mật khẩu cũ." : null}
+                  {confirming === "reset" ? "Mật khẩu tạm mới chỉ hiện một lần. Phiên đang đăng nhập sẽ hết hiệu lực." : null}
                 </p>
-                <div className="flex flex-wrap gap-2">
-                  <Button type="button" disabled={pending} onClick={() => void runConfirmed()}>{pending ? "Đang xử lý" : "Xác nhận"}</Button>
-                  <Button type="button" variant="outline" disabled={pending} onClick={() => setConfirming(null)}>Hủy</Button>
+                <div className="mt-5 flex flex-wrap gap-2">
+                  <Button type="button" variant="outline" disabled={pending} onClick={() => setConfirming(null)}>
+                    Hủy
+                  </Button>
+                  <Button type="button" disabled={pending} onClick={() => void runConfirmed()}>
+                    {pending ? "Đang xử lý" : "Xác nhận"}
+                  </Button>
                 </div>
               </div>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {driver.accountStatus === "LOCKED" ? (
-                  <Button type="button" onClick={() => setConfirming("unlock")}>Mở khóa</Button>
-                ) : (
-                  <Button type="button" variant="outline" onClick={() => setConfirming("lock")}>Khóa tài khoản</Button>
-                )}
-                <Button type="button" variant="outline" onClick={() => setConfirming("reset")}>Đặt lại mật khẩu</Button>
-              </div>
-            )}
-          </DetailBlock>
+            </div>
+          ) : null}
         </>
       ) : null}
     </section>

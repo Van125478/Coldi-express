@@ -110,13 +110,16 @@ export function ChatThread({
       ) : null}
       {state === "ready" && messages.length === 0 ? <p className="mt-3 text-sm text-ink">Chưa có tin nhắn.</p> : null}
       <div ref={listRef} className="mt-3 max-h-80 space-y-3 overflow-y-auto pr-1">
-        {messages.map((message) => (
-          <article key={message.id} className="rounded-xl bg-canvas px-3 py-2">
-            <p className="text-xs font-semibold text-navy">{senderLabel(message.senderRole, viewer, carrierLabel)}</p>
-            <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-ink">{message.body}</p>
-            <p className="mt-1 text-xs text-muted">{eventTime(message.createdAt)}</p>
-          </article>
-        ))}
+        {messages.map((message) => {
+          const mine = message.senderRole === viewer;
+          return (
+            <article key={message.id} className={`max-w-[85%] rounded-2xl px-3 py-2 ${mine ? "ml-auto bg-navy text-white" : "bg-canvas text-ink"}`}>
+              <p className={`text-xs font-semibold ${mine ? "text-white/80" : "text-navy"}`}>{senderLabel(message.senderRole, viewer, carrierLabel)}</p>
+              <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">{message.body}</p>
+              <p className={`mt-1 text-xs ${mine ? "text-white/70" : "text-muted"}`}>{eventTime(message.createdAt)}</p>
+            </article>
+          );
+        })}
       </div>
       {closed ? <p className="mt-3 text-sm text-ink">Cuộc trao đổi này không còn nhận tin nhắn mới.</p> : null}
       {notice ? (

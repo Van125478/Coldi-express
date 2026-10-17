@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { accountStatusLabel, activationLabel, validateDriverDraft } from "@/features/auth/driverAccess";
 import { FleetNav, fieldClass } from "@/features/workspace/carrier/fleet/FleetNav";
 import { OneTimeCredential } from "@/features/workspace/carrier/fleet/OneTimeCredential";
-import { PageHeader } from "@/features/workspace/ui";
+import { EmptyPanel, PageHeader } from "@/features/workspace/ui";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import type { CarrierDriver } from "@/models/publishedShipment";
 import { ApiError } from "@/services/apiClient";
@@ -90,16 +90,23 @@ export function CarrierDrivers() {
       </form>
       {state === "loading" ? <p className="text-sm text-muted">Đang tải danh sách tài xế.</p> : null}
       {state === "error" ? <p className="text-sm text-ink">Không tải được danh sách tài xế.</p> : null}
-      {state === "ready" && drivers.length === 0 ? <p className="text-sm text-ink">Chưa có tài xế liên kết.</p> : null}
+      {state === "ready" && drivers.length === 0 ? (
+        <EmptyPanel title="Chưa có tài xế" body="Tạo tài khoản cho tài xế của nhà xe. Mật khẩu tạm chỉ hiện một lần và không được lưu trên trình duyệt." />
+      ) : null}
       {state === "ready" && drivers.length > 0 ? (
-        <ul className="grid gap-3">
+        <ul className="grid gap-3 md:grid-cols-2">
           {drivers.map((driver) => (
-            <li key={driver.id} className="rounded-2xl border border-line bg-surface px-5 py-4">
+            <li key={driver.id} className="rounded-2xl border border-line bg-surface px-5 py-4 shadow-sm">
               <Link to={carrierDriverPath(driver.id)} className="text-base font-bold text-ink hover:text-navy">
                 {driver.displayName ?? "Chưa có tên"}
               </Link>
               <p className="mt-1 break-all text-sm text-muted">{driver.email}</p>
-              <p className="mt-2 text-sm text-ink">{accountStatusLabel(driver.accountStatus)} · {activationLabel(driver.mustChangePassword)}</p>
+              <p className="mt-3 flex flex-wrap gap-2 text-xs font-semibold">
+                <span className={`inline-flex min-h-7 items-center rounded-full border px-2 ${driver.accountStatus === "LOCKED" ? "border-danger text-danger" : "border-success text-success"}`}>
+                  {accountStatusLabel(driver.accountStatus)}
+                </span>
+                <span className="inline-flex min-h-7 items-center rounded-full border border-line px-2 text-ink">{activationLabel(driver.mustChangePassword)}</span>
+              </p>
             </li>
           ))}
         </ul>

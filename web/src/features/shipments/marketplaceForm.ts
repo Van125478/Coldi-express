@@ -57,6 +57,32 @@ function weight(value: string): number | undefined {
   return number;
 }
 
+const temperatureLabels: Record<MarketplaceForm["temperature"], string> = {
+  "": "Tất cả",
+  COOL: "Lạnh mát",
+  FROZEN: "Đông",
+  DEEP_FROZEN: "Cực lạnh",
+};
+
+const sortLabels: Record<MarketplaceSort, string> = {
+  newest: "Mới đăng",
+  pickup: "Thời gian lấy hàng",
+  price: "Giá thấp đến cao",
+  weight: "Tải trọng nặng đến nhẹ",
+};
+
+export function appliedFilterLabels(form: MarketplaceForm): { key: keyof MarketplaceForm; label: string }[] {
+  const labels: { key: keyof MarketplaceForm; label: string }[] = [];
+  if (form.q) labels.push({ key: "q", label: `Tìm: ${form.q}` });
+  if (form.temperature) labels.push({ key: "temperature", label: temperatureLabels[form.temperature] });
+  if (form.pickup) labels.push({ key: "pickup", label: `Lấy: ${form.pickup}` });
+  if (form.delivery) labels.push({ key: "delivery", label: `Giao: ${form.delivery}` });
+  if (form.weightMin || form.weightMax) labels.push({ key: "weightMin", label: `Tải trọng ${form.weightMin || "…"}–${form.weightMax || "…"} tấn` });
+  if (form.pickupFrom || form.pickupTo) labels.push({ key: "pickupFrom", label: `Lấy hàng ${form.pickupFrom || "…"} → ${form.pickupTo || "…"}` });
+  if (form.sort !== "newest") labels.push({ key: "sort", label: sortLabels[form.sort] });
+  return labels;
+}
+
 export function searchFromForm(form: MarketplaceForm): string {
   const min = weight(form.weightMin);
   const max = weight(form.weightMax);

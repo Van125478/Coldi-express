@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactElement } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { paths } from "@/app/paths";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ export function ClaimedShipments() {
   const [choices, setChoices] = useState<Record<string, { vehicleId: string; driverId: string }>>({});
   const [notice, setNotice] = useState<string | null>(null);
   const [noticeTone, setNoticeTone] = useState<"success" | "conflict" | "error">("success");
+  const [assignTarget, setAssignTarget] = useState<string | null>(null);
 
   async function load() {
     const [shipmentBody, vehicleBody, driverBody] = await Promise.all([
@@ -65,11 +66,13 @@ export function ClaimedShipments() {
       const body = await assignShipment(id, selected);
       setNoticeTone("success");
       setNotice(`Đã phân công. Trạng thái vận hành: ${body.shipment.statusLabel}. Chưa xác nhận lấy hàng.`);
+      setAssignTarget(null);
       await load();
     } catch (caught) {
       if (caught instanceof ApiError && caught.status === 409) {
         setNoticeTone("conflict");
         setNotice("Chuyến này đã được phân công. Không ghi đè phân công hiện có.");
+        setAssignTarget(null);
         await load();
       } else {
         setNoticeTone("error");
@@ -82,8 +85,23 @@ export function ClaimedShipments() {
 
   const location = useLocation();
   const resourcesReady = vehicles.length > 0 && drivers.length > 0;
+  const targetShipment = shipments.find((item) => item.id === assignTarget) ?? null;
+  const targetChoice = targetShipment ? choice(targetShipment.id) : null;
+  const assignPreview =
+    targetShipment && targetChoice
+      ? {
+          shipment: targetShipment,
+          vehicle: vehicles.find((item) => item.id === targetChoice.vehicleId),
+          driver: drivers.find((item) => item.id === targetChoice.driverId),
+        }
+      : null;
   const waiting = shipments.filter((item) => item.vehicleId === null || item.driverId === null);
-  const assignedTrips = shipments.filter((item) => item.vehicleId !== null && item.driverId !== null);
+  const awaitingPickup = shipments.filter((item) => item.status === "MATCHED" && item.vehicleId !== null && item.driverId !== null);
+  const moving = shipments.filter((item) => item.status === "IN_TRANSIT");
+  const delivered = shipments.filter((item) => item.status === "DELIVERY_CONFIRMED");
+  const otherAssigned = shipments.filter(
+    (item) => item.vehicleId !== null && item.driverId !== null && item.status !== "MATCHED" && item.status !== "IN_TRANSIT" && item.status !== "DELIVERY_CONFIRMED",
+  );
 
   useEffect(() => {
     if (listState !== "ready" || !location.hash.startsWith("#phan-cong-")) return;
@@ -96,7 +114,10 @@ export function ClaimedShipments() {
 
   return (
     <section className="space-y-6">
-      <PageHeader title="Chuyến của tôi" summary="Chuyến chờ phân công nằm ở nhóm phía trên. Chuyến đã có xe và tài xế vẫn xem được bên dưới." />
+      <PageHeader
+        title="Chuyến của tôi"
+        summary="Đơn đã nhận vẫn giữ trạng thái MATCHED cho đến khi tài xế xác nhận lấy hàng. Nhãn “Chờ lấy hàng” là cách đọc khi đã phân công, không phải trạng thái mới."
+      />
       {notice ? (
         <p role="status" className={`mt-6 max-w-3xl text-sm leading-relaxed ${noticeTone === "success" ? "text-success" : "text-ink"}`}>
           {notice}
@@ -119,18 +140,64 @@ export function ClaimedShipments() {
               <ul className="grid gap-4">{waiting.map((shipment) => renderTrip(shipment))}</ul>
             </section>
           ) : null}
-          {assignedTrips.length > 0 ? (
-            <section className="space-y-3">
-              <h2 className="text-base font-bold text-ink">Đã phân công</h2>
-              <ul className="grid gap-4">{assignedTrips.map((shipment) => renderTrip(shipment))}</ul>
-            </section>
-          ) : null}
+          <TripGroup title="Đã phân công, chờ lấy hàng" shipments={awaitingPickup} renderTrip={renderTrip} />
+          <TripGroup title="Đang vận chuyển" shipments={moving} renderTrip={renderTrip} />
+          <TripGroup title="Đã giao" shipments={delivered} renderTrip={renderTrip} />
+          <TripGroup title="Đã phân công" shipments={otherAssigned} renderTrip={renderTrip} />
+        </div>
+      ) : null}
+      {assignPreview ? (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-[#1E293B]/40 p-4 sm:items-center">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="assign-confirm-title"
+            tabIndex={-1}
+            className="w-full max-w-md rounded-2xl border border-line bg-surface p-5 outline-none"
+            onKeyDown={(event) => {
+              if (event.key === "Escape" && pendingId === null) setAssignTarget(null);
+            }}
+          >
+            <h2 id="assign-confirm-title" className="text-lg font-bold text-ink">
+              Xác nhận phân công
+            </h2>
+            <p className="mt-3 text-base font-semibold text-ink">
+              {assignPreview.shipment.pickupLocation} → {assignPreview.shipment.deliveryLocation}
+            </p>
+            <p className="mt-1 text-sm text-muted">{assignPreview.shipment.cargoDescription}</p>
+            <p className="mt-3 text-sm text-ink">Xe: {vehicleText(assignPreview.vehicle)}</p>
+            <p className="mt-1 text-sm text-ink">Tài xế: {assignPreview.driver?.displayName ?? "Tài xế đã chọn"}</p>
+            <p className="mt-3 text-sm leading-relaxed text-ink">Phân công chưa phải xác nhận lấy hàng. Tài xế phải tự xác nhận khi đã nhận hàng.</p>
+            <div className="mt-5 flex flex-wrap gap-2">
+              <Button type="button" variant="outline" disabled={pendingId !== null} onClick={() => setAssignTarget(null)}>
+                Hủy
+              </Button>
+              <Button type="button" disabled={pendingId !== null} onClick={() => void assign(assignPreview.shipment.id)}>
+                {pendingId === assignPreview.shipment.id ? "Đang phân công" : "Xác nhận phân công"}
+              </Button>
+            </div>
+          </div>
         </div>
       ) : null}
     </section>
   );
 
-  function renderTrip(shipment: CarrierShipment) {
+  function vehicleText(vehicle: CarrierVehicle | undefined): string {
+  if (!vehicle) return "Xe đã chọn";
+  return vehicle.plate ? `${vehicle.label} · ${vehicle.plate}` : vehicle.label;
+}
+
+function TripGroup({ title, shipments: items, renderTrip: render }: { title: string; shipments: CarrierShipment[]; renderTrip: (shipment: CarrierShipment) => ReactElement }) {
+  if (items.length === 0) return null;
+  return (
+    <section className="space-y-3">
+      <h2 className="text-base font-bold text-ink">{title}</h2>
+      <ul className="grid gap-4">{items.map((shipment) => render(shipment))}</ul>
+    </section>
+  );
+}
+
+function renderTrip(shipment: CarrierShipment) {
             const selected = choice(shipment.id);
             const assigned = shipment.vehicleId !== null && shipment.driverId !== null;
             return (
@@ -163,7 +230,8 @@ export function ClaimedShipments() {
                     className="grid gap-4 border-t border-line bg-canvas px-5 py-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-end"
                     onSubmit={(event) => {
                       event.preventDefault();
-                      void assign(shipment.id);
+                      if (selected.vehicleId === "" || selected.driverId === "") return;
+                      setAssignTarget(shipment.id);
                     }}
                   >
                     {resourcesReady ? null : (

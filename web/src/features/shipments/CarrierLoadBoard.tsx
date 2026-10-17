@@ -3,10 +3,12 @@ import { Link, useSearchParams } from "react-router-dom";
 import { paths } from "@/app/paths";
 import { useAuth } from "@/features/auth/useAuth";
 import { ClaimConfirm } from "@/features/shipments/ClaimConfirm";
-import { emptyMarketplaceForm, formFromParams, searchFromForm, type MarketplaceForm } from "@/features/shipments/marketplaceForm";
+import { nextComparison } from "@/features/shipments/comparison";
+import { MarketShipmentCard } from "@/features/shipments/MarketShipmentCard";
+import { appliedFilterLabels, emptyMarketplaceForm, formFromParams, searchFromForm, type MarketplaceForm } from "@/features/shipments/marketplaceForm";
 import { lostSession } from "@/features/workspace/sessionLoss";
-import { money, primaryLinkClass, shipmentTone, windowText } from "@/features/workspace/format";
-import { EmptyPanel, PageHeader, StatusBadge } from "@/features/workspace/ui";
+import { money, primaryLinkClass, windowText } from "@/features/workspace/format";
+import { EmptyPanel, PageHeader } from "@/features/workspace/ui";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +27,7 @@ export function CarrierLoadBoard() {
   const [truncated, setTruncated] = useState(false);
   const [listState, setListState] = useState<"loading" | "ready" | "error">("loading");
   const [formError, setFormError] = useState<string | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const [compareNote, setCompareNote] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
@@ -67,14 +70,10 @@ export function CarrierLoadBoard() {
   }
 
   function toggleCompare(id: string) {
-    setCompareNote(null);
     setSelected((current) => {
-      if (current.includes(id)) return current.filter((item) => item !== id);
-      if (current.length >= 2) {
-        setCompareNote("Chỉ so sánh hai chuyến cùng lúc. Bỏ một chuyến đã chọn trước.");
-        return current;
-      }
-      return [...current, id];
+      const next = nextComparison(current, id);
+      setCompareNote(next.note);
+      return next.selected;
     });
   }
 
@@ -112,7 +111,9 @@ export function CarrierLoadBoard() {
 
   const confirming = shipments.find((item) => item.id === confirmId) ?? null;
   const compared = selected.map((id) => shipments.find((item) => item.id === id)).filter((item): item is CarrierShipment => item !== undefined);
-  const filtersActive = Array.from(params.keys()).some((key) => key !== "sort");
+  const applied = formFromParams(params);
+  const filterLabels = appliedFilterLabels(applied);
+  const filtersActive = filterLabels.some((item) => item.key !== "sort");
 
   return (
     <section className="space-y-6">
@@ -137,7 +138,30 @@ export function CarrierLoadBoard() {
             className="mt-2"
           />
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="flex flex-wrap gap-2">
+          {(
+            [
+              ["", "Tất cả"],
+              ["COOL", "Lạnh mát"],
+              ["FROZEN", "Đông"],
+              ["DEEP_FROZEN", "Cực lạnh"],
+            ] as const
+          ).map(([value, label]) => (
+            <button
+              key={label}
+              type="button"
+              aria-pressed={form.temperature === value}
+              className={`inline-flex min-h-11 items-center rounded-full px-4 text-sm font-semibold ${form.temperature === value ? "bg-navy text-white" : "border border-line text-ink"}`}
+              onClick={() => setForm({ ...form, temperature: value })}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <Button type="button" variant="outline" className="lg:hidden" onClick={() => setFiltersOpen((open) => !open)}>
+          {filtersOpen ? "Ẩn bộ lọc" : "Hiện bộ lọc"}
+        </Button>
+        <div className={`grid gap-3 sm:grid-cols-2 xl:grid-cols-4 ${filtersOpen ? "" : "max-lg:hidden"}`}>
           <div>
             <Label htmlFor="marketplace-temperature">Nhóm nhiệt độ</Label>
             <select
@@ -195,6 +219,15 @@ export function CarrierLoadBoard() {
           <p role="alert" className="text-sm text-ink">
             {formError}
           </p>
+        ) : null}
+        {filterLabels.length > 0 ? (
+          <ul className="flex flex-wrap gap-2" aria-label="Bộ lọc đang dùng">
+            {filterLabels.map((item) => (
+              <li key={item.key}>
+                <span className="inline-flex min-h-11 items-center rounded-full bg-canvas px-3 text-sm font-semibold text-ink">{item.label}</span>
+              </li>
+            ))}
+          </ul>
         ) : null}
         <div className="flex flex-wrap gap-2">
           <Button type="submit">Áp dụng</Button>
@@ -260,10 +293,10 @@ export function CarrierLoadBoard() {
         />
       ) : null}
       {listState === "ready" && shipments.length > 0 ? (
-        <ul className="grid gap-4 xl:grid-cols-2">
+        <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {shipments.map((shipment) => (
             <li key={shipment.id}>
-              <ShipmentCard
+              <MarketShipmentCard
                 shipment={shipment}
                 selected={selected.includes(shipment.id)}
                 pending={pendingId !== null}
@@ -274,12 +307,14 @@ export function CarrierLoadBoard() {
           ))}
         </ul>
       ) : null}
-      {compared.length > 0 ? <ComparisonPanel shipments={compared} note={compareNote} onClear={() => setSelected([])} /> : null}
+      {compared.length > 0 ? <ComparisonPanel shipments={compared} note={compareNote} onClear={() => setSelected([])} onRemove={toggleCompare} /> : null}
       <ClaimConfirm
         open={confirming !== null}
         pending={pendingId !== null}
         cargo={confirming?.cargoDescription ?? ""}
         route={confirming ? `${confirming.pickupLocation} → ${confirming.deliveryLocation}` : ""}
+        price={confirming ? money(confirming.listedPriceVnd) : undefined}
+        temperature={confirming?.temperatureLabel}
         onCancel={() => {
           if (pendingId === null) setConfirmId(null);
         }}
@@ -289,63 +324,17 @@ export function CarrierLoadBoard() {
   );
 }
 
-function ShipmentCard({
-  shipment,
-  selected,
-  pending,
-  onClaim,
-  onCompare,
+function ComparisonPanel({
+  shipments,
+  note,
+  onClear,
+  onRemove,
 }: {
-  shipment: CarrierShipment;
-  selected: boolean;
-  pending: boolean;
-  onClaim: () => void;
-  onCompare: () => void;
+  shipments: CarrierShipment[];
+  note: string | null;
+  onClear: () => void;
+  onRemove: (id: string) => void;
 }) {
-  const weight = shipment.cargoWeightTon === null ? "Chưa có tải trọng" : `${shipment.cargoWeightTon} tấn`;
-  return (
-    <article className="flex h-full flex-col rounded-2xl border border-line bg-surface p-4">
-      <div className="flex items-start justify-between gap-3">
-        <h2 className="text-base font-bold leading-snug text-ink">
-          <Link to={`${paths.carrierHome}/chuyen/${shipment.id}`} className="hover:text-navy">
-            {shipment.cargoDescription}
-          </Link>
-        </h2>
-        <StatusBadge tone={shipmentTone(shipment.status, shipment.vehicleId, shipment.driverId)}>{shipment.statusLabel}</StatusBadge>
-      </div>
-      <p className="mt-3 text-sm font-semibold leading-relaxed text-ink">
-        {shipment.pickupLocation} → {shipment.deliveryLocation}
-      </p>
-      <p className="mt-1 text-sm leading-relaxed text-muted">
-        {shipment.temperatureLabel} · {weight} · {shipment.vehicleRequirement}
-      </p>
-      <p className="mt-1 text-sm text-muted">Lấy hàng: {windowText(shipment.pickupDate, shipment.pickupTimeFrom, shipment.pickupTimeTo)}</p>
-      <p className="mt-3 text-xl font-extrabold text-navy">{money(shipment.listedPriceVnd)}</p>
-      <p className="text-xs text-muted">Cước niêm yết</p>
-      <div className="mt-4 flex flex-wrap gap-2">
-        <Button type="button" disabled={pending} onClick={onClaim}>
-          Nhận chuyến
-        </Button>
-        <Link to={`${paths.carrierHome}/chuyen/${shipment.id}`} className="inline-flex min-h-11 items-center px-2 text-sm font-semibold text-navy underline-offset-4 hover:underline">
-          Xem chi tiết
-        </Link>
-        {shipment.pickupPhone ? (
-          <a href={`tel:${shipment.pickupPhone}`} className="inline-flex min-h-11 items-center px-2 text-sm font-semibold text-navy underline-offset-4 hover:underline">
-            Gọi
-          </a>
-        ) : null}
-        <Link to={`${paths.carrierHome}/chuyen/${shipment.id}#tro-chuyen`} className="inline-flex min-h-11 items-center px-2 text-sm font-semibold text-navy underline-offset-4 hover:underline">
-          Nhắn chủ hàng
-        </Link>
-        <Button type="button" variant={selected ? "default" : "outline"} aria-pressed={selected} onClick={onCompare}>
-          {selected ? "Đang so sánh" : "So sánh"}
-        </Button>
-      </div>
-    </article>
-  );
-}
-
-function ComparisonPanel({ shipments, note, onClear }: { shipments: CarrierShipment[]; note: string | null; onClear: () => void }) {
   const fields = [
     { label: "Tuyến", value: (item: CarrierShipment) => `${item.pickupLocation} → ${item.deliveryLocation}` },
     { label: "Hàng", value: (item: CarrierShipment) => item.cargoDescription },
@@ -359,7 +348,7 @@ function ComparisonPanel({ shipments, note, onClear }: { shipments: CarrierShipm
     <section className="rounded-2xl border border-line bg-surface p-4" aria-labelledby="compare-title">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 id="compare-title" className="text-base font-bold text-ink">
-          So sánh tạm
+          So sánh {shipments.length}/2
         </h2>
         <Button type="button" variant="outline" onClick={onClear}>
           Bỏ chọn
@@ -371,14 +360,23 @@ function ComparisonPanel({ shipments, note, onClear }: { shipments: CarrierShipm
       <div className="mt-4 grid gap-3 md:grid-cols-2">
         {shipments.map((item) => (
           <article key={item.id} className="rounded-xl border border-line p-3">
-            <h3 className="font-semibold text-ink">{item.cargoDescription}</h3>
+            <div className="flex items-start justify-between gap-2">
+              <h3 className="font-semibold text-ink">{item.cargoDescription}</h3>
+              <Button type="button" variant="outline" className="min-h-11 shrink-0 px-3" onClick={() => onRemove(item.id)}>
+                Bỏ
+              </Button>
+            </div>
             <dl className="mt-2 space-y-1">
-              {fields.map((field) => (
-                <div key={field.label} className="grid grid-cols-[7rem_minmax(0,1fr)] gap-2 text-sm">
-                  <dt className="text-muted">{field.label}</dt>
-                  <dd className="text-ink">{field.value(item)}</dd>
-                </div>
-              ))}
+              {fields.map((field) => {
+                const values = shipments.map((entry) => field.value(entry));
+                const different = new Set(values).size > 1;
+                return (
+                  <div key={field.label} className="grid grid-cols-[7rem_minmax(0,1fr)] gap-2 text-sm">
+                    <dt className="text-muted">{field.label}</dt>
+                    <dd className={different ? "font-semibold text-navy" : "text-ink"}>{field.value(item)}</dd>
+                  </div>
+                );
+              })}
             </dl>
           </article>
         ))}

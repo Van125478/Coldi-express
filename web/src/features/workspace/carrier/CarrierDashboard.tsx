@@ -1,10 +1,12 @@
+import { Container, Route, Search, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { assignmentPath, paths } from "@/app/paths";
 import { useAuth } from "@/features/auth/useAuth";
 import { lostSession } from "@/features/workspace/sessionLoss";
-import { money, primaryLinkClass, shipmentTone } from "@/features/workspace/format";
-import { MetricGrid, PageHeader, StatusBadge } from "@/features/workspace/ui";
+import { MarketShipmentCard } from "@/features/shipments/MarketShipmentCard";
+import { money, shipmentTone } from "@/features/workspace/format";
+import { PageHeader, StatusBadge } from "@/features/workspace/ui";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,17 +49,9 @@ export function CarrierDashboard() {
 
   return (
     <section className="space-y-6">
-      <PageHeader
-        title="Việc của nhà xe"
-        summary="Tìm đơn đang mở, xem chuyến đã nhận và chuyến còn thiếu xe hoặc tài xế."
-        action={
-          <Link to={paths.carrierFind} className={primaryLinkClass}>
-            Tìm chuyến
-          </Link>
-        }
-      />
+      <PageHeader title="Sàn vận tải lạnh" summary="Đơn lạnh đang niêm yết. Nhà xe tự tìm, tự nhận, rồi tự phân công xe và tài xế." />
       <form
-        className="rounded-2xl border border-line bg-surface p-4"
+        className="rounded-2xl border border-line bg-surface p-4 shadow-sm"
         onSubmit={(event) => {
           event.preventDefault();
           const q = search.trim();
@@ -66,20 +60,23 @@ export function CarrierDashboard() {
       >
         <Label htmlFor="carrier-home-search">Tìm chuyến theo hàng hoặc tuyến</Label>
         <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-          <Input id="carrier-home-search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Hàng hóa, điểm lấy, điểm giao" />
-          <Button type="submit">Tìm</Button>
+          <Input id="carrier-home-search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Hàng hóa, điểm lấy, điểm giao" className="min-h-12" />
+          <Button type="submit" className="sm:min-w-36">
+            Tìm chuyến
+          </Button>
         </div>
       </form>
+      <nav aria-label="Lối tắt nhà xe" className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+        <Shortcut to={paths.carrierFind} title="Tìm chuyến" icon={Search} />
+        <Shortcut to={paths.carrierTrips} title="Chuyến của tôi" icon={Route} />
+        <Shortcut to={paths.carrierFleet} title="Đội xe" icon={Container} />
+        <Shortcut to={paths.carrierDrivers} title="Quản lý tài xế" icon={Users} />
+      </nav>
       <div className="flex flex-wrap gap-2">
-        <Link to={paths.carrierFind} className={primaryLinkClass}>
-          Tìm chuyến
-        </Link>
-        <Link to={paths.carrierFleet} className="inline-flex min-h-11 items-center rounded-xl border border-line bg-surface px-5 text-sm font-semibold text-ink">
-          Quản lý xe
-        </Link>
-        <Link to={paths.carrierTrips} className="inline-flex min-h-11 items-center rounded-xl border border-line bg-surface px-5 text-sm font-semibold text-ink">
-          Chuyến của tôi
-        </Link>
+        <TemperatureLink value="" label="Tất cả nhóm nhiệt" />
+        <TemperatureLink value="COOL" label="Lạnh mát" />
+        <TemperatureLink value="FROZEN" label="Đông" />
+        <TemperatureLink value="DEEP_FROZEN" label="Cực lạnh" />
       </div>
       {current ? (
         <div className="rounded-2xl border border-line bg-surface px-5 py-4">
@@ -100,25 +97,20 @@ export function CarrierDashboard() {
       ) : null}
       {state === "ready" ? (
         <>
-          <MetricGrid
-            items={[
-              { label: "Đơn đang mở", value: available.length, hint: "Có thể nhận. Gọi điện không giữ chỗ." },
-              { label: "Đã nhận", value: claimed.length, hint: "Chuyến của nhà xe này." },
-              { label: "Chờ phân công", value: waiting.length, hint: "Chưa gán xe và tài xế." },
-              { label: "Chờ lấy hàng", value: awaitingPickup.length, hint: "Đã phân công. Chưa xác nhận lấy hàng." },
-            ]}
-          />
+          <p className="text-sm text-muted">
+            {available.length} đơn đang mở trong lần tải này. {claimed.length} chuyến đã nhận, {waiting.length} chờ phân công, {awaitingPickup.length} đã phân công và chờ lấy hàng. Gọi điện không giữ chỗ.
+          </p>
           {available.length === 0 ? (
             <p className="rounded-2xl border border-dashed border-line bg-surface px-5 py-4 text-sm leading-relaxed text-muted">
               Không có đơn đang tìm xe. Khi chủ hàng niêm yết đơn mới, đơn sẽ hiện tại Tìm chuyến.
             </p>
           ) : (
             <div>
-              <h2 className="text-base font-bold text-ink">Đơn có thể nhận</h2>
-              <ul className="mt-3 grid gap-3 lg:grid-cols-2">
-                {available.slice(0, 4).map((shipment) => (
-                  <li key={shipment.id} className="rounded-2xl border border-line bg-surface">
-                    <TripRow shipment={shipment} action="Xem đơn" />
+              <h2 className="text-base font-bold text-ink">Đơn mới niêm yết</h2>
+              <ul className="mt-3 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {available.slice(0, 6).map((shipment) => (
+                  <li key={shipment.id}>
+                    <MarketShipmentCard shipment={shipment} />
                   </li>
                 ))}
               </ul>
@@ -143,6 +135,24 @@ export function CarrierDashboard() {
         </>
       ) : null}
     </section>
+  );
+}
+
+function Shortcut({ to, title, icon: Icon }: { to: string; title: string; icon: typeof Search }) {
+  return (
+    <Link to={to} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-line bg-surface px-3 text-sm font-semibold text-ink shadow-sm hover:border-navy">
+      <Icon className="size-4 shrink-0 text-navy" aria-hidden="true" />
+      {title}
+    </Link>
+  );
+}
+
+function TemperatureLink({ value, label }: { value: string; label: string }) {
+  const href = value ? `${paths.carrierFind}?temperature=${value}` : paths.carrierFind;
+  return (
+    <Link to={href} className="inline-flex min-h-11 items-center rounded-full border border-line bg-surface px-4 text-sm font-semibold text-ink hover:border-navy">
+      {label}
+    </Link>
   );
 }
 
