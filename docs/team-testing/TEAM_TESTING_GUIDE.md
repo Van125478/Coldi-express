@@ -6,7 +6,9 @@ Ngày ghi hướng dẫn: 17/10/2026.
 
 Nhánh kiểm thử: `main`.
 
-Mã nguồn ứng dụng nằm trên commit của nhánh `integration/coldi-v2.3-mvp` được merge vào `main`. Sau khi `git pull` trên `main`, chạy:
+Commit trên nhánh tích hợp chứa mã ứng dụng và bản hướng dẫn này: `bdff152aa9fe9f40e6f1dc5f2ebeb62237107c76`.
+
+Sau khi `git pull` trên `main`, chạy:
 
 ```powershell
 git rev-parse HEAD
