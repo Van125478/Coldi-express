@@ -2,6 +2,7 @@
 
 @theme {
   --font-sans: "Be Vietnam Pro", "Segoe UI", sans-serif;
+  --breakpoint-desk: 87.5rem;
   --color-navy: #1e3a8a;
   --color-navy-deep: #172554;
   --color-accent: #2563eb;

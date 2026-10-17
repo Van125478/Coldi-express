@@ -10,8 +10,14 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import cargoStill from "@/features/transition-lab/keyframe-01-open-reefer.jpg";
+import doorsStill from "@/features/transition-lab/keyframe-02-doors-closing.jpg";
+import rearStill from "@/features/transition-lab/keyframe-03-closed-rear.jpg";
+import roadStill from "@/features/transition-lab/keyframe-04-high-angle-road.jpg";
 import type { CarrierShipment } from "@/models/publishedShipment";
 import { listCarrierShipments, listClaimedShipments } from "@/services/shipmentService";
+
+const tripStills = [cargoStill, doorsStill, rearStill, roadStill] as const;
 
 export function CarrierDashboard() {
   usePageTitle("Tổng quan nhà xe");
@@ -136,7 +142,7 @@ export function CarrierDashboard() {
             {ordered.length === 0 ? (
               <p className="rounded-2xl border border-dashed border-line bg-surface px-5 py-4 text-sm leading-relaxed text-muted">Chưa nhận chuyến nào.</p>
             ) : (
-              <ul className="grid items-stretch gap-4 md:grid-cols-2 min-[1440px]:grid-cols-3">
+              <ul className="grid items-stretch gap-4 md:grid-cols-2 desk:grid-cols-3">
                 {ordered.slice(0, 6).map((shipment) => (
                   <li key={shipment.id} className="min-w-0">
                     <HomeTripCard shipment={shipment} />
@@ -160,37 +166,44 @@ function TemperatureLink({ value, label }: { value: string; label: string }) {
   );
 }
 
+function stillForTrip(id: string): (typeof tripStills)[number] {
+  let total = 0;
+  for (let index = 0; index < id.length; index += 1) total = (total + id.charCodeAt(index)) % tripStills.length;
+  return tripStills[total] ?? cargoStill;
+}
+
 function HomeTripCard({ shipment }: { shipment: CarrierShipment }) {
   const needsAssignment = shipment.vehicleId === null || shipment.driverId === null;
   const href = needsAssignment && shipment.status !== "PUBLISHED" ? assignmentPath(shipment.id) : `${paths.carrierHome}/chuyen/${shipment.id}`;
-  const pickup = shipment.pickupDate ? civil(shipment.pickupDate) : "Chưa ghi ngày lấy";
+  const pickup = shipment.pickupDate ? civil(shipment.pickupDate) : "Chưa cập nhật";
   return (
-    <article className="flex h-full flex-col rounded-2xl border border-line bg-surface p-5">
-      <div className="flex items-start justify-between gap-3">
-        <StatusBadge tone={shipmentTone(shipment.status, shipment.vehicleId, shipment.driverId)}>{shipment.statusLabel}</StatusBadge>
-        <p className="shrink-0 text-right text-sm font-extrabold whitespace-nowrap text-navy">{money(shipment.listedPriceVnd)}</p>
+    <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-surface">
+      <div className="relative aspect-[16/9] overflow-hidden bg-[#E7EDF4]" aria-hidden="true">
+        <img src={stillForTrip(shipment.id)} alt="" className="h-full w-full object-cover object-center" />
       </div>
-      <h3 className="mt-4 text-lg font-extrabold leading-snug tracking-tight text-ink">
-        {shipment.pickupLocation} <span aria-hidden="true">→</span> {shipment.deliveryLocation}
-      </h3>
-      <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-muted">{shipment.cargoDescription}</p>
-      <dl className="mt-4 grid grid-cols-2 gap-x-3 gap-y-3 text-sm">
-        <div>
-          <dt className="text-[11px] font-semibold tracking-wide text-muted uppercase">Nhiệt</dt>
-          <dd className="mt-1 font-semibold text-ink">{shipment.temperatureLabel}</dd>
+      <div className="flex flex-1 flex-col p-5">
+        <div className="flex items-start justify-between gap-3">
+          <StatusBadge tone={shipmentTone(shipment.status, shipment.vehicleId, shipment.driverId)}>{shipment.statusLabel}</StatusBadge>
+          <p className="shrink-0 text-right text-sm font-extrabold whitespace-nowrap text-navy">{money(shipment.listedPriceVnd)}</p>
         </div>
-        <div>
-          <dt className="text-[11px] font-semibold tracking-wide text-muted uppercase">Xe yêu cầu</dt>
-          <dd className="mt-1 font-semibold text-ink">{shipment.vehicleRequirement}</dd>
+        <h3 className="mt-3 text-lg font-extrabold leading-snug tracking-tight text-ink">
+          {shipment.pickupLocation} <span aria-hidden="true">→</span> {shipment.deliveryLocation}
+        </h3>
+        <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-muted">{shipment.cargoDescription}</p>
+        <p className="mt-3 text-sm leading-relaxed text-ink">
+          <span className="font-semibold">{shipment.temperatureLabel}</span>
+          <span className="text-muted"> · {shipment.vehicleRequirement}</span>
+        </p>
+        <p className="mt-1 text-sm leading-relaxed text-ink">
+          <span className="text-muted">Ngày lấy: </span>
+          <span className="font-semibold">{pickup}</span>
+        </p>
+        <div className="mt-auto pt-5">
+          <Link to={href} className={`${primaryLinkClass} w-full`}>
+            {needsAssignment ? "Phân công" : "Xem"}
+          </Link>
         </div>
-        <div className="col-span-2">
-          <dt className="text-[11px] font-semibold tracking-wide text-muted uppercase">Ngày lấy</dt>
-          <dd className="mt-1 font-semibold text-ink">{pickup}</dd>
-        </div>
-      </dl>
-      <Link to={href} className={`${primaryLinkClass} mt-5 w-full`}>
-        {needsAssignment ? "Phân công" : "Xem"}
-      </Link>
+      </div>
     </article>
   );
 }
