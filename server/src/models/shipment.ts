@@ -38,6 +38,8 @@ const shipmentEventSchema = new Schema(
     statusAfter: { type: String, required: true, enum: shipmentStatuses },
     vehicleId: { type: Schema.Types.ObjectId, ref: "Vehicle" },
     driverId: { type: Schema.Types.ObjectId, ref: "User" },
+    assignedVehicleLabel: { type: String, trim: true, maxlength: 160 },
+    assignedDriverName: { type: String, trim: true, maxlength: 80 },
     sequence: { type: Number, required: true },
   },
   { _id: true },

@@ -37,6 +37,8 @@ export type NewShipmentEvent = {
   statusAfter: ShipmentStatus;
   vehicleId?: string;
   driverId?: string;
+  assignedVehicleLabel?: string;
+  assignedDriverName?: string;
 };
 
 type StoredEvent = {
@@ -48,6 +50,8 @@ type StoredEvent = {
   statusAfter?: ShipmentStatus;
   vehicleId?: { toString(): string } | null;
   driverId?: { toString(): string } | null;
+  assignedVehicleLabel?: string | null;
+  assignedDriverName?: string | null;
   sequence?: number;
 };
 
@@ -88,6 +92,8 @@ export function shipmentEventUpdate(fields: Record<string, unknown>, event: NewS
   if (event.statusBefore) entry.statusBefore = event.statusBefore;
   if (event.vehicleId) entry.vehicleId = new Types.ObjectId(event.vehicleId);
   if (event.driverId) entry.driverId = new Types.ObjectId(event.driverId);
+  if (event.assignedVehicleLabel) entry.assignedVehicleLabel = event.assignedVehicleLabel;
+  if (event.assignedDriverName) entry.assignedDriverName = event.assignedDriverName;
   return [{ $set: { ...castReferences(fields), events: { $concatArrays: [{ $ifNull: ["$events", []] }, [entry]] } } }];
 }
 
@@ -207,8 +213,8 @@ function toDto(
   recorded: boolean,
 ): ShipmentTimelineEventDto {
   const assigned = event.type === "ASSIGNED" && event.vehicleId != null && event.driverId != null;
-  const vehicleLabel = event.vehicleId ? (names.vehicles.get(event.vehicleId.toString()) ?? null) : null;
-  const driverName = event.driverId ? (names.users.get(event.driverId.toString()) ?? null) : null;
+  const vehicleLabel = storedName(event.assignedVehicleLabel) ?? (event.vehicleId ? (names.vehicles.get(event.vehicleId.toString()) ?? null) : null);
+  const driverName = storedName(event.assignedDriverName) ?? (event.driverId ? (names.users.get(event.driverId.toString()) ?? null) : null);
   return {
     id: event.id ?? event._id?.toString() ?? `${event.type}-${event.sequence}`,
     type: event.type,
@@ -230,6 +236,12 @@ function actorLabel(role: ActorRole, actorId: string, audience: TimelineAudience
   const name = users.get(actorId);
   if (role === "CARRIER") return name ?? "Nhà xe";
   return name ?? "Tài xế";
+}
+
+function storedName(value: string | null | undefined): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
 }
 
 function eventDetail(type: ShipmentEventType, vehicleLabel: string | null, driverName: string | null): string | null {
