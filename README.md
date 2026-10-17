@@ -27,10 +27,14 @@ Lúc tạo nhánh, `git ls-remote` thấy GitHub `main` tại `a2a2c3846c04614f3
 3. [Checklist nghiệm thu Core 08](docs/core-08/03-checklist-nghiem-thu.md)
 4. [Sự cố và giới hạn Core 08](docs/core-08/04-su-co-va-gioi-han.md)
 5. [Danh sách nghiệm thu tay hiện tại](docs/mvp-review/07-manual-acceptance-readiness.md)
+6. [Quyết định sản phẩm 17/10/2026](docs/product/COLDI_v2.4_Product_Decisions_2026-10-17.md) — bổ sung đã chốt, không phải bằng chứng đã code đăng ký hay WAREHOUSE
+7. [Checklist ảnh FE-05A](docs/frontend/FE-05A_Visual_Acceptance_and_Carrier_Backlog_2026-10-17.md) — chưa có màn nào được nghiệm thu hình ảnh
 
 Mẫu báo lỗi: [docs/core-08/05-mau-bao-loi.md](docs/core-08/05-mau-bao-loi.md).
 
-Core 08 mô tả máy local và luồng đã nghiệm thu trước GPS, chat, đội xe và sàn lọc. Trạng thái các phần mới nằm ở `docs/core-09/` đến `docs/core-14/` và `docs/mvp-review/`. Quyết định vai trò v2.4 nằm ở `docs/Coldi_Documentation_v2.4_Roles_Clarified/`. `docs/COLDI_DEMO_GUIDE.md` là bản mô tả giao diện cũ. Không dùng file đó để cài đặt.
+Core 08 mô tả máy local và luồng đã nghiệm thu trước GPS, chat, đội xe và sàn lọc. Trạng thái các phần mới nằm ở `docs/core-09/` đến `docs/core-14/` và `docs/mvp-review/`. Quyết định vai trò v2.4 nằm ở `docs/Coldi_Documentation_v2.4_Roles_Clarified/`. Bản bổ sung 17/10/2026 nằm ở `docs/product/`. `docs/COLDI_DEMO_GUIDE.md` là bản mô tả giao diện cũ. Không dùng file đó để cài đặt.
+
+WAREHOUSE chưa có trong mã đăng nhập. Đăng ký công khai và dấu xác thực doanh nghiệp được ghi là việc sau, chưa có API. Sàn nhà xe người dùng là `/carrier/tim-chuyen`; thẻ mẫu không còn trong giao diện.
 
 ## Trạng thái trên nhánh tích hợp
 

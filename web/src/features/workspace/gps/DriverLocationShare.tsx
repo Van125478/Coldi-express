@@ -145,14 +145,12 @@ export function DriverLocationShare({ shipmentId, active, phase = "waiting" }: {
 
   return (
     <DetailBlock title="Chia sẻ vị trí">
-      <p className="inline-flex min-h-8 items-center rounded-full border border-line bg-canvas px-3 text-xs font-semibold text-ink">{active ? shareLabel[share] : phase === "delivered" ? "Đã dừng sau giao hàng" : "Chưa mở"}</p>
-      {phase === "delivered" ? <p className="text-sm leading-relaxed text-ink">Đã xác nhận giao hàng. Trang này không gửi vị trí nữa. GPS không tạo mốc lấy hàng hoặc giao hàng.</p> : null}
-      {phase === "waiting" ? <p className="text-sm leading-relaxed text-ink">Vị trí chỉ được gửi khi chuyến đang vận chuyển, và chỉ sau khi tài xế bấm bắt đầu. Không có vị trí cũng không chặn xác nhận lấy hàng hoặc giao hàng.</p> : null}
-      {active ? (
-        <p className="text-sm leading-relaxed text-ink">
-          {share === "sharing" ? "Đang chia sẻ vị trí trên trang này." : "Chưa chia sẻ vị trí."} Trình duyệt không bảo đảm gửi GPS khi ứng dụng ở nền hoặc đã đóng.
-        </p>
-      ) : null}
+      <p className="inline-flex min-h-8 items-center rounded-full border border-line bg-canvas px-3 text-xs font-semibold text-ink">{active ? shareLabel[share] : phase === "delivered" ? "Đã kết thúc" : "Chưa mở"}</p>
+      {phase === "delivered" ? <p className="text-sm leading-relaxed text-ink">Đã giao. Theo dõi vị trí đã kết thúc.</p> : null}
+      {phase === "waiting" ? <p className="text-sm leading-relaxed text-ink">Chia sẻ vị trí mở sau khi xác nhận lấy hàng.</p> : null}
+      {active && share === "sharing" ? <p className="text-sm leading-relaxed text-ink">Đang chia sẻ vị trí trên trang này.</p> : null}
+      {active && share !== "sharing" && share !== "requesting" && share !== "paused" ? <p className="text-sm leading-relaxed text-ink">Chuyến đang vận chuyển. Chưa chia sẻ vị trí.</p> : null}
+      {active ? <p className="text-sm leading-relaxed text-muted">Trình duyệt không gửi vị trí khi trang bị ẩn hoặc đã đóng.</p> : null}
       {share === "denied" ? <p className="text-sm text-ink">Trình duyệt đã từ chối quyền vị trí. Xác nhận lấy hàng và giao hàng vẫn thực hiện được.</p> : null}
       {share === "timeout" ? <p className="text-sm text-ink">Hết thời gian chờ vị trí. Sẽ thử lại khi trang vẫn đang mở.</p> : null}
       {share === "unsupported" ? <p className="text-sm text-ink">Trình duyệt này không cung cấp vị trí.</p> : null}

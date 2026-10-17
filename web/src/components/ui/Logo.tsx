@@ -9,8 +9,9 @@ type LogoProps = {
 };
 
 /** Opaque ink inside the square asset. Padding stays transparent; it is not part of the mark. */
-const ink = { x: 43, y: 226, width: 924, height: 554 };
+const ink = { x: 43, y: 226, width: 925, height: 555 };
 const inkHeight = "1.75rem";
+const pad = "4px";
 
 export function Logo({ tone = "default", to = paths.home }: LogoProps) {
   const inverse = tone === "inverse";
@@ -20,8 +21,8 @@ export function Logo({ tone = "default", to = paths.home }: LogoProps) {
       <span
         className="relative inline-block shrink-0 overflow-hidden"
         style={{
-          width: `calc(${inkHeight} * ${ink.width} / ${ink.height} + 6px)`,
-          height: `calc(${inkHeight} + 6px)`,
+          width: `calc(${inkHeight} * ${ink.width} / ${ink.height} + ${pad} * 2)`,
+          height: `calc(${inkHeight} + ${pad} * 2)`,
         }}
       >
         <img
@@ -33,8 +34,8 @@ export function Logo({ tone = "default", to = paths.home }: LogoProps) {
           style={{
             width: `calc(${inkHeight} * 1000 / ${ink.height})`,
             height: `calc(${inkHeight} * 1000 / ${ink.height})`,
-            left: `calc(3px - ${inkHeight} * ${ink.x} / ${ink.height})`,
-            top: `calc(3px - ${inkHeight} * ${ink.y} / ${ink.height})`,
+            left: `calc(${pad} - ${inkHeight} * ${ink.x} / ${ink.height})`,
+            top: `calc(${pad} - ${inkHeight} * ${ink.y} / ${ink.height})`,
           }}
         />
       </span>

@@ -1,12 +1,10 @@
-import { ImageOff } from "lucide-react";
+import { Snowflake, Truck } from "lucide-react";
 import { Link } from "react-router-dom";
 import { paths } from "@/app/paths";
 import { Button } from "@/components/ui/button";
-import { money, shipmentTone, windowText } from "@/features/workspace/format";
+import { civil, money, shipmentTone, windowText } from "@/features/workspace/format";
 import { StatusBadge } from "@/features/workspace/ui";
 import type { CarrierShipment } from "@/models/publishedShipment";
-
-const chipClass = "inline-flex min-h-8 items-center rounded-full border border-line bg-canvas px-3 text-xs font-semibold text-ink";
 
 export function MarketShipmentCard({
   shipment,
@@ -21,73 +19,83 @@ export function MarketShipmentCard({
   onClaim?: () => void;
   onCompare?: () => void;
 }) {
-  const weight = shipment.cargoWeightTon === null ? "Chưa có tải trọng" : `${shipment.cargoWeightTon} tấn`;
   const detail = `${paths.carrierHome}/chuyen/${shipment.id}`;
   const pickupParty = shipment.pickupCompany?.trim() || "Chưa ghi đơn vị lấy hàng";
+  const schedule = pickupSchedule(shipment);
   return (
-    <article className={`flex h-full flex-col overflow-hidden rounded-2xl border bg-surface shadow-sm ${selected ? "border-navy ring-2 ring-navy" : "border-line"}`}>
-      <div className="flex min-h-28 flex-col items-center justify-center gap-2 bg-line/70 px-4 py-5 text-center text-sm text-muted">
-        <ImageOff className="size-5" aria-hidden="true" />
-        <p>Chủ hàng chưa gửi ảnh hàng hóa</p>
+    <article className={`flex h-full flex-col overflow-hidden rounded-2xl border bg-surface ${selected ? "border-navy ring-2 ring-navy" : "border-line"}`}>
+      <div className="relative aspect-[4/3] overflow-hidden bg-[#E7EDF4]" aria-hidden="true">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_12%,rgba(30,58,138,0.16),transparent_46%),linear-gradient(165deg,#F8FAFC_0%,#E7EDF4_58%,#D5E0EE_100%)]" />
+        <Snowflake className="absolute left-1/2 top-1/2 size-8 -translate-x-1/2 -translate-y-1/2 text-navy/70" />
       </div>
       <div className="flex flex-1 flex-col p-4">
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="font-mono text-sm font-bold text-ink" title={shipment.id}>
+            <span className="sr-only">Mã đơn </span>#{shipment.id.slice(-6).toUpperCase()}
+          </p>
           <StatusBadge tone={shipmentTone(shipment.status, shipment.vehicleId, shipment.driverId)}>{shipment.statusLabel}</StatusBadge>
           {onCompare ? (
-            <Button type="button" variant={selected ? "default" : "outline"} aria-pressed={selected} className="min-h-11 shrink-0 px-3" onClick={onCompare}>
+            <Button type="button" variant={selected ? "default" : "outline"} aria-pressed={selected} className="ml-auto min-h-10 shrink-0 px-3" onClick={onCompare}>
               {selected ? "Đang so sánh" : "So sánh"}
             </Button>
           ) : null}
         </div>
-        <p className="mt-3 text-sm leading-relaxed text-muted">{shipment.cargoDescription}</p>
-        <h2 className="mt-1 text-lg font-extrabold leading-snug text-ink">
+        <p className="mt-3 flex items-start gap-2 text-sm leading-relaxed text-ink">
+          <Snowflake className="mt-0.5 size-4 shrink-0 text-navy" aria-hidden="true" />
+          <span>
+            {shipment.temperatureLabel}
+            <span className="text-muted"> · {shipment.cargoDescription}</span>
+          </span>
+        </p>
+        <h2 className="mt-3 text-xl font-extrabold leading-snug tracking-tight text-ink">
           <Link to={detail} className="rounded-sm hover:text-navy focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-navy">
             {shipment.pickupLocation} <span aria-hidden="true">→</span> {shipment.deliveryLocation}
           </Link>
         </h2>
-        <ul className="mt-3 flex flex-wrap gap-2">
-          <li className={chipClass}>{shipment.temperatureLabel}</li>
-          <li className={chipClass}>{weight}</li>
-          <li className={chipClass}>{shipment.vehicleRequirement}</li>
-        </ul>
-        <div className="mt-4 grid grid-cols-2 gap-3 border-t border-line pt-3">
-          <div>
-            <p className="text-xs font-semibold tracking-wide text-muted">Giờ bốc hàng</p>
-            <p className="mt-1 text-sm text-ink">{windowText(shipment.pickupDate, shipment.pickupTimeFrom, shipment.pickupTimeTo)}</p>
+        <p className="mt-3 inline-flex w-fit max-w-full items-center gap-2 rounded-full bg-canvas px-3 py-1.5 text-xs font-semibold text-ink">
+          <Truck className="size-3.5 shrink-0 text-navy" aria-hidden="true" />
+          <span className="truncate">{shipment.vehicleRequirement}</span>
+        </p>
+        <div className="mt-4 flex items-end justify-between gap-3 border-t border-line pt-3">
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Giờ bốc hàng</p>
+            <p className="mt-1 text-sm font-semibold leading-snug text-ink">{schedule.date}</p>
+            {schedule.time ? <p className="text-sm font-semibold leading-snug text-ink">{schedule.time}</p> : null}
           </div>
-          <div>
-            <p className="text-xs font-semibold tracking-wide text-muted">Giá cước niêm yết</p>
-            <p className="mt-1 text-lg font-extrabold text-navy">{money(shipment.listedPriceVnd)}</p>
+          <div className="shrink-0 text-right">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Giá cước</p>
+            <p className="mt-1 whitespace-nowrap text-lg font-extrabold leading-none text-navy min-[1440px]:text-xl">{money(shipment.listedPriceVnd)}</p>
           </div>
         </div>
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3">
-          <p className="min-w-0 text-sm text-muted">Lấy tại {pickupParty}</p>
-          {onClaim ? (
-            <Button type="button" disabled={pending} onClick={onClaim}>
-              Nhận chuyến
-            </Button>
-          ) : (
-            <Link to={detail} className="inline-flex min-h-11 items-center justify-center rounded-xl bg-navy px-4 text-sm font-semibold text-white hover:bg-navy-deep">
-              Xem đơn
-            </Link>
-          )}
+        <div className="mt-auto flex items-center justify-between gap-3 border-t border-line pt-4">
+          <p className="min-w-0 truncate text-sm font-medium text-ink">{pickupParty}</p>
+          <Link to={detail} className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-lg bg-navy px-4 text-sm font-semibold text-white hover:bg-navy-deep">
+            Xem đơn
+          </Link>
         </div>
         <div className="mt-2 flex flex-wrap gap-x-3">
           {onClaim ? (
-            <Link to={detail} className="inline-flex min-h-11 items-center text-sm font-semibold text-navy underline-offset-4 hover:underline">
-              Xem chi tiết
-            </Link>
+            <Button type="button" variant="outline" className="min-h-10" disabled={pending} onClick={onClaim}>
+              Nhận chuyến
+            </Button>
           ) : null}
           {shipment.pickupPhone ? (
-            <a href={`tel:${shipment.pickupPhone}`} className="inline-flex min-h-11 items-center text-sm font-semibold text-navy underline-offset-4 hover:underline">
+            <a href={`tel:${shipment.pickupPhone}`} className="inline-flex min-h-10 items-center text-sm font-semibold text-navy underline-offset-4 hover:underline">
               Gọi
             </a>
           ) : null}
-          <Link to={`${detail}#tro-chuyen`} className="inline-flex min-h-11 items-center text-sm font-semibold text-navy underline-offset-4 hover:underline">
+          <Link to={`${detail}#tro-chuyen`} className="inline-flex min-h-10 items-center text-sm font-semibold text-navy underline-offset-4 hover:underline">
             Nhắn chủ hàng
           </Link>
         </div>
       </div>
     </article>
   );
+}
+
+function pickupSchedule(shipment: CarrierShipment): { date: string; time: string } {
+  if (!shipment.pickupDate || !shipment.pickupTimeFrom || !shipment.pickupTimeTo) {
+    return { date: windowText(shipment.pickupDate, shipment.pickupTimeFrom, shipment.pickupTimeTo), time: "" };
+  }
+  return { date: civil(shipment.pickupDate), time: `${shipment.pickupTimeFrom}–${shipment.pickupTimeTo}` };
 }

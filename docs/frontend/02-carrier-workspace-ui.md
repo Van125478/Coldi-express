@@ -62,3 +62,13 @@ Không có ảnh hàng giả, huy hiệu đã xác minh, khoảng cách, điểm
 Sàn đang không có đơn `PUBLISHED`, nên chưa thấy thẻ đơn mở, so sánh hai đơn, hay hộp thoại nhận chuyến với dữ liệu thật. Không đăng nhập chủ hàng, tài xế hoặc quản trị để bấm logo từng vai trò; đích đó được kiểm bằng test thuần. Không gửi tin, không đặt lại mật khẩu, không thêm xe.
 
 Nghiệm thu hình ảnh của người dùng chưa được đánh dấu đạt.
+
+## Bổ sung sau review FE-05A, chưa nghiệm thu
+
+Sàn người dùng chỉ còn `/carrier/tim-chuyen`. Không còn trang hoặc query xem trước thẻ mẫu. Thẻ đơn mở dùng `MarketShipmentCard` và `Xem đơn` tới `/carrier/chuyen/:id`.
+
+Trang `/carrier` giữ ô tìm, nhóm nhiệt, số đơn đang mở, chuyến đang theo dõi và danh sách đã nhận. Bốn ô lối tắt trùng sidebar đã bỏ. Menu đội xe và tài xế vẫn ở sidebar.
+
+Bộ lọc nâng cao thu trong “Bộ lọc khác”. Các tham số Core 13 vẫn còn. Chi tiết chuyến gom khối lượng, thể tích và số kiện khi cả ba đều trống, và không thêm chữ “Tài xế” nếu tên đã bắt đầu bằng chữ đó.
+
+Bản đồ lấy → giao chưa có vì đơn không lưu tọa độ hai đầu. Không geocode và không dùng API vị trí của chủ hàng. Quyết định tài khoản làm sau nằm ở `docs/product/COLDI_v2.4_Product_Decisions_2026-10-17.md`. Checklist ảnh nằm ở `docs/frontend/FE-05A_Visual_Acceptance_and_Carrier_Backlog_2026-10-17.md`.

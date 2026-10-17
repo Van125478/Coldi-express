@@ -122,10 +122,7 @@ export function ShipperShipmentDetail() {
             <ShipmentLocation shipmentId={shipment.id} />
           </div>
           <ShipperChat shipmentId={shipment.id} />
-          <div className="space-y-2">
-            <p className="text-sm text-muted">Năm mốc nghiệp vụ: niêm yết, nhận chuyến, phân công, xác nhận lấy, xác nhận giao.</p>
-            <ShipmentTimeline timeline={shipment.timeline} />
-          </div>
+          <ShipmentTimeline timeline={shipment.timeline} />
         </>
       ) : null}
     </section>

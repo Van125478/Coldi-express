@@ -71,6 +71,21 @@ const sortLabels: Record<MarketplaceSort, string> = {
   weight: "Tải trọng nặng đến nhẹ",
 };
 
+export const marketplaceQueryKeys = ["q", "temperature", "pickup", "delivery", "weightMin", "weightMax", "pickupFrom", "pickupTo", "sort"] as const;
+
+export function allowedMarketplaceSearch(params: URLSearchParams): string {
+  const next = new URLSearchParams();
+  for (const key of marketplaceQueryKeys) {
+    const value = params.get(key);
+    if (value) next.set(key, value);
+  }
+  return next.toString();
+}
+
+export function hasAdvancedMarketplaceFilters(form: MarketplaceForm): boolean {
+  return Boolean(form.pickup.trim() || form.delivery.trim() || form.weightMin.trim() || form.weightMax.trim() || form.pickupFrom.trim() || form.pickupTo.trim());
+}
+
 export function appliedFilterLabels(form: MarketplaceForm): { key: keyof MarketplaceForm; label: string }[] {
   const labels: { key: keyof MarketplaceForm; label: string }[] = [];
   if (form.q) labels.push({ key: "q", label: `Tìm: ${form.q}` });

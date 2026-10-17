@@ -5,7 +5,7 @@ import { useAuth } from "@/features/auth/useAuth";
 import { ClaimConfirm } from "@/features/shipments/ClaimConfirm";
 import { nextComparison } from "@/features/shipments/comparison";
 import { MarketShipmentCard } from "@/features/shipments/MarketShipmentCard";
-import { appliedFilterLabels, emptyMarketplaceForm, formFromParams, searchFromForm, type MarketplaceForm } from "@/features/shipments/marketplaceForm";
+import { allowedMarketplaceSearch, appliedFilterLabels, emptyMarketplaceForm, formFromParams, hasAdvancedMarketplaceFilters, marketplaceQueryKeys, searchFromForm, type MarketplaceForm } from "@/features/shipments/marketplaceForm";
 import { lostSession } from "@/features/workspace/sessionLoss";
 import { money, primaryLinkClass, windowText } from "@/features/workspace/format";
 import { EmptyPanel, PageHeader } from "@/features/workspace/ui";
@@ -27,7 +27,7 @@ export function CarrierLoadBoard() {
   const [truncated, setTruncated] = useState(false);
   const [listState, setListState] = useState<"loading" | "ready" | "error">("loading");
   const [formError, setFormError] = useState<string | null>(null);
-  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(() => hasAdvancedMarketplaceFilters(formFromParams(params)));
   const [selected, setSelected] = useState<string[]>([]);
   const [compareNote, setCompareNote] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
@@ -35,10 +35,21 @@ export function CarrierLoadBoard() {
   const [notice, setNotice] = useState<string | null>(null);
   const [noticeTone, setNoticeTone] = useState<"success" | "conflict" | "error">("success");
   const [reloadKey, setReloadKey] = useState(0);
-  const query = params.toString();
-  const requestQuery = new URLSearchParams(query);
+  const requestQuery = new URLSearchParams(allowedMarketplaceSearch(params));
   if (!requestQuery.has("sort")) requestQuery.set("sort", "newest");
   const boardQuery = requestQuery.toString();
+
+  useEffect(() => {
+    const next = new URLSearchParams(params);
+    let dropped = false;
+    for (const key of [...next.keys()]) {
+      if (!marketplaceQueryKeys.includes(key as (typeof marketplaceQueryKeys)[number])) {
+        next.delete(key);
+        dropped = true;
+      }
+    }
+    if (dropped) setParams(next, { replace: true });
+  }, [params, setParams]);
 
   useEffect(() => {
     let active = true;
@@ -63,7 +74,7 @@ export function CarrierLoadBoard() {
   function apply(next: MarketplaceForm) {
     try {
       setFormError(null);
-      setParams(new URLSearchParams(searchFromForm(next)));
+      setParams(searchFromForm(next));
     } catch (error) {
       setFormError(error instanceof Error ? error.message : "Bộ lọc không hợp lệ.");
     }
@@ -122,69 +133,51 @@ export function CarrierLoadBoard() {
         summary="Nhà xe tự xem đơn đang tìm xe, lọc và so sánh, rồi tự nhận chuyến. Gọi điện, nhắn tin hoặc chọn so sánh không giữ chỗ."
       />
       <form
-        className="space-y-4 rounded-2xl border border-line bg-surface p-4"
+        className="space-y-3 rounded-2xl border border-line bg-surface p-4"
         onSubmit={(event) => {
           event.preventDefault();
           apply(form);
         }}
       >
         <div>
-          <Label htmlFor="marketplace-q">Tìm theo hàng, điểm lấy hoặc điểm giao</Label>
+          <Label htmlFor="marketplace-q" className="text-base font-semibold">
+            Tìm theo hàng, điểm lấy hoặc điểm giao
+          </Label>
           <Input
             id="marketplace-q"
             value={form.q}
             onChange={(event) => setForm({ ...form, q: event.target.value })}
             placeholder="Ví dụ: thủy sản, Cái Bè, Thủ Đức"
-            className="mt-2"
+            className="mt-2 min-h-12"
           />
         </div>
-        <div className="flex flex-wrap gap-2">
-          {(
-            [
-              ["", "Tất cả"],
-              ["COOL", "Lạnh mát"],
-              ["FROZEN", "Đông"],
-              ["DEEP_FROZEN", "Cực lạnh"],
-            ] as const
-          ).map(([value, label]) => (
-            <button
-              key={label}
-              type="button"
-              aria-pressed={form.temperature === value}
-              className={`inline-flex min-h-11 items-center rounded-full px-4 text-sm font-semibold ${form.temperature === value ? "bg-navy text-white" : "border border-line text-ink"}`}
-              onClick={() => setForm({ ...form, temperature: value })}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-        <Button type="button" variant="outline" className="lg:hidden" onClick={() => setFiltersOpen((open) => !open)}>
-          {filtersOpen ? "Ẩn bộ lọc" : "Hiện bộ lọc"}
-        </Button>
-        <div className={`grid gap-3 sm:grid-cols-2 xl:grid-cols-4 ${filtersOpen ? "" : "max-lg:hidden"}`}>
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
           <div>
-            <Label htmlFor="marketplace-temperature">Nhóm nhiệt độ</Label>
-            <select
-              id="marketplace-temperature"
-              value={form.temperature}
-              onChange={(event) => setForm({ ...form, temperature: event.target.value as MarketplaceForm["temperature"] })}
-              className="mt-2 min-h-11 w-full rounded-xl border border-line bg-surface px-3 text-sm text-ink"
-            >
-              <option value="">Tất cả</option>
-              <option value="COOL">Lạnh mát</option>
-              <option value="FROZEN">Đông</option>
-              <option value="DEEP_FROZEN">Cực lạnh</option>
-            </select>
+            <p id="marketplace-temperature-label" className="text-sm font-semibold text-ink">
+              Nhóm nhiệt
+            </p>
+            <div role="group" aria-labelledby="marketplace-temperature-label" className="mt-2 flex flex-wrap gap-2">
+              {(
+                [
+                  ["", "Tất cả"],
+                  ["COOL", "Lạnh mát"],
+                  ["FROZEN", "Đông"],
+                  ["DEEP_FROZEN", "Cực lạnh"],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  key={label}
+                  type="button"
+                  aria-pressed={form.temperature === value}
+                  className={`inline-flex min-h-11 items-center rounded-full px-4 text-sm font-semibold ${form.temperature === value ? "bg-navy text-white" : "border border-line text-ink"}`}
+                  onClick={() => setForm({ ...form, temperature: value })}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
-          <div>
-            <Label htmlFor="marketplace-pickup">Điểm lấy chứa</Label>
-            <Input id="marketplace-pickup" value={form.pickup} onChange={(event) => setForm({ ...form, pickup: event.target.value })} className="mt-2" />
-          </div>
-          <div>
-            <Label htmlFor="marketplace-delivery">Điểm giao chứa</Label>
-            <Input id="marketplace-delivery" value={form.delivery} onChange={(event) => setForm({ ...form, delivery: event.target.value })} className="mt-2" />
-          </div>
-          <div>
+          <div className="xl:w-72">
             <Label htmlFor="marketplace-sort">Sắp xếp</Label>
             <select
               id="marketplace-sort"
@@ -197,6 +190,34 @@ export function CarrierLoadBoard() {
               <option value="price">Giá cước niêm yết, thấp đến cao</option>
               <option value="weight">Tải trọng, nặng đến nhẹ</option>
             </select>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button type="submit">Áp dụng</Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              setForm(emptyMarketplaceForm);
+              setFormError(null);
+              setFiltersOpen(false);
+              setParams("");
+            }}
+          >
+            Xóa bộ lọc
+          </Button>
+          <Button type="button" variant="outline" aria-expanded={filtersOpen} aria-controls="marketplace-advanced" onClick={() => setFiltersOpen((open) => !open)}>
+            {filtersOpen ? "Ẩn bộ lọc khác" : "Bộ lọc khác"}
+          </Button>
+        </div>
+        <div id="marketplace-advanced" className={filtersOpen ? "grid gap-3 sm:grid-cols-2 xl:grid-cols-3" : "hidden"}>
+          <div>
+            <Label htmlFor="marketplace-pickup">Điểm lấy chứa</Label>
+            <Input id="marketplace-pickup" value={form.pickup} onChange={(event) => setForm({ ...form, pickup: event.target.value })} className="mt-2" />
+          </div>
+          <div>
+            <Label htmlFor="marketplace-delivery">Điểm giao chứa</Label>
+            <Input id="marketplace-delivery" value={form.delivery} onChange={(event) => setForm({ ...form, delivery: event.target.value })} className="mt-2" />
           </div>
           <div>
             <Label htmlFor="marketplace-weight-min">Tải trọng từ (tấn)</Label>
@@ -229,20 +250,6 @@ export function CarrierLoadBoard() {
             ))}
           </ul>
         ) : null}
-        <div className="flex flex-wrap gap-2">
-          <Button type="submit">Áp dụng</Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              setForm(emptyMarketplaceForm);
-              setFormError(null);
-              setParams(new URLSearchParams());
-            }}
-          >
-            Xóa bộ lọc
-          </Button>
-        </div>
       </form>
       {notice ? (
         <p role="status" className={`text-sm leading-relaxed ${noticeTone === "success" ? "text-success" : "text-ink"}`}>
@@ -254,9 +261,9 @@ export function CarrierLoadBoard() {
           ) : null}
         </p>
       ) : null}
-      {listState === "loading" ? <p className="text-sm text-muted">Đang tải đơn đang tìm xe.</p> : null}
+      {listState === "loading" ? <p className="rounded-2xl border border-line bg-surface px-5 py-4 text-sm text-muted">Đang tải đơn đang tìm xe.</p> : null}
       {listState === "error" ? (
-        <div role="alert" className="space-y-3">
+        <div role="alert" className="space-y-3 rounded-2xl border border-line bg-surface px-5 py-4">
           <p className="text-sm text-ink">Không tải được danh sách đơn.</p>
           <Button type="button" variant="outline" onClick={() => setReloadKey((value) => value + 1)}>
             Thử lại
@@ -279,7 +286,9 @@ export function CarrierLoadBoard() {
                 variant="outline"
                 onClick={() => {
                   setForm(emptyMarketplaceForm);
-                  setParams(new URLSearchParams());
+                  setFormError(null);
+                  setFiltersOpen(false);
+                  setParams("");
                 }}
               >
                 Xóa bộ lọc

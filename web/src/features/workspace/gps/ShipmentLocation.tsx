@@ -125,7 +125,7 @@ export function ShipmentLocation({ shipmentId }: { shipmentId: string }) {
         </div>
       ) : null}
       <p className="text-sm leading-relaxed text-muted">
-        GPS không đổi trạng thái đơn, không xác nhận lấy hàng, giao hàng hay thanh toán. Không có ETA hay lộ trình suy diễn. Bản đồ nền, nếu được mở, do Mapbox phục vụ. Yêu cầu bản đồ không gửi mã đơn, tên tài xế hay nội dung chat.
+        Đây là vị trí xe do tài xế gửi, không phải bản đồ lộ trình từ điểm lấy đến điểm giao. Địa chỉ hai đầu chưa có tọa độ, nên không vẽ tuyến và không có ETA. GPS không đổi trạng thái đơn, không xác nhận lấy hàng, giao hàng hay thanh toán. Nút mở bản đồ chỉ hiện khi đã có tọa độ hợp lệ và khóa Mapbox công khai. Yêu cầu bản đồ không gửi mã đơn, tên tài xế hay nội dung chat.
       </p>
     </DetailBlock>
   );

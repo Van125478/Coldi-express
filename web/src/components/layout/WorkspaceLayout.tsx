@@ -52,14 +52,14 @@ export function WorkspaceLayout() {
       >
         Đi tới nội dung
       </a>
-      <aside className={cn("hidden border-r lg:flex lg:min-h-screen lg:flex-col", carrier ? "border-navy-deep bg-navy text-white" : "border-line bg-surface")}>
-        <div className={cn("border-b px-5 py-5", carrier ? "border-white/15" : "border-line")}>
-          <span className={carrier ? "inline-flex rounded-lg bg-white px-2" : undefined}>
+      <aside className={cn("hidden border-r lg:sticky lg:top-0 lg:flex lg:h-dvh lg:max-h-dvh lg:flex-col lg:self-start lg:overflow-hidden", carrier ? "border-navy-deep bg-navy text-white" : "border-line bg-surface")}>
+        <div className={cn("shrink-0 border-b px-5 py-5", carrier ? "border-white/15" : "border-line")}>
+          <span className={carrier ? "inline-flex rounded-lg bg-white px-2 py-1" : "inline-flex py-1"}>
             <Logo to={home} />
           </span>
           <p className={cn("mt-4 text-xs font-semibold tracking-[0.14em]", carrier ? "text-white/80" : "text-navy")}>{roleLabels[role].toUpperCase()}</p>
         </div>
-        <nav aria-label="Khu làm việc" className="flex flex-1 flex-col gap-1 px-3 py-4">
+        <nav aria-label="Khu làm việc" className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-3 py-4">
           {items.map((item) => (
             <WorkspaceLink key={item.to} to={item.to} label={item.label} icon={item.icon} carrier={carrier} />
           ))}

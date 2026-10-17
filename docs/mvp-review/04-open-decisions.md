@@ -2,6 +2,8 @@
 
 Chỉ những chỗ tài liệu v2.3 hoặc mã đang để mở. Không đề xuất làm trước khi duyệt.
 
+Bổ sung 17/10/2026, chưa triển khai: SHIPPER và CARRIER sẽ tự đăng ký và dùng được khi tài khoản hợp lệ; DRIVER do CARRIER cấp; WAREHOUSE do SHIPPER cấp nhưng chưa phải role MVP; dấu xác thực doanh nghiệp do Admin cấp hoặc thu hồi và không tự khóa tài khoản. Chi tiết ở `docs/product/COLDI_v2.4_Product_Decisions_2026-10-17.md`. Bản đồ tuyến lấy → giao vẫn chờ tọa độ hoặc geocoding được duyệt. Không suy ra rằng các mục đó đã có trong code.
+
 ## 1. Provider bản đồ
 
 Đã chốt cho MVP này: Mapbox GL JS v3. Goong không phải provider của bản đồ. Goong vẫn có thể được xét sau cho geocoding địa chỉ Việt Nam.

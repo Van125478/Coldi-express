@@ -104,6 +104,57 @@ Phiên trình duyệt kết thúc ở tài khoản nhà xe demo, đang đứng t
 
 Lần chạy test đầu thất bại vì helper import alias `@/`. Helper được đổi sang import tương đối, cùng cách với `logoDestination`. Lần chạy đầy đủ sau đó là 67 pass.
 
+## Phụ thuộc bản đồ lộ trình
+
+Bản đồ điểm lấy → điểm giao chưa được vẽ. Đơn chỉ lưu địa chỉ dạng chữ, không có tọa độ hai đầu. Muốn có bản đồ thật cần quyết định sản phẩm: lưu tọa độ khi đăng đơn, hoặc duyệt một bước geocoding. Không được tự bịa tọa độ, khoảng cách hay ETA.
+
+Vị trí xe là GPS do tài xế gửi. API đó chỉ mở cho chủ hàng của đơn và tài xế được phân công. Trang nhà xe không nhận dữ liệu này. Khóa Mapbox công khai hiện chưa được cấu hình.
+
+Người dùng chưa chấp nhận giao diện. Sàn nhà xe chưa giống `Asset/coldi/homepagecarthinh.png`, chi tiết đơn chưa có trải nghiệm bản đồ, và logo sidebar bị cắt khi cuộn.
+
+Đã sửa trong working tree, chưa commit:
+
+- Thẻ sàn dùng vùng ảnh lớn, mã đơn thật, trạng thái thật, hàng, tuyến, yêu cầu xe, giờ bốc, giá niêm yết và nút Xem đơn. Ảnh hàng không được bịa.
+- Lưới ba cột đã có trên `/carrier` và `/carrier/tim-chuyen` khi có đơn PUBLISHED. Lúc xem, sàn đang mở vẫn trống.
+- Xem trước bố cục, chỉ khi dev và `?xem-truoc-bo-cuc=1`. Ba thẻ ghi rõ không phải đơn trên sàn và không ghi database.
+- Sidebar dính `top` và cao bằng màn hình. Logo không còn trượt khỏi mép trên khi cuộn.
+- Chi tiết nhà xe chỉ còn một câu: địa chỉ hai đầu chưa có vị trí trên bản đồ. Trang nhà xe không gọi API GPS của chủ hàng.
+- Khối GPS chủ hàng nói rõ đây là vị trí xe, không phải tuyến điểm lấy–điểm giao. Nút Mở bản đồ vẫn chỉ hiện khi có tọa độ và khóa Mapbox công khai.
+
+Lượt đối chiếu sau phản hồi, vẫn chưa được nghiệm thu:
+
+- Lưới xem trước ba cột đã chụp đủ tại 1440 và 1280. Cấu trúc thẻ gần ảnh `homepagecarthinh.png`: vùng ảnh, mã, trạng thái, hàng, tuyến, xe, giờ bốc, giá, đơn vị, nút Xem đơn. Chưa giống ảnh ở chỗ không có ảnh hàng thật, không có số lượng nguồn hàng, không có huy hiệu xác minh, và bộ lọc là bộ lọc đang chạy.
+- Tham số `xem-truoc-bo-cuc` chỉ ở trình duyệt dev. Danh sách sàn thật không gửi tham số này lên API. Sàn đang mở vẫn là 0 đơn.
+- Giờ bốc trên thẻ tách ngày và khung giờ, để giá không nằm chen vào dòng lịch khi thẻ hẹp.
+- Chi tiết nhà xe gom điểm lấy và điểm giao thành hai nơi, hàng hóa thành một đoạn, giá và phân công đứng riêng. Không hiện mã trạng thái kỹ thuật. Timeline nhà xe ẩn câu giải thích kỹ thuật.
+- Sidebar đã đo khi đang cuộn: nhà xe, chủ hàng và tài xế, cả 1280 và 1440. Logo tài xế trước khi dính bị khuất; sau khi dính thì còn trong khung.
+
+Chưa làm, vì chưa có dữ liệu hoặc quyền:
+
+- Tọa độ điểm lấy và điểm giao. Địa chỉ đang là chữ.
+- Geocoding, tuyến, khoảng cách, ETA.
+- API vị trí cho nhà xe. `GET /api/shipments/:id/location` chỉ dành cho chủ hàng của đơn. Tài xế được phân công dùng route riêng.
+- Khóa `VITE_MAPBOX_PUBLIC_TOKEN`. `web/.env.local` không có. `web/.env.example` để trống. Không thử tile với khóa giả.
+
+## Đối chiếu đa vai, chưa nghiệm thu
+
+Lượt này chỉ chỉnh trình bày desktop. Không đổi quyền, không ghi dữ liệu nghiệp vụ, không thêm đăng ký.
+
+- Trang chủ chủ hàng: tuyến nổi trên thẻ theo dõi, thẻ đơn có giá và nút rõ hơn. Đơn đã giao dùng “Xem thông tin vị trí”, không gọi đó là theo dõi trực tiếp.
+- Trang chủ tài xế: số liệu và chuyến đang làm đứng cạnh nhau trên desktop, thẻ không kéo full bề ngang.
+- Chi tiết tài xế: hai điểm lấy/giao, một khối hàng và xe, nút xác nhận đứng trước giá. Điều kiện xác nhận không đổi.
+- GPS tài xế: câu ngắn theo giai đoạn chờ lấy, đang chạy và đã giao.
+- Timeline vẫn giữ mốc đã ghi. Mốc suy từ dữ liệu cũ có một câu phân biệt, không bịa thêm mốc.
+- Đăng nhập dùng ảnh đường từ trang khách và nền chấm, form vẫn là phần chính. Trang chủ điện ảnh không đổi. `/dang-ky` vẫn chưa vận hành.
+
+## Sàn nhà xe một trang, chưa nghiệm thu
+
+Lượt Carrier sau mục “Đối chiếu đa vai” gỡ preview khỏi giao diện. Hai đoạn phía trên vẫn mô tả lượt xem trước, khi query `xem-truoc-bo-cuc` còn tồn tại. Query đó không còn là một màn hình. Sàn thật vẫn là `/carrier/tim-chuyen`. Lúc kiểm, sàn phát triển có 0 đơn PUBLISHED nên lưới ba thẻ đơn thật chưa được bấm.
+
+Bộ lọc chính còn ô tìm, nhóm nhiệt và sắp xếp. Bộ lọc còn lại nằm sau “Bộ lọc khác”. Trang chủ nhà xe bỏ bốn ô trùng sidebar. Chi tiết nhà xe gom số đo trống và không lặp chữ “Tài xế” khi tên đã chứa chữ đó. Bản đồ tuyến vẫn chưa vẽ được vì địa chỉ là chữ.
+
+Đăng ký SHIPPER/CARRIER, dấu xác thực doanh nghiệp và role WAREHOUSE được ghi là quyết định làm sau tại `docs/product/COLDI_v2.4_Product_Decisions_2026-10-17.md`. Chưa triển khai. Checklist ảnh Carrier nằm ở `docs/frontend/FE-05A_Visual_Acceptance_and_Carrier_Backlog_2026-10-17.md`. Không màn nào được đánh dấu đã nghiệm thu.
+
 ## 16. Để FE-05B hoặc sau
 
 - Diễn tập có ghi dữ liệu: đăng đơn, nhận chuyến, phân công, lấy hàng, giao hàng, chat, GPS, đổi mật khẩu tạm.

@@ -1,11 +1,10 @@
-import { Container, Route, Search, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { assignmentPath, paths } from "@/app/paths";
 import { useAuth } from "@/features/auth/useAuth";
 import { lostSession } from "@/features/workspace/sessionLoss";
 import { MarketShipmentCard } from "@/features/shipments/MarketShipmentCard";
-import { money, shipmentTone } from "@/features/workspace/format";
+import { money, primaryLinkClass, shipmentTone } from "@/features/workspace/format";
 import { PageHeader, StatusBadge } from "@/features/workspace/ui";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { Button } from "@/components/ui/button";
@@ -66,59 +65,68 @@ export function CarrierDashboard() {
           </Button>
         </div>
       </form>
-      <nav aria-label="Lối tắt nhà xe" className="grid grid-cols-2 gap-2 lg:grid-cols-4">
-        <Shortcut to={paths.carrierFind} title="Tìm chuyến" icon={Search} />
-        <Shortcut to={paths.carrierTrips} title="Chuyến của tôi" icon={Route} />
-        <Shortcut to={paths.carrierFleet} title="Đội xe" icon={Container} />
-        <Shortcut to={paths.carrierDrivers} title="Quản lý tài xế" icon={Users} />
-      </nav>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2" role="group" aria-label="Nhóm nhiệt trên sàn">
         <TemperatureLink value="" label="Tất cả nhóm nhiệt" />
         <TemperatureLink value="COOL" label="Lạnh mát" />
         <TemperatureLink value="FROZEN" label="Đông" />
         <TemperatureLink value="DEEP_FROZEN" label="Cực lạnh" />
       </div>
-      {current ? (
-        <div className="rounded-2xl border border-line bg-surface px-5 py-4">
-          <p className="text-sm font-semibold text-ink">Chuyến đang theo dõi</p>
-          <p className="mt-1 text-sm text-muted">
-            {current.pickupLocation} → {current.deliveryLocation} · {current.statusLabel}
-          </p>
-          <Link to={`${paths.carrierHome}/chuyen/${current.id}`} className="mt-2 inline-flex min-h-11 items-center text-sm font-semibold text-navy underline-offset-4 hover:underline">
-            Mở chuyến
-          </Link>
-        </div>
-      ) : null}
-      {state === "loading" ? <p className="text-sm text-muted">Đang tải chuyến.</p> : null}
+      {state === "loading" ? <p className="rounded-2xl border border-line bg-surface px-5 py-4 text-sm text-muted">Đang tải chuyến.</p> : null}
       {state === "error" ? (
-        <p role="alert" className="text-sm text-ink">
+        <p role="alert" className="rounded-2xl border border-line bg-surface px-5 py-4 text-sm text-ink">
           Không tải được chuyến. Hãy tải lại trang.
         </p>
       ) : null}
       {state === "ready" ? (
         <>
-          <p className="text-sm text-muted">
-            {available.length} đơn đang mở trong lần tải này. {claimed.length} chuyến đã nhận, {waiting.length} chờ phân công, {awaitingPickup.length} đã phân công và chờ lấy hàng. Gọi điện không giữ chỗ.
-          </p>
-          {available.length === 0 ? (
-            <p className="rounded-2xl border border-dashed border-line bg-surface px-5 py-4 text-sm leading-relaxed text-muted">
-              Không có đơn đang tìm xe. Khi chủ hàng niêm yết đơn mới, đơn sẽ hiện tại Tìm chuyến.
-            </p>
-          ) : (
-            <div>
-              <h2 className="text-base font-bold text-ink">Đơn mới niêm yết</h2>
-              <ul className="mt-3 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {available.slice(0, 6).map((shipment) => (
+          <section className="space-y-3" aria-labelledby="open-shipments-title">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <h2 id="open-shipments-title" className="text-base font-bold text-ink">
+                  Đơn đang mở
+                </h2>
+                <p className="mt-1 text-sm text-muted">{available.length} đơn đang tìm xe trong lần tải này.</p>
+              </div>
+              <Link to={paths.carrierFind} className="text-sm font-semibold text-navy underline-offset-4 hover:underline">
+                Mở sàn tìm chuyến
+              </Link>
+            </div>
+            {available.length === 0 ? (
+              <p className="rounded-2xl border border-dashed border-line bg-surface px-5 py-4 text-sm leading-relaxed text-muted">
+                Không có đơn đang tìm xe. Khi chủ hàng niêm yết đơn mới, đơn sẽ hiện trên sàn.
+              </p>
+            ) : (
+              <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {available.slice(0, 3).map((shipment) => (
                   <li key={shipment.id}>
                     <MarketShipmentCard shipment={shipment} />
                   </li>
                 ))}
               </ul>
-            </div>
-          )}
+            )}
+          </section>
+          {current ? (
+            <section className="rounded-2xl border border-line bg-surface px-5 py-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-navy">Chuyến đang theo dõi</p>
+              <h2 className="mt-2 text-xl font-extrabold leading-snug text-ink">
+                {current.pickupLocation} → {current.deliveryLocation}
+              </h2>
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <StatusBadge tone={shipmentTone(current.status, current.vehicleId, current.driverId)}>{current.statusLabel}</StatusBadge>
+                <Link to={`${paths.carrierHome}/chuyen/${current.id}`} className={primaryLinkClass}>
+                  Mở chuyến
+                </Link>
+              </div>
+            </section>
+          ) : null}
           <div className="overflow-hidden rounded-2xl border border-line bg-surface">
-            <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-4">
-              <h2 className="text-base font-bold text-ink">Chuyến đã nhận</h2>
+            <div className="flex flex-wrap items-end justify-between gap-3 border-b border-line px-5 py-4">
+              <div>
+                <h2 className="text-base font-bold text-ink">Chuyến đã nhận</h2>
+                <p className="mt-1 text-sm text-muted">
+                  {claimed.length} chuyến đã nhận, {waiting.length} chờ phân công, {awaitingPickup.length} đã phân công và chờ lấy hàng.
+                </p>
+              </div>
               <Link to={paths.carrierTrips} className="text-sm font-semibold text-navy underline-offset-4 hover:underline">
                 Chuyến của tôi
               </Link>
@@ -135,15 +143,6 @@ export function CarrierDashboard() {
         </>
       ) : null}
     </section>
-  );
-}
-
-function Shortcut({ to, title, icon: Icon }: { to: string; title: string; icon: typeof Search }) {
-  return (
-    <Link to={to} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-line bg-surface px-3 text-sm font-semibold text-ink shadow-sm hover:border-navy">
-      <Icon className="size-4 shrink-0 text-navy" aria-hidden="true" />
-      {title}
-    </Link>
   );
 }
 

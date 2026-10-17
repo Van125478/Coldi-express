@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/ui/Logo";
 import { authMessages } from "@/content/publicCopy";
+import roadStill from "@/features/transition-lab/keyframe-04-high-angle-road.jpg";
 import { useAuth } from "@/features/auth/useAuth";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import type { BusinessRole } from "@/models/session";
@@ -67,19 +68,23 @@ export function LoginPage() {
   return (
     <div className="min-h-svh bg-canvas lg:grid lg:grid-cols-[minmax(20rem,0.86fr)_minmax(24rem,1.14fr)]">
       <aside className="relative hidden overflow-hidden bg-navy-deep text-white lg:flex lg:min-h-svh lg:flex-col lg:justify-between lg:px-12 lg:py-10">
-        <Logo tone="inverse" />
-        <div className="max-w-md">
-          <p className="text-xs font-semibold tracking-[0.16em] text-white/60">VẬN TẢI LẠNH</p>
-          <h2 className="mt-4 text-4xl leading-tight font-extrabold">Kết nối chủ hàng và nhà xe</h2>
-          <ol className="mt-8 space-y-4 text-sm leading-relaxed text-white/80">
-            <li>01 · Chủ hàng niêm yết đơn. Đơn mới ở trạng thái Đang tìm xe.</li>
-            <li>02 · Nhà xe tự nhận chuyến. Gọi điện không giữ chỗ.</li>
-            <li>03 · Sau khi nhận, nhà xe phân công xe và tài xế.</li>
-          </ol>
+        <img src={roadStill} alt="" className="absolute inset-0 h-full w-full object-cover opacity-50" />
+        <div className="absolute inset-0 bg-gradient-to-b from-navy-deep/80 via-navy-deep/78 to-navy-deep" />
+        <div className="relative z-10 flex min-h-0 flex-1 flex-col justify-between">
+          <Logo tone="inverse" />
+          <div className="max-w-md">
+            <p className="text-xs font-semibold tracking-[0.16em] text-white/70">VẬN TẢI LẠNH</p>
+            <h2 className="mt-4 text-4xl leading-tight font-extrabold">Kết nối chủ hàng và nhà xe</h2>
+            <ol className="mt-8 space-y-4 text-sm leading-relaxed text-white/80">
+              <li>01 · Chủ hàng niêm yết đơn. Đơn mới ở trạng thái Đang tìm xe.</li>
+              <li>02 · Nhà xe tự nhận chuyến. Gọi điện không giữ chỗ.</li>
+              <li>03 · Sau khi nhận, nhà xe phân công xe và tài xế.</li>
+            </ol>
+          </div>
+          <p className="text-sm text-white/60">© 2026 COLDI</p>
         </div>
-        <p className="text-sm text-white/55">© 2026 COLDI</p>
       </aside>
-      <section className="flex min-h-svh flex-col">
+      <section className="hero-dots flex min-h-svh flex-col">
         <header className="flex items-center justify-between gap-4 px-5 py-5 sm:px-10 lg:justify-end">
           <div className="lg:hidden">
             <Logo />
@@ -89,7 +94,7 @@ export function LoginPage() {
           </Link>
         </header>
         <div className="flex flex-1 items-center px-5 pb-10 sm:px-10">
-          <div className="mx-auto w-full max-w-lg">
+          <div className="animate-rise mx-auto w-full max-w-lg">
             {snapshot.status === "authenticated" ? (
               <SignedIn user={snapshot.user} onLogout={() => void logout()} />
             ) : (

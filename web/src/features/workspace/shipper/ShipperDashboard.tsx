@@ -83,28 +83,41 @@ export function ShipperDashboard() {
         />
       ) : null}
       {state === "ready" && followed ? (
-        <article className="rounded-2xl bg-navy p-5 text-white">
+        <article className="rounded-2xl bg-navy p-5 text-white sm:p-6">
           <p className="text-xs font-semibold tracking-[0.14em] text-white/80">{followed.status === "IN_TRANSIT" ? "ĐANG VẬN CHUYỂN" : "CHUYẾN ĐANG THEO DÕI"}</p>
-          <h2 className="mt-3 text-2xl font-extrabold tracking-tight">
-            {followed.pickupLocation} <span aria-hidden="true">→</span> {followed.deliveryLocation}
+          <h2 className="sr-only">
+            {followed.pickupLocation} đến {followed.deliveryLocation}
           </h2>
-          <p className="mt-2 text-sm leading-relaxed text-white/85">
-            {followed.cargoDescription} · {followed.temperatureLabel}
+          <div className="mt-4 grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-center">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-white/70">Điểm lấy</p>
+              <p className="mt-1 text-2xl font-extrabold tracking-tight">{followed.pickupLocation}</p>
+            </div>
+            <span className="hidden text-2xl text-white/70 sm:block" aria-hidden="true">
+              →
+            </span>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-white/70">Điểm giao</p>
+              <p className="mt-1 text-2xl font-extrabold tracking-tight">{followed.deliveryLocation}</p>
+            </div>
+          </div>
+          <p className="mt-4 text-sm leading-relaxed text-white/85">
+            {followed.temperatureLabel}
             {followed.cargoWeightTon === null ? "" : ` · ${followed.cargoWeightTon} tấn`}
+            {" · "}
+            {followed.cargoDescription}
           </p>
-          {followed.vehicleId !== null && followed.driverId !== null ? (
-            <p className="mt-2 text-sm text-white/85">
-              Xe: {followed.vehicleLabel ?? "Xe đã phân công"} · Tài xế: {followed.driverName ?? "Tài xế đã phân công"}
-            </p>
-          ) : (
-            <p className="mt-2 text-sm text-white/85">Chưa phân công xe và tài xế. GPS không tự đổi trạng thái đơn.</p>
-          )}
+          <p className="mt-2 text-sm text-white/85">
+            {followed.vehicleId !== null && followed.driverId !== null
+              ? `${followed.vehicleLabel ?? "Xe đã phân công"} · ${followed.driverName ?? "Tài xế đã phân công"}`
+              : "Chưa phân công xe và tài xế."}
+          </p>
           <Link
             to={followed.status === "IN_TRANSIT" ? `${paths.shipperShipments}/${followed.id}#vi-tri` : `${paths.shipperShipments}/${followed.id}`}
-            className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-navy"
+            className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-navy"
           >
             <MapPinned className="size-4" aria-hidden="true" />
-            {followed.status === "IN_TRANSIT" ? "Theo dõi vị trí" : "Xem đơn"}
+            {followed.status === "IN_TRANSIT" ? "Xem vị trí" : "Xem đơn"}
           </Link>
         </article>
       ) : null}

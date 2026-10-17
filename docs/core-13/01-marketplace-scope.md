@@ -41,3 +41,13 @@ Không có khoảng cách, ETA, điểm kho, điểm phù hợp, giá thương l
 Giá dầu, tiệm sửa xe, ảnh hàng, huy hiệu đã xác minh, đánh giá nhà xe và lưu tin vĩnh viễn không được dựng thành nút hoạt động.
 
 Chưa có tenant tổ chức. Quyền vẫn là vai trò cộng quan hệ đơn hàng như Core 12.
+
+## Bổ sung giao diện, không đổi allowlist
+
+Sàn phát hành là một route `/carrier/tim-chuyen`. Thẻ mẫu và query xem trước bố cục không còn trong UI. Bộ lọc trên trang gồm ô tìm, nhóm nhiệt, sắp xếp, rồi “Bộ lọc khác” cho điểm lấy, điểm giao, tải trọng và khoảng ngày. `searchFromForm` vẫn chỉ ghi các khóa đã có. API vẫn từ chối khóa lạ.
+
+0 đơn PUBLISHED là trạng thái trống. Lỗi tải là trạng thái khác, có nút thử lại. Chưa có đơn PUBLISHED trên database phát triển để bấm lưới ba cột hay `Xem đơn` của đơn đang mở. Không tạo đơn giả để chụp màn hình.
+
+Bản đồ tuyến lấy → giao không thuộc API sàn. Địa chỉ đang là chữ. Không tự geocode, không vẽ tuyến, không tính khoảng cách hay ETA. Vị trí xe không được đưa sang nhà xe.
+
+Đăng ký công khai, dấu xác thực doanh nghiệp và role WAREHOUSE không thuộc Core 13. Các quyết định đó được ghi ở `docs/product/COLDI_v2.4_Product_Decisions_2026-10-17.md` và chưa có trong code.
