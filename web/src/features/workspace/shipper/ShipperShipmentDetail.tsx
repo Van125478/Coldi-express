@@ -4,6 +4,8 @@ import { paths } from "@/app/paths";
 import { useAuth } from "@/features/auth/useAuth";
 import { lostSession } from "@/features/workspace/sessionLoss";
 import { civil, money, progressNote, shipmentTone, windowText } from "@/features/workspace/format";
+import { ShipperChat } from "@/features/workspace/chat/ShipperChat";
+import { ShipmentLocation } from "@/features/workspace/gps/ShipmentLocation";
 import { ShipmentTimeline } from "@/features/workspace/ShipmentTimeline";
 import { DetailBlock, FactLine, PageHeader, StatusBadge } from "@/features/workspace/ui";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -96,10 +98,12 @@ export function ShipperShipmentDetail() {
                     {shipment.status === "PUBLISHED" ? "Đơn đang mở, chưa có nhà xe nhận." : "Đã có nhà xe nhận. Chưa phân công xe và tài xế."}
                   </p>
                 )}
-                <p className="text-sm leading-relaxed text-muted">Vị trí chuyến chưa mở. Ngày tạo {civil(shipment.createdAt.slice(0, 10))}.</p>
+                <p className="text-sm leading-relaxed text-muted">Ngày tạo {civil(shipment.createdAt.slice(0, 10))}.</p>
               </DetailBlock>
             </div>
           </div>
+          <ShipmentLocation shipmentId={shipment.id} />
+          <ShipperChat shipmentId={shipment.id} />
           <ShipmentTimeline timeline={shipment.timeline} />
         </>
       ) : null}

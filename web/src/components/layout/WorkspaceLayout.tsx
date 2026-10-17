@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { ClipboardList, LayoutDashboard, PackagePlus, Route, Search, Truck } from "lucide-react";
+import { ClipboardList, Container, LayoutDashboard, PackagePlus, Route, Search, Truck } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 import { paths } from "@/app/paths";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ const navigation: Record<BusinessRole, readonly { to: string; label: string; ico
     { to: paths.carrierHome, label: "Tổng quan", icon: LayoutDashboard },
     { to: paths.carrierFind, label: "Tìm chuyến", icon: Search },
     { to: paths.carrierTrips, label: "Chuyến của tôi", icon: Route },
+    { to: paths.carrierFleet, label: "Đội xe", icon: Container },
   ],
   DRIVER: [
     { to: paths.driverHome, label: "Trang chủ", icon: Truck },

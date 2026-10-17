@@ -70,7 +70,7 @@ export function DriverHome() {
           <p className="mt-2 text-sm text-muted">{next.cargoDescription}</p>
           <p className="mt-2 text-sm text-ink">Lấy: {windowText(next.pickupDate, next.pickupTimeFrom, next.pickupTimeTo)}</p>
           <p className="text-sm text-ink">Xe: {next.vehicleLabel ?? "Xe đã phân công"} · {money(next.listedPriceVnd)}</p>
-          <p className="mt-3 text-sm leading-relaxed text-muted">Xác nhận lấy hoặc giao không phải thanh toán. Vị trí chuyến chưa mở.</p>
+          <p className="mt-3 text-sm leading-relaxed text-muted">Xác nhận lấy hoặc giao không phải thanh toán. Chia sẻ vị trí chỉ mở trên chuyến đang vận chuyển.</p>
           <Link to={`${paths.driverTrips}/${next.id}`} className={`${primaryLinkClass} mt-4`}>
             {actionLabel[next.nextAction]}
           </Link>

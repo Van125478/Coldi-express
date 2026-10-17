@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { assignmentPath, paths } from "@/app/paths";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/features/auth/useAuth";
+import { ClaimConfirm } from "@/features/shipments/ClaimConfirm";
 import { lostSession } from "@/features/workspace/sessionLoss";
 import { money, primaryLinkClass, progressNote, shipmentTone, windowText } from "@/features/workspace/format";
+import { CarrierChat } from "@/features/workspace/chat/CarrierChat";
 import { ShipmentTimeline } from "@/features/workspace/ShipmentTimeline";
 import { DetailBlock, FactLine, PageHeader, StatusBadge } from "@/features/workspace/ui";
 import type { CarrierShipment } from "@/models/publishedShipment";
@@ -13,12 +15,13 @@ import { claimShipment, getCarrierShipment } from "@/services/shipmentService";
 
 export function CarrierTripDetail() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const { logout } = useAuth();
   const [shipment, setShipment] = useState<CarrierShipment | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "missing" | "error">("loading");
   const [pending, setPending] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [noticeTone, setNoticeTone] = useState<"success" | "conflict" | "error">("success");
 
   useEffect(() => {
     if (!id) return;
@@ -43,11 +46,23 @@ export function CarrierTripDetail() {
     setPending(true);
     setNotice(null);
     try {
-      await claimShipment(shipment.id);
-      navigate(paths.carrierTrips, { replace: true });
+      const body = await claimShipment(shipment.id);
+      setShipment(body.shipment);
+      setNoticeTone("success");
+      setNotice("Đã nhận chuyến. Chưa gán xe hay tài xế.");
+      setConfirming(false);
     } catch (error) {
       if (lostSession(error, logout)) return;
-      setNotice(error instanceof ApiError && error.status === 409 ? "Đơn này đã có nhà xe khác nhận. Chuyến không còn mở." : "Không nhận được chuyến. Hãy thử lại.");
+      setConfirming(false);
+      if (error instanceof ApiError && error.status === 409) {
+        setNoticeTone("conflict");
+        setNotice("Đơn này đã có nhà xe khác nhận. Chuyến không còn mở.");
+        setShipment(null);
+        setState("missing");
+      } else {
+        setNoticeTone("error");
+        setNotice("Không nhận được chuyến. Hãy thử lại.");
+      }
     } finally {
       setPending(false);
     }
@@ -91,8 +106,16 @@ export function CarrierTripDetail() {
               <DetailBlock title="Liên hệ">
                 <FactLine term="Lấy hàng" value={[shipment.pickupContactName, shipment.pickupPhone].filter(Boolean).join(" · ") || "Chưa có"} />
                 <FactLine term="Giao hàng" value={[shipment.deliveryContactName, shipment.deliveryPhone].filter(Boolean).join(" · ") || "Chưa có"} />
-                {open ? <p className="text-sm text-muted">Gọi điện không giữ chỗ và không nhận chuyến.</p> : null}
+                {shipment.pickupPhone ? (
+                  <a href={`tel:${shipment.pickupPhone}`} className="inline-flex min-h-11 items-center text-sm font-semibold text-navy underline-offset-4 hover:underline">
+                    Gọi điểm lấy
+                  </a>
+                ) : null}
+                {open ? <p className="text-sm text-muted">Gọi điện hoặc nhắn tin không giữ chỗ và không nhận chuyến.</p> : null}
               </DetailBlock>
+              <div id="tro-chuyen">
+                <CarrierChat shipmentId={shipment.id} />
+              </div>
             </div>
             <div className="space-y-4">
               <DetailBlock title="Cước niêm yết">
@@ -102,8 +125,8 @@ export function CarrierTripDetail() {
                 {open ? (
                   <>
                     <p className="text-sm leading-relaxed text-ink">Nhận chuyến chưa gán xe hay tài xế. Chỉ một nhà xe nhận được.</p>
-                    <Button type="button" disabled={pending} onClick={() => void claim()}>
-                      {pending ? "Đang nhận chuyến" : "Nhận chuyến"}
+                    <Button type="button" disabled={pending} onClick={() => setConfirming(true)}>
+                      Nhận chuyến
                     </Button>
                   </>
                 ) : null}
@@ -123,7 +146,7 @@ export function CarrierTripDetail() {
                   </>
                 ) : null}
                 {notice ? (
-                  <p role="alert" className="text-sm text-ink">
+                  <p role={noticeTone === "success" ? "status" : "alert"} className={`text-sm ${noticeTone === "success" ? "text-success" : "text-ink"}`}>
                     {notice}
                   </p>
                 ) : null}
@@ -131,6 +154,16 @@ export function CarrierTripDetail() {
             </div>
           </div>
           <ShipmentTimeline timeline={shipment.timeline} />
+          <ClaimConfirm
+            open={confirming}
+            pending={pending}
+            cargo={shipment.cargoDescription}
+            route={`${shipment.pickupLocation} → ${shipment.deliveryLocation}`}
+            onCancel={() => {
+              if (!pending) setConfirming(false);
+            }}
+            onConfirm={() => void claim()}
+          />
         </>
       ) : null}
     </section>

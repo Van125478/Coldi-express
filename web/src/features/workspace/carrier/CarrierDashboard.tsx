@@ -1,17 +1,22 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { assignmentPath, paths } from "@/app/paths";
 import { useAuth } from "@/features/auth/useAuth";
 import { lostSession } from "@/features/workspace/sessionLoss";
 import { money, primaryLinkClass, shipmentTone } from "@/features/workspace/format";
 import { MetricGrid, PageHeader, StatusBadge } from "@/features/workspace/ui";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import type { CarrierShipment } from "@/models/publishedShipment";
 import { listCarrierShipments, listClaimedShipments } from "@/services/shipmentService";
 
 export function CarrierDashboard() {
   usePageTitle("Tổng quan nhà xe");
   const { logout } = useAuth();
+  const navigate = useNavigate();
+  const [search, setSearch] = useState("");
   const [available, setAvailable] = useState<CarrierShipment[]>([]);
   const [claimed, setClaimed] = useState<CarrierShipment[]>([]);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
@@ -38,18 +43,55 @@ export function CarrierDashboard() {
   const awaitingPickup = claimed.filter((item) => item.status === "MATCHED" && item.vehicleId !== null && item.driverId !== null);
   const later = claimed.filter((item) => item.status !== "MATCHED");
   const ordered = [...waiting, ...awaitingPickup, ...later];
+  const current = claimed.find((item) => item.status === "IN_TRANSIT") ?? awaitingPickup[0];
 
   return (
     <section className="space-y-6">
       <PageHeader
         title="Việc của nhà xe"
-        summary="Xem đơn đang mở, chuyến đã nhận và chuyến còn thiếu xe hoặc tài xế."
+        summary="Tìm đơn đang mở, xem chuyến đã nhận và chuyến còn thiếu xe hoặc tài xế."
         action={
           <Link to={paths.carrierFind} className={primaryLinkClass}>
             Tìm chuyến
           </Link>
         }
       />
+      <form
+        className="rounded-2xl border border-line bg-surface p-4"
+        onSubmit={(event) => {
+          event.preventDefault();
+          const q = search.trim();
+          navigate(q ? `${paths.carrierFind}?q=${encodeURIComponent(q)}` : paths.carrierFind);
+        }}
+      >
+        <Label htmlFor="carrier-home-search">Tìm chuyến theo hàng hoặc tuyến</Label>
+        <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+          <Input id="carrier-home-search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Hàng hóa, điểm lấy, điểm giao" />
+          <Button type="submit">Tìm</Button>
+        </div>
+      </form>
+      <div className="flex flex-wrap gap-2">
+        <Link to={paths.carrierFind} className={primaryLinkClass}>
+          Tìm chuyến
+        </Link>
+        <Link to={paths.carrierFleet} className="inline-flex min-h-11 items-center rounded-xl border border-line bg-surface px-5 text-sm font-semibold text-ink">
+          Quản lý xe
+        </Link>
+        <Link to={paths.carrierTrips} className="inline-flex min-h-11 items-center rounded-xl border border-line bg-surface px-5 text-sm font-semibold text-ink">
+          Chuyến của tôi
+        </Link>
+      </div>
+      {current ? (
+        <div className="rounded-2xl border border-line bg-surface px-5 py-4">
+          <p className="text-sm font-semibold text-ink">Chuyến đang theo dõi</p>
+          <p className="mt-1 text-sm text-muted">
+            {current.pickupLocation} → {current.deliveryLocation} · {current.statusLabel}
+          </p>
+          <Link to={`${paths.carrierHome}/chuyen/${current.id}`} className="mt-2 inline-flex min-h-11 items-center text-sm font-semibold text-navy underline-offset-4 hover:underline">
+            Mở chuyến
+          </Link>
+        </div>
+      ) : null}
       {state === "loading" ? <p className="text-sm text-muted">Đang tải chuyến.</p> : null}
       {state === "error" ? (
         <p role="alert" className="text-sm text-ink">
@@ -113,7 +155,10 @@ function TripRow({ shipment, action }: { shipment: CarrierShipment; action: stri
       <p className="font-semibold text-ink">
         {shipment.pickupLocation} → {shipment.deliveryLocation}
       </p>
-      <p className="text-sm text-muted">{shipment.cargoDescription}</p>
+      <p className="text-sm text-muted">
+        {shipment.cargoDescription} · {shipment.temperatureLabel}
+        {shipment.cargoWeightTon === null ? "" : ` · ${shipment.cargoWeightTon} tấn`}
+      </p>
       <p className="text-sm font-semibold text-ink">{money(shipment.listedPriceVnd)}</p>
       <Link to={href} className="text-sm font-semibold text-navy underline-offset-4 hover:underline">
         {action}

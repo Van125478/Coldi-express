@@ -67,6 +67,12 @@ export type PublishedShipment = ShipmentSchedule & {
 export type CarrierVehicle = {
   id: string;
   label: string;
+  plate: string | null;
+  vehicleKind: "REEFER_TRUCK" | "REEFER_CONTAINER" | "REEFER_VAN" | null;
+  vehicleKindLabel: string | null;
+  temperatureGroup: "COOL" | "FROZEN" | "DEEP_FROZEN" | null;
+  temperatureLabel: string | null;
+  capacityTon: number | null;
 };
 
 export type CarrierDriver = {

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/features/auth/useAuth";
 import { lostSession } from "@/features/workspace/sessionLoss";
 import { money, shipmentTone, windowText } from "@/features/workspace/format";
+import { DriverLocationShare } from "@/features/workspace/gps/DriverLocationShare";
 import { ShipmentTimeline } from "@/features/workspace/ShipmentTimeline";
 import { DetailBlock, FactLine, PageHeader, StatusBadge } from "@/features/workspace/ui";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -137,6 +138,7 @@ export function DriverTripDetail() {
               </DetailBlock>
             </div>
           </div>
+          <DriverLocationShare shipmentId={shipment.id} active={shipment.status === "IN_TRANSIT"} />
           <ShipmentTimeline timeline={shipment.timeline} />
         </>
       ) : null}

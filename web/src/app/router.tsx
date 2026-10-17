@@ -19,6 +19,11 @@ import { MotionLabPage } from "@/features/motion-lab/MotionLabPage";
 import { TransitionLabPage } from "@/pages/TransitionLabPage";
 import { AdminHome } from "@/features/workspace/admin/AdminHome";
 import { CarrierDashboard } from "@/features/workspace/carrier/CarrierDashboard";
+import { CarrierDriverProfile } from "@/features/workspace/carrier/fleet/CarrierDriverProfile";
+import { CarrierDrivers } from "@/features/workspace/carrier/fleet/CarrierDrivers";
+import { CarrierVehicleDetail } from "@/features/workspace/carrier/fleet/CarrierVehicleDetail";
+import { CarrierVehicleForm } from "@/features/workspace/carrier/fleet/CarrierVehicleForm";
+import { CarrierVehicles } from "@/features/workspace/carrier/fleet/CarrierVehicles";
 import { CarrierTripDetail } from "@/features/workspace/carrier/CarrierTripDetail";
 import { CreateShipmentPage } from "@/features/workspace/CreateShipmentPage";
 import { DriverHome } from "@/features/workspace/driver/DriverHome";
@@ -56,6 +61,12 @@ export const router = createBrowserRouter([
           { path: "/carrier/tim-chuyen", element: <CarrierLoadBoard /> },
           { path: "/carrier/chuyen-cua-toi", element: <ClaimedShipments /> },
           { path: "/carrier/chuyen/:id", element: <CarrierTripDetail /> },
+          { path: "/carrier/doi-xe", element: <CarrierVehicles /> },
+          { path: "/carrier/doi-xe/xe/moi", element: <CarrierVehicleForm mode="create" /> },
+          { path: "/carrier/doi-xe/xe/:id", element: <CarrierVehicleDetail /> },
+          { path: "/carrier/doi-xe/xe/:id/sua", element: <CarrierVehicleForm mode="edit" /> },
+          { path: "/carrier/doi-xe/tai-xe", element: <CarrierDrivers /> },
+          { path: "/carrier/doi-xe/tai-xe/:id", element: <CarrierDriverProfile /> },
         ],
       },
     ],
