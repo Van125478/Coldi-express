@@ -18,9 +18,9 @@ const roleLabels: Record<BusinessRole, string> = {
 
 const navigation: Record<BusinessRole, readonly { to: string; label: string; icon: LucideIcon }[]> = {
   SHIPPER: [
-    { to: paths.shipperHome, label: "Tổng quan", icon: LayoutDashboard },
+    { to: paths.shipperHome, label: "Trang chủ", icon: LayoutDashboard },
     { to: paths.shipperCreate, label: "Tạo đơn", icon: PackagePlus },
-    { to: paths.shipperShipments, label: "Đơn của tôi", icon: ClipboardList },
+    { to: paths.shipperShipments, label: "Quản lý đơn", icon: ClipboardList },
   ],
   CARRIER: [
     { to: paths.carrierHome, label: "Sàn chuyến", icon: LayoutDashboard },

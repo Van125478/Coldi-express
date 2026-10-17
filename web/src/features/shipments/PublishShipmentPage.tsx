@@ -1,4 +1,5 @@
 import { cloneElement, isValidElement, useEffect, useRef, useState, type FormEvent, type ReactElement, type ReactNode } from "react";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { Link } from "react-router-dom";
 import { paths } from "@/app/paths";
 import { Button } from "@/components/ui/button";
@@ -255,6 +256,7 @@ function toInput(form: FormState): PublishShipmentInput {
 }
 
 export function PublishShipmentPage({ email }: { email: string }) {
+  usePageTitle("Tạo đơn");
   const [form, setForm] = useState<FormState>(emptyForm);
   const [step, setStep] = useState<Step>(1);
   const [errors, setErrors] = useState<Partial<Record<FieldName, string>>>({});
@@ -391,7 +393,7 @@ export function PublishShipmentPage({ email }: { email: string }) {
                 <Input id="pickup-phone" inputMode="tel" value={form.pickupPhone} onChange={(event) => update("pickupPhone", event.target.value)} aria-invalid={errors.pickupPhone !== undefined} />
               </Field>
             </div>
-            <Field label="Email nhận thông báo (tùy chọn)" id="pickup-email" error={errors.pickupEmail}>
+            <Field label="Email nhận thông báo" id="pickup-email" required={false} error={errors.pickupEmail}>
               <Input id="pickup-email" type="email" value={form.pickupEmail} onChange={(event) => update("pickupEmail", event.target.value)} aria-invalid={errors.pickupEmail !== undefined} />
             </Field>
             <div className="grid gap-4 lg:grid-cols-3">
@@ -425,7 +427,7 @@ export function PublishShipmentPage({ email }: { email: string }) {
                 <Input id="delivery-phone" inputMode="tel" value={form.deliveryPhone} onChange={(event) => update("deliveryPhone", event.target.value)} aria-invalid={errors.deliveryPhone !== undefined} />
               </Field>
             </div>
-            <Field label="Email kho nhận (không bắt buộc)" id="delivery-email" error={errors.deliveryEmail}>
+            <Field label="Email kho nhận" id="delivery-email" required={false} error={errors.deliveryEmail}>
               <Input id="delivery-email" type="email" value={form.deliveryEmail} onChange={(event) => update("deliveryEmail", event.target.value)} aria-invalid={errors.deliveryEmail !== undefined} />
             </Field>
             <div className="grid gap-4 lg:grid-cols-3">
@@ -456,22 +458,30 @@ export function PublishShipmentPage({ email }: { email: string }) {
                 aria-invalid={errors.cargoDescription !== undefined}
               />
             </Field>
-            <Field label="Nhóm nhiệt" id="temperature-group" error={errors.temperatureGroup}>
-              <select
-                id="temperature-group"
-                value={form.temperatureGroup}
-                onChange={(event) => update("temperatureGroup", event.target.value as FormState["temperatureGroup"])}
-                className="flex h-12 w-full rounded-xl border border-line bg-surface px-3 text-base text-ink disabled:opacity-50"
-                aria-invalid={errors.temperatureGroup !== undefined}
-              >
-                <option value="">Chọn nhóm nhiệt</option>
-                {temperatures.map((item) => (
-                  <option key={item.value} value={item.value}>
-                    {item.label}
-                  </option>
-                ))}
-              </select>
-            </Field>
+            <fieldset className="space-y-2">
+              <legend id="temperature-group" tabIndex={-1} className="text-sm font-semibold text-ink outline-none">
+                Nhóm nhiệt <span className="text-danger">*</span>
+              </legend>
+              <div role="radiogroup" aria-labelledby="temperature-group" aria-invalid={errors.temperatureGroup !== undefined} className="flex flex-wrap gap-2">
+                {temperatures.map((item) => {
+                  const selected = form.temperatureGroup === item.value;
+                  return (
+                    <button
+                      key={item.value}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      className={`inline-flex min-h-11 items-center rounded-full px-4 text-sm font-semibold ${selected ? "bg-navy text-white" : "border border-line text-ink"}`}
+                      onClick={() => update("temperatureGroup", item.value)}
+                    >
+                      {item.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-sm text-muted">Lạnh mát, Đông hoặc Cực lạnh. Không tự quy ra độ C.</p>
+              {errors.temperatureGroup ? <p className="text-sm text-ink">{errors.temperatureGroup}</p> : null}
+            </fieldset>
             <div className="grid gap-4 sm:grid-cols-3">
               <Field label="Trọng lượng (tấn)" id="cargo-weight" error={errors.cargoWeightTon}>
                 <Input id="cargo-weight" inputMode="decimal" value={form.cargoWeightTon} onChange={(event) => update("cargoWeightTon", event.target.value)} aria-invalid={errors.cargoWeightTon !== undefined} />
@@ -528,7 +538,7 @@ export function PublishShipmentPage({ email }: { email: string }) {
 
       {published ? (
         <div role="status" className="mt-8 rounded-2xl border border-success-line bg-success-bg p-5">
-          <p className="text-sm font-semibold text-success">Đơn đã được niêm yết</p>
+          <p className="text-sm font-semibold text-success">Đăng đơn thành công. Đơn đang tìm xe.</p>
           <dl className="mt-3 space-y-1 text-sm leading-6 text-ink">
             <div>Mã đơn: {published.id}</div>
             <div>Trạng thái: {published.statusLabel}</div>
@@ -581,12 +591,14 @@ function Field({
   label,
   error,
   hint,
+  required = true,
   children,
 }: {
   id: string;
   label: string;
   error?: string;
   hint?: string;
+  required?: boolean;
   children: ReactNode;
 }) {
   const errorId = `${id}-error`;
@@ -598,7 +610,10 @@ function Field({
     : children;
   return (
     <div className="space-y-2">
-      <Label htmlFor={id}>{label}</Label>
+      <Label htmlFor={id}>
+        {label}
+        {required ? <span className="text-danger"> *</span> : <span className="font-normal text-muted"> (không bắt buộc)</span>}
+      </Label>
       {control}
       {error ? (
         <p id={errorId} className="text-sm text-ink">

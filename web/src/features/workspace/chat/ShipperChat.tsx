@@ -7,6 +7,7 @@ export function ShipperChat({ shipmentId }: { shipmentId: string }) {
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
+  const [reloadKey, setReloadKey] = useState(0);
   const selected = conversations.find((item) => item.id === selectedId) ?? null;
 
   useEffect(() => {
@@ -15,7 +16,7 @@ export function ShipperChat({ shipmentId }: { shipmentId: string }) {
       .then((body) => {
         if (!active) return;
         setConversations(body.conversations);
-        setSelectedId(body.conversations[0]?.id ?? null);
+        setSelectedId((current) => body.conversations.some((item) => item.id === current) ? current : body.conversations[0]?.id ?? null);
         setState("ready");
       })
       .catch(() => {
@@ -24,7 +25,7 @@ export function ShipperChat({ shipmentId }: { shipmentId: string }) {
     return () => {
       active = false;
     };
-  }, [shipmentId]);
+  }, [shipmentId, reloadKey]);
 
   const load = useCallback(
     (after: number) => {
@@ -45,13 +46,19 @@ export function ShipperChat({ shipmentId }: { shipmentId: string }) {
   return (
     <section className="space-y-3">
       <h2 className="text-base font-bold text-ink">Trao đổi với nhà xe</h2>
+      <p className="text-sm text-muted">Nhắn tin không nhận chuyến và không đổi trạng thái đơn. Chỉ thấy cuộc trao đổi của đơn này.</p>
       {state === "loading" ? <p className="text-sm text-muted">Đang tải cuộc trao đổi.</p> : null}
       {state === "error" ? (
-        <p role="alert" className="text-sm text-ink">
-          Không tải được cuộc trao đổi.
-        </p>
+        <div role="alert" className="space-y-2">
+          <p className="text-sm text-ink">Không tải được cuộc trao đổi.</p>
+          <button type="button" className="min-h-11 text-sm font-semibold text-navy underline-offset-4 hover:underline" onClick={() => setReloadKey((value) => value + 1)}>
+            Thử lại
+          </button>
+        </div>
       ) : null}
-      {state === "ready" && conversations.length === 0 ? <p className="text-sm text-ink">Chưa có nhà xe nào nhắn tin về đơn này.</p> : null}
+      {state === "ready" && conversations.length === 0 ? (
+        <p className="rounded-2xl border border-dashed border-line bg-surface px-4 py-4 text-sm text-ink">Chưa có nhà xe nào nhắn tin về đơn này.</p>
+      ) : null}
       {conversations.length > 1 ? (
         <div className="flex flex-wrap gap-2">
           {conversations.map((item) => (

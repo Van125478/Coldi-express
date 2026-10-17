@@ -1,21 +1,38 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { paths } from "@/app/paths";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/features/auth/useAuth";
 import { lostSession } from "@/features/workspace/sessionLoss";
-import { money, primaryLinkClass, shipmentTone, windowText } from "@/features/workspace/format";
-import { EmptyPanel, PageHeader, StatusBadge } from "@/features/workspace/ui";
+import { primaryLinkClass } from "@/features/workspace/format";
+import { shipperBucket, type ShipperBucket } from "@/features/workspace/shipper/shipperGroups";
+import { ShipperShipmentCard } from "@/features/workspace/shipper/ShipperShipmentCard";
+import { EmptyPanel, PageHeader } from "@/features/workspace/ui";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import type { PublishedShipment } from "@/models/publishedShipment";
 import { listMyShipments } from "@/services/shipmentService";
 
+const filters: readonly { value: "" | ShipperBucket; label: string }[] = [
+  { value: "", label: "Tất cả" },
+  { value: "published", label: "Đang tìm xe" },
+  { value: "matched", label: "Đã nhận" },
+  { value: "transit", label: "Đang chạy" },
+  { value: "delivered", label: "Đã giao" },
+];
+
+function bucketParam(value: string | null): "" | ShipperBucket {
+  if (value === "published" || value === "matched" || value === "transit" || value === "delivered" || value === "other") return value;
+  return "";
+}
+
 export function ShipperShipments() {
-  usePageTitle("Đơn của tôi");
+  usePageTitle("Quản lý đơn");
   const { logout } = useAuth();
+  const [params, setParams] = useSearchParams();
   const [shipments, setShipments] = useState<PublishedShipment[]>([]);
   const [query, setQuery] = useState("");
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
+  const bucket = bucketParam(params.get("trang"));
 
   useEffect(() => {
     let active = true;
@@ -36,6 +53,7 @@ export function ShipperShipments() {
 
   const needle = query.trim().toLowerCase();
   const shown = shipments.filter((shipment) => {
+    if (bucket !== "" && shipperBucket(shipment.status) !== bucket) return false;
     if (needle.length === 0) return true;
     const haystack = [shipment.cargoDescription, shipment.pickupLocation, shipment.deliveryLocation, shipment.pickupCompany, shipment.deliveryCompany]
       .filter(Boolean)
@@ -47,11 +65,11 @@ export function ShipperShipments() {
   return (
     <section className="space-y-6">
       <PageHeader
-        title="Đơn của tôi"
-        summary="Đơn đã lưu của tài khoản này. Ô lọc chỉ chạy trên danh sách vừa tải."
+        title="Quản lý đơn hàng"
+        summary="Đơn đã niêm yết của tài khoản này. Lọc chạy trên danh sách vừa tải và không đổi trạng thái."
         action={
           <Link to={paths.shipperCreate} className={primaryLinkClass}>
-            Tạo đơn
+            Đăng đơn hàng
           </Link>
         }
       />
@@ -62,34 +80,48 @@ export function ShipperShipments() {
         </p>
       ) : null}
       {state === "ready" && shipments.length === 0 ? (
-        <EmptyPanel title="Chưa có đơn" body="Đơn niêm yết sẽ hiện tại đây." action={<Link to={paths.shipperCreate} className={primaryLinkClass}>Tạo đơn</Link>} />
+        <EmptyPanel
+          title="Chưa có đơn"
+          body="Đơn niêm yết sẽ hiện tại đây."
+          action={
+            <Link to={paths.shipperCreate} className={primaryLinkClass}>
+              Đăng đơn hàng
+            </Link>
+          }
+        />
       ) : null}
       {state === "ready" && shipments.length > 0 ? (
         <>
-          <label className="block max-w-md text-sm font-semibold text-ink" htmlFor="shipment-filter">
-            Lọc theo hàng hóa hoặc địa điểm
-            <Input id="shipment-filter" className="mt-2" value={query} onChange={(event) => setQuery(event.target.value)} />
+          <label className="block max-w-xl text-sm font-semibold text-ink" htmlFor="shipment-filter">
+            Tìm theo hàng hóa, điểm lấy hoặc điểm giao
+            <Input id="shipment-filter" className="mt-2" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Ví dụ: thủy sản, Cái Bè" />
           </label>
-          {shown.length === 0 ? <p className="text-sm text-muted">Không có đơn khớp với từ vừa nhập.</p> : null}
-          <ul className="grid gap-4 xl:grid-cols-2">
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Lọc theo trạng thái">
+            {filters.map((item) => (
+              <button
+                key={item.label}
+                type="button"
+                aria-pressed={bucket === item.value}
+                className={`inline-flex min-h-11 items-center rounded-full px-4 text-sm font-semibold ${bucket === item.value ? "bg-navy text-white" : "border border-line bg-surface text-ink"}`}
+                onClick={() => {
+                  const next = new URLSearchParams(params);
+                  if (item.value === "") next.delete("trang");
+                  else next.set("trang", item.value);
+                  setParams(next);
+                }}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+          <p className="text-sm text-muted" aria-live="polite">
+            {shown.length} đơn trong nhóm đang xem.
+          </p>
+          {shown.length === 0 ? <p className="text-sm text-ink">Không có đơn khớp với bộ lọc vừa chọn.</p> : null}
+          <ul className="grid gap-4 md:grid-cols-2">
             {shown.map((shipment) => (
-              <li key={shipment.id} className="flex flex-col rounded-2xl border border-line bg-surface p-5">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <StatusBadge tone={shipmentTone(shipment.status, shipment.vehicleId, shipment.driverId)}>{shipment.statusLabel}</StatusBadge>
-                  <p className="text-sm font-semibold text-ink">{money(shipment.listedPriceVnd)}</p>
-                </div>
-                <h2 className="mt-3 text-lg font-bold text-ink">
-                  {shipment.pickupLocation} → {shipment.deliveryLocation}
-                </h2>
-                <p className="mt-1 text-sm text-muted">{[shipment.pickupCompany, shipment.deliveryCompany].filter(Boolean).join(" → ")}</p>
-                <p className="mt-3 text-sm text-ink">
-                  {shipment.cargoDescription} · {shipment.temperatureLabel}
-                  {shipment.cargoWeightTon !== null ? ` · ${shipment.cargoWeightTon} tấn` : ""} · {shipment.vehicleRequirement}
-                </p>
-                <p className="mt-1 text-sm text-muted">Lấy hàng: {windowText(shipment.pickupDate, shipment.pickupTimeFrom, shipment.pickupTimeTo)}</p>
-                <Link to={`${paths.shipperShipments}/${shipment.id}`} className={`${primaryLinkClass} mt-4 w-fit`}>
-                  Xem đơn
-                </Link>
+              <li key={shipment.id}>
+                <ShipperShipmentCard shipment={shipment} />
               </li>
             ))}
           </ul>

@@ -1,16 +1,26 @@
+import { ClipboardList, MapPinned, PackagePlus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { paths } from "@/app/paths";
 import { useAuth } from "@/features/auth/useAuth";
 import { lostSession } from "@/features/workspace/sessionLoss";
-import { money, primaryLinkClass, shipmentTone, windowText } from "@/features/workspace/format";
-import { EmptyPanel, MetricGrid, PageHeader, StatusBadge } from "@/features/workspace/ui";
+import { primaryLinkClass } from "@/features/workspace/format";
+import { followedShipment, shipperBucket } from "@/features/workspace/shipper/shipperGroups";
+import { ShipperShipmentCard } from "@/features/workspace/shipper/ShipperShipmentCard";
+import { EmptyPanel, PageHeader } from "@/features/workspace/ui";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import type { PublishedShipment } from "@/models/publishedShipment";
 import { listMyShipments } from "@/services/shipmentService";
 
+const sections = [
+  { bucket: "published", title: "Đang tìm xe", hint: "Chưa có nhà xe nhận." },
+  { bucket: "matched", title: "Đã có nhà xe nhận", hint: "Đã nhận. Chưa xác nhận lấy hàng." },
+  { bucket: "transit", title: "Đang vận chuyển", hint: "Tài xế đã xác nhận lấy hàng." },
+  { bucket: "delivered", title: "Đã giao", hint: "Đã xác nhận giao. Chưa phải đã thanh toán." },
+] as const;
+
 export function ShipperDashboard() {
-  usePageTitle("Tổng quan chủ hàng");
+  usePageTitle("Trang chủ chủ hàng");
   const { logout } = useAuth();
   const [shipments, setShipments] = useState<PublishedShipment[]>([]);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
@@ -32,90 +42,113 @@ export function ShipperDashboard() {
     };
   }, [logout]);
 
-  const published = shipments.filter((item) => item.status === "PUBLISHED").length;
-  const waiting = shipments.filter((item) => item.status === "MATCHED" && (item.vehicleId === null || item.driverId === null)).length;
-  const assigned = shipments.filter((item) => item.status === "MATCHED" && item.vehicleId !== null && item.driverId !== null).length;
-  const featured = shipments.find((item) => item.status === "PUBLISHED") ?? shipments.find((item) => item.vehicleId === null) ?? shipments[0] ?? null;
-  const recent = shipments.filter((item) => item.id !== featured?.id).slice(0, 4);
+  const followed = followedShipment(shipments);
 
   return (
     <section className="space-y-6">
       <PageHeader
-        title="Đơn vận chuyển"
-        summary="Theo dõi đơn đang tìm xe, đơn đã có nhà xe nhận và đơn đã được phân công."
+        title="Tạo đơn và quản lý vận chuyển"
+        summary="Niêm yết đơn lạnh, theo dõi nhà xe đã nhận và xem vị trí khi tài xế đã bắt đầu chuyến."
         action={
           <Link to={paths.shipperCreate} className={primaryLinkClass}>
-            Tạo đơn
+            Đăng đơn hàng
           </Link>
         }
       />
+      <nav aria-label="Lối tắt chủ hàng" className="grid grid-cols-2 gap-2 sm:max-w-xl">
+        <Link to={paths.shipperCreate} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-line bg-surface px-3 text-sm font-semibold text-ink shadow-sm hover:border-navy">
+          <PackagePlus className="size-4 shrink-0 text-navy" aria-hidden="true" />
+          Đăng đơn
+        </Link>
+        <Link to={paths.shipperShipments} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-line bg-surface px-3 text-sm font-semibold text-ink shadow-sm hover:border-navy">
+          <ClipboardList className="size-4 shrink-0 text-navy" aria-hidden="true" />
+          Quản lý đơn
+        </Link>
+      </nav>
       {state === "loading" ? <p className="text-sm text-muted">Đang tải đơn của bạn.</p> : null}
       {state === "error" ? (
         <p role="alert" className="text-sm text-ink">
           Không tải được đơn. Hãy tải lại trang.
         </p>
       ) : null}
-      {state === "ready" ? (
-        <>
-          <MetricGrid
-            items={[
-              { label: "Tổng đơn", value: shipments.length, hint: "Đơn tài khoản này đã niêm yết." },
-              { label: "Đang tìm xe", value: published, hint: "Chưa có nhà xe nhận." },
-              { label: "Chờ phân công", value: waiting, hint: "Đã nhận, chưa gán xe và tài xế." },
-              { label: "Chờ lấy hàng", value: assigned, hint: "Đã phân công. Chưa xác nhận lấy hàng." },
-            ]}
-          />
-          {featured ? (
-            <article className="grid gap-5 rounded-2xl border border-line bg-surface p-5 lg:grid-cols-[minmax(0,1fr)_16rem] lg:items-center lg:p-6">
-              <div>
-                <StatusBadge tone={shipmentTone(featured.status, featured.vehicleId, featured.driverId)}>{featured.statusLabel}</StatusBadge>
-                <h2 className="mt-3 text-2xl font-extrabold tracking-tight text-ink">
-                  {featured.pickupLocation} → {featured.deliveryLocation}
-                </h2>
-                <p className="mt-2 text-sm text-muted">
-                  {[featured.pickupCompany, featured.deliveryCompany].filter(Boolean).join(" → ") || featured.cargoDescription}
-                </p>
-                <p className="mt-3 text-sm text-ink">
-                  {featured.cargoDescription} · {featured.temperatureLabel} · {featured.vehicleRequirement}
-                </p>
-                <p className="mt-1 text-sm text-muted">Lấy hàng: {windowText(featured.pickupDate, featured.pickupTimeFrom, featured.pickupTimeTo)}</p>
-              </div>
-              <div className="flex flex-col gap-3 border-line lg:border-l lg:pl-6">
-                <p className="text-sm text-muted">Giá niêm yết</p>
-                <p className="text-2xl font-extrabold text-navy">{money(featured.listedPriceVnd)}</p>
-                <Link to={`${paths.shipperShipments}/${featured.id}`} className={primaryLinkClass}>
-                  Xem đơn
-                </Link>
-              </div>
-            </article>
+      {state === "ready" && shipments.length === 0 ? (
+        <EmptyPanel
+          title="Chưa có đơn"
+          body="Đăng đơn để niêm yết điểm lấy, điểm giao, hàng hóa và giá. Đơn mới ở trạng thái Đang tìm xe."
+          action={
+            <Link to={paths.shipperCreate} className={primaryLinkClass}>
+              Đăng đơn hàng
+            </Link>
+          }
+        />
+      ) : null}
+      {state === "ready" && followed ? (
+        <article className="rounded-2xl bg-navy p-5 text-white">
+          <p className="text-xs font-semibold tracking-[0.14em] text-white/80">{followed.status === "IN_TRANSIT" ? "ĐANG VẬN CHUYỂN" : "CHUYẾN ĐANG THEO DÕI"}</p>
+          <h2 className="mt-3 text-2xl font-extrabold tracking-tight">
+            {followed.pickupLocation} <span aria-hidden="true">→</span> {followed.deliveryLocation}
+          </h2>
+          <p className="mt-2 text-sm leading-relaxed text-white/85">
+            {followed.cargoDescription} · {followed.temperatureLabel}
+            {followed.cargoWeightTon === null ? "" : ` · ${followed.cargoWeightTon} tấn`}
+          </p>
+          {followed.vehicleId !== null && followed.driverId !== null ? (
+            <p className="mt-2 text-sm text-white/85">
+              Xe: {followed.vehicleLabel ?? "Xe đã phân công"} · Tài xế: {followed.driverName ?? "Tài xế đã phân công"}
+            </p>
           ) : (
-            <EmptyPanel title="Chưa có đơn" body="Tạo đơn để niêm yết điểm lấy, điểm giao, hàng hóa và giá." action={<Link to={paths.shipperCreate} className={primaryLinkClass}>Tạo đơn</Link>} />
+            <p className="mt-2 text-sm text-white/85">Chưa phân công xe và tài xế. GPS không tự đổi trạng thái đơn.</p>
           )}
-          <div className="overflow-hidden rounded-2xl border border-line bg-surface">
-            <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-4">
-              <h2 className="text-base font-bold text-ink">Đơn gần đây</h2>
-              <Link to={paths.shipperShipments} className="text-sm font-semibold text-navy underline-offset-4 hover:underline">
-                Tất cả đơn
-              </Link>
-            </div>
-            {recent.length === 0 ? <p className="px-5 py-6 text-sm text-muted">Không có đơn nào khác.</p> : null}
-            <ul>
-              {recent.map((shipment) => (
-                <li key={shipment.id} className="grid items-center gap-3 border-b border-line px-5 py-4 last:border-b-0 lg:grid-cols-[max-content_minmax(0,1.3fr)_minmax(0,1fr)_auto_auto]">
-                  <StatusBadge tone={shipmentTone(shipment.status, shipment.vehicleId, shipment.driverId)}>{shipment.statusLabel}</StatusBadge>
-                  <p className="font-semibold text-ink">
-                    {shipment.pickupLocation} → {shipment.deliveryLocation}
-                  </p>
-                  <p className="text-sm text-muted">{shipment.cargoDescription}</p>
-                  <p className="text-sm font-semibold text-ink">{money(shipment.listedPriceVnd)}</p>
-                  <Link to={`${paths.shipperShipments}/${shipment.id}`} className="text-sm font-semibold text-navy underline-offset-4 hover:underline">
-                    Xem
+          <Link
+            to={followed.status === "IN_TRANSIT" ? `${paths.shipperShipments}/${followed.id}#vi-tri` : `${paths.shipperShipments}/${followed.id}`}
+            className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-navy"
+          >
+            <MapPinned className="size-4" aria-hidden="true" />
+            {followed.status === "IN_TRANSIT" ? "Theo dõi vị trí" : "Xem đơn"}
+          </Link>
+        </article>
+      ) : null}
+      {state === "ready" && shipments.length > 0
+        ? sections.map((section) => {
+            const items = shipments.filter((item) => shipperBucket(item.status) === section.bucket);
+            if (items.length === 0) return null;
+            return (
+              <section key={section.bucket} className="space-y-3">
+                <div className="flex flex-wrap items-end justify-between gap-2">
+                  <div>
+                    <h2 className="text-base font-bold text-ink">
+                      {section.title} · {items.length}
+                    </h2>
+                    <p className="text-sm text-muted">{section.hint}</p>
+                  </div>
+                  <Link to={`${paths.shipperShipments}?trang=${section.bucket}`} className="text-sm font-semibold text-navy underline-offset-4 hover:underline">
+                    Xem nhóm này
                   </Link>
+                </div>
+                <ul className="grid gap-4 md:grid-cols-2">
+                  {items.slice(0, 2).map((shipment) => (
+                    <li key={shipment.id}>
+                      <ShipperShipmentCard shipment={shipment} />
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            );
+          })
+        : null}
+      {state === "ready" && shipments.some((item) => shipperBucket(item.status) === "other") ? (
+        <section className="space-y-3">
+          <h2 className="text-base font-bold text-ink">Trạng thái khác</h2>
+          <ul className="grid gap-4 md:grid-cols-2">
+            {shipments
+              .filter((item) => shipperBucket(item.status) === "other")
+              .map((shipment) => (
+                <li key={shipment.id}>
+                  <ShipperShipmentCard shipment={shipment} />
                 </li>
               ))}
-            </ul>
-          </div>
-        </>
+          </ul>
+        </section>
       ) : null}
     </section>
   );

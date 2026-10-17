@@ -13,6 +13,15 @@ import type { PublishedShipment } from "@/models/publishedShipment";
 import { ApiError } from "@/services/apiClient";
 import { getMyShipment } from "@/services/shipmentService";
 
+function FactTile({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-line bg-surface p-4">
+      <p className="text-xs font-semibold tracking-wide text-muted">{label}</p>
+      <p className="mt-1 text-sm font-semibold leading-relaxed text-ink">{value}</p>
+    </div>
+  );
+}
+
 function contact(name: string | null, phone: string | null, email: string | null): string {
   const value = [name, phone, email].filter(Boolean).join(" · ");
   return value.length > 0 ? value : "Chưa có";
@@ -60,7 +69,13 @@ export function ShipperShipmentDetail() {
           <PageHeader title={`${shipment.pickupLocation} → ${shipment.deliveryLocation}`} summary={shipment.cargoDescription} />
           <div className="flex flex-wrap items-center gap-3">
             <StatusBadge tone={shipmentTone(shipment.status, shipment.vehicleId, shipment.driverId)}>{shipment.statusLabel}</StatusBadge>
-            <p className="text-sm text-muted">Mã đơn {shipment.id}</p>
+            <p className="text-sm text-muted">Trạng thái lưu: {shipment.status}. Mã đơn {shipment.id}.</p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <FactTile label="Loại hàng" value={shipment.cargoDescription} />
+            <FactTile label="Tải trọng" value={shipment.cargoWeightTon === null ? "Chưa có" : `${shipment.cargoWeightTon} tấn`} />
+            <FactTile label="Yêu cầu xe" value={shipment.vehicleRequirement} />
+            <FactTile label="Nhóm nhiệt" value={shipment.temperatureLabel} />
           </div>
           <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(18rem,0.7fr)]">
             <div className="space-y-4">
@@ -102,9 +117,15 @@ export function ShipperShipmentDetail() {
               </DetailBlock>
             </div>
           </div>
-          <ShipmentLocation shipmentId={shipment.id} />
+          <div id="vi-tri" className="scroll-mt-24 space-y-2">
+            <p className="text-sm text-muted">Vị trí do tài xế gửi. GPS không tự xác nhận lấy hàng hoặc giao hàng, và không tạo mốc lịch sử.</p>
+            <ShipmentLocation shipmentId={shipment.id} />
+          </div>
           <ShipperChat shipmentId={shipment.id} />
-          <ShipmentTimeline timeline={shipment.timeline} />
+          <div className="space-y-2">
+            <p className="text-sm text-muted">Năm mốc nghiệp vụ: niêm yết, nhận chuyến, phân công, xác nhận lấy, xác nhận giao.</p>
+            <ShipmentTimeline timeline={shipment.timeline} />
+          </div>
         </>
       ) : null}
     </section>
