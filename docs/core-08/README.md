@@ -1,6 +1,10 @@
 # Core 08 — Tài liệu cho nhóm COLDI
 
-Bộ tài liệu này mô tả thư mục làm việc hiện tại. Đọc theo thứ tự:
+Người mới không cài máy theo bộ này. Hướng dẫn hiện hành là [Team Testing Guide](../team-testing/TEAM_TESTING_GUIDE.md): clone `main`, `npm ci`, API `127.0.0.1:4000`, web `127.0.0.1:5173`. Core 09 đến Core 14 đã có trong kho. Trạng thái MVP ngày 18/10/2026 nằm ở [MVP_STATUS_2026-10-18.md](../mvp-review/MVP_STATUS_2026-10-18.md).
+
+Phần dưới là hồ sơ Core 08, không phải lệnh checkout hiện tại.
+
+Bộ tài liệu này mô tả thư mục làm việc lúc viết Core 08. Đọc theo thứ tự:
 
 1. [Thiết lập máy local](01-thiet-lap.md)
 2. [Kịch bản demo ba vai trò](02-kich-ban-demo.md)
@@ -12,16 +16,18 @@ Bộ tài liệu này mô tả thư mục làm việc hiện tại. Đọc theo 
 
 Kho mã không có mẫu issue của GitHub. Khi gặp lỗi, chép [mẫu báo lỗi](05-mau-bao-loi.md) vào tin nhắn cho người điều phối buổi kiểm thử. Không dán mật khẩu, cookie hay file `.env`.
 
-## Hai trạng thái, không trộn với nhau
+## Hai trạng thái lúc viết Core 08 — Historical Snapshot
 
-| Trạng thái | Có gì | Không có gì |
+Bảng này ghi nhận ngày viết, khi `main` còn là commit khởi tạo. Đừng dùng bảng này để chọn nhánh hôm nay.
+
+| Trạng thái lúc đó | Có gì | Không có gì |
 | --- | --- | --- |
-| Nhánh `feature/cinematic-scroll` | Timeline tại commit `cd5045300ac4c788deba3c08053ed1a439481d95`, cùng đăng nhập, đăng đơn, nhận chuyến, phân công, xác nhận lấy hàng và giao hàng | Chưa nằm trên `main` |
-| `main` | `origin/main` là `44e4791134690c72a261d91c60388994668fcdcb`, commit khởi tạo | Core 01–08 |
+| Nhánh `feature/cinematic-scroll` | Timeline tại commit `cd5045300ac4c788deba3c08053ed1a439481d95`, cùng đăng nhập, đăng đơn, nhận chuyến, phân công, xác nhận lấy hàng và giao hàng | Chưa nằm trên `main` của ngày đó |
+| `main` của ngày đó | `origin/main` là `44e4791134690c72a261d91c60388994668fcdcb`, commit khởi tạo | Core 01–08 |
 
-`feature/cinematic-scroll` không phải nhánh cố định cho người mới. Sau khi merge được duyệt, clone `main`. Hash merge chưa tồn tại, nên tài liệu không bịa hash đó.
+`feature/cinematic-scroll` không phải nhánh cho người mới. Bản team testing lấy từ `main`.
 
-Đừng chạy `npm run reset:demo-passwords`. Lệnh đó chỉ có trong thay đổi local chưa commit.
+Đừng chạy lệnh đặt lại mật khẩu demo. Bản hướng dẫn hiện hành không có lệnh đó.
 
 ## Nghiệm thu đã ghi
 

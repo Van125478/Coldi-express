@@ -26,3 +26,34 @@ Copy only:
 ## Not verified
 
 No live marketplace cards. No vehicle was created, no driver was created, and no assignment was submitted. Login success was used only to open the carrier workspace. No business record was written by this pass.
+
+## Final visual pass, same day
+
+The earlier items above stayed in place. This pass did not redesign Marketplace, Fleet, Add Vehicle, My Trips, Login, or the sidebar logo.
+
+What was still wrong: Carrier Home asked for three columns from 1440px, but `md:grid-cols-2` was generated later in the stylesheet and kept two columns. The cards also used a sparse label grid.
+
+What changed:
+
+- Added the `desk` breakpoint at 87.5rem so three columns win at a 1440px viewport and two columns remain at 1280px.
+- Home trip cards now lead with the route, then cargo, temperature, vehicle requirement, and pickup date. The price stays on one line. Phân công or Xem sits at the bottom of the card.
+
+Kept on purpose:
+
+- One real Marketplace and `MarketShipmentCard`. No preview route and no fake published shipments.
+- White COLDI mark on the navy sidebar, with no white box. The sidebar stays sticky.
+- Fleet card and the centered 896px Add Vehicle form. Fields and payload are unchanged.
+- My Trips groups and assignment controls. No `MATCHED` string in the page text.
+- Carrier detail was not edited. A delivered trip still shows five timeline events in the page flow and no raw status enum.
+
+Browser, local demo data, no writes:
+
+- 1440: home cards are three columns, about 355px wide, no horizontal overflow.
+- 1280: home cards are two columns. Prices stay on one line.
+- Marketplace: 0 published shipments. Empty state only. Live cards were not rendered.
+- Fleet, Add Vehicle, and My Trips were reviewed at 1440 and left as they were. The form stays centered at 1280 (`centerDelta` 0, width 896).
+- No vehicle was saved and no assignment was submitted.
+
+`npm run lint`, `npx tsc -b`, and `npm run build` in `web/` passed after this change. Backend code was not changed.
+
+Visual acceptance is still pending. FE-05B has not started.

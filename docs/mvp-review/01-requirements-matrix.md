@@ -1,5 +1,7 @@
 # MVP-01 — Ma trận yêu cầu
 
+> Historical Snapshot, 2026-10-17. Số test, SHA và mục M21 trong file này không còn là kết luận hiện hành. Tài khoản tài xế và quyền đọc GPS của nhà xe đã nhận đã có mã sau ảnh chụp này. Đọc [MVP_STATUS_2026-10-18.md](MVP_STATUS_2026-10-18.md).
+
 Ngày rà soát: 2026-10-17. Nhánh `feature/cinematic-scroll`, HEAD `69ec1a198f0729efc10a3d534dd92d264b1738eb`.
 
 Nguồn duyệt: sáu tài liệu trong `Coldi_Documentation_v2.3/`. Ảnh trong `Asset/coldi/` chỉ là tham chiếu giao diện. Một ảnh không chứng minh một quy tắc nghiệp vụ đã được duyệt.

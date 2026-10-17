@@ -1,5 +1,7 @@
 # Thiết lập COLDI trên một máy
 
+Người mới làm theo [Team Testing Guide](../team-testing/TEAM_TESTING_GUIDE.md): `git checkout main`, `npm ci` trong `server` và `web`. File này giữ các biến môi trường và cách xử lý máy local của Core 08. Đừng checkout `feature/cinematic-scroll`.
+
 Mỗi người chạy một bản trên máy của mình. Dữ liệu tạo trên máy này không xuất hiện trên máy người khác. Cách dùng chung một máy chủ chưa có. Xem [giới hạn nhiều máy](04-su-co-va-gioi-han.md).
 
 ## A. Phần cần cài
@@ -16,25 +18,26 @@ Kho mã không ghi một tên Windows Service cố định cho MongoDB. Nếu Mo
 
 ## B. Clone và cài gói
 
-Remote là `https://github.com/Van125478/Coldi-express`. Khi Core 07 và Core 08 đã được merge, clone rồi dùng `main`. Việc merge đó chưa xảy ra. `main` hiện chỉ có commit khởi tạo `44e4791134690c72a261d91c60388994668fcdcb`, nên clone `main` hôm nay không chạy được luồng đơn.
+Remote là `https://github.com/Van125478/Coldi-express`. Người mới dùng `main`. Core 09–14 đã nằm trong kho đó, gồm GPS, chat, sàn, đội xe và quản lý tài khoản tài xế. SHA lấy bằng `git rev-parse HEAD` sau `git pull`, không lấy từ câu lịch sử bên dưới.
 
-Timeline nằm ở commit `cd5045300ac4c788deba3c08053ed1a439481d95` trên `feature/cinematic-scroll`. `npm test` của commit đó có `tests/timeline.test.ts`. Nhánh này chưa phải bản `main`. Đừng gắn nó thành hướng dẫn cố định. Sau merge, bỏ lệnh checkout bên dưới và ở lại `main`. Hash merge sẽ được điền khi nó tồn tại.
+Câu cũ, chỉ để lưu hồ sơ: lúc viết Core 08, `main` còn là commit khởi tạo `44e4791134690c72a261d91c60388994668fcdcb`, và timeline nằm ở `cd5045300ac4c788deba3c08053ed1a439481d95` trên `feature/cinematic-scroll`. Đừng checkout nhánh đó để thử bản hiện tại.
 
-PowerShell, chỉ để xem nhánh làm việc trước khi có bản `main`:
+PowerShell:
 
 ```powershell
 git clone https://github.com/Van125478/Coldi-express.git
 cd Coldi-express
-git checkout feature/cinematic-scroll
+git checkout main
+git pull
 cd server
-npm install
+npm ci
 cd ..\web
-npm install
+npm ci
 ```
 
-Thư mục clone là `Coldi-express`. Bản đang làm việc có thể nằm ở `C:\Coldi`. Hai đường dẫn đó chỉ khác tên thư mục. Máy clone `main` chưa có timeline. Máy theo nhánh ở lệnh trên có timeline kể từ commit `cd5045300ac4c788deba3c08053ed1a439481d95`.
+Thư mục clone là `Coldi-express`. Bản làm việc cũ có thể nằm ở `C:\Coldi`. Hai đường dẫn đó chỉ khác tên thư mục.
 
-Không có `package.json` ở thư mục gốc. `npm install` ở gốc sẽ thất bại.
+Không có `package.json` ở thư mục gốc. `npm install` ở gốc sẽ thất bại. Nếu cổng `27017` đã có MongoDB, đừng dựng thêm container cùng cổng.
 
 ## C. Biến môi trường
 
@@ -103,7 +106,7 @@ Script từ chối chạy khi `NODE_ENV=production`. Chạy lại không tạo t
 
 Trang `/dang-ky` không tạo tài khoản. Bấm đăng ký chỉ hiện thông báo rằng không có tài khoản nào được tạo.
 
-Lệnh `npm run reset:demo-passwords` không nằm trong commit đã đẩy. Đừng viết lệnh này vào hướng dẫn clone. Máy đang có file local `server/src/scripts/resetDemoPasswords.ts` cũng không cần chạy lại lệnh đó.
+Bản team testing không hướng dẫn lệnh đặt lại mật khẩu demo. Đừng chạy script reset ngoài [Team Testing Guide](../team-testing/TEAM_TESTING_GUIDE.md). `seed:demo` ghi đè mật khẩu của bốn email demo; chỉ chạy trên database mới hoặc database dùng một lần.
 
 ## E. Khởi động
 

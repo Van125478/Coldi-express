@@ -1,6 +1,8 @@
 # MVP-01 — Thứ tự đóng MVP
 
-Mục tiêu: đồng đội chạy được đúng chuỗi nghiệp vụ đang có trên web, rồi mới nghiệm thu tay. Không mở Core mới cho tài chính, bản đồ, tenant hay UI WOW trong đợt này.
+> Historical Snapshot. File này còn nói `main` chỉ có commit khởi tạo và Core 09–14 chưa được đóng gói. Hướng dẫn hiện hành là [Team Testing Guide](../team-testing/TEAM_TESTING_GUIDE.md). Trạng thái ngày 18/10/2026 nằm ở [MVP_STATUS_2026-10-18.md](MVP_STATUS_2026-10-18.md). Kết quả và SHA bên dưới được giữ nguyên như lúc viết.
+
+Mục tiêu lúc viết: đồng đội chạy được đúng chuỗi nghiệp vụ đang có trên web, rồi mới nghiệm thu tay. Không mở Core mới cho tài chính, bản đồ, tenant hay UI WOW trong đợt này.
 
 ## Phân nhóm
 

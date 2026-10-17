@@ -1,6 +1,8 @@
 # MVP-02 — Sẵn sàng nghiệm thu tay
 
-Nghiệm thu tay: NOT RUN.
+> Historical Snapshot. Câu “Core 09–13 chưa commit” bên dưới là lúc viết file. Mã logistics hiện nằm trên nhánh team testing. Trạng thái mới: [MVP_STATUS_2026-10-18.md](MVP_STATUS_2026-10-18.md). E2E trình duyệt vẫn chưa nghiệm thu.
+
+Nghiệm thu tay lúc viết file: NOT RUN.
 
 API đã đi hết chuỗi bốn vai trò trên database `coldi_integration_test`. Việc còn lại là bấm trên trình duyệt với dữ liệu local, không dùng hai đơn đã nghiệm thu `6ad25c2fcf4c13c7d5b735dc` và `6ad2fc6b0f1e6b36c1404649`.
 

@@ -1,8 +1,8 @@
 # COLDI API
 
-Node.js API for the COLDI local workflow on `integration/coldi-v2.3-mvp`. Authentication is cookie-based. A signed-in shipper can publish a shipment. A carrier can search the open board, claim one published shipment, and assign a vehicle and driver. The assigned driver can confirm pickup, send a latest GPS sample while the trip is `IN_TRANSIT`, and then confirm delivery. The shipper and the winning carrier can use a private shipment thread.
+Node.js API for the COLDI local team-testing workflow. Authentication is cookie-based. A signed-in shipper can publish a shipment. A carrier can search the open board, claim one published shipment, and assign a vehicle and driver that belong to that carrier. The assigned driver can confirm pickup, send a latest GPS sample while the trip is `IN_TRANSIT`, and then confirm delivery. The owning shipper reads that sample. The carrier that successfully claimed the shipment reads it through a separate route. The shipper and the winning carrier can use a private shipment thread. Chat does not claim a shipment and does not change the listed price.
 
-This is not a production deployment and it is not the whole v2.3 MVP. These additions are on the integration branch. They are not merged into `main`. Browser acceptance has not been run for this branch.
+This is not a production deployment and it is not a completed MVP. Logistics end-to-end browser acceptance has not been recorded. Package Management is not implemented. Newcomers follow the root `README.md` and `docs/team-testing/TEAM_TESTING_GUIDE.md` on `main`. Take the commit with `git rev-parse HEAD` after pulling. Do not treat an older SHA in this file as the current HEAD.
 
 The shipment event timeline began in commit `cd5045300ac4c788deba3c08053ed1a439481d95`. Core 08, the team setup guide, is `69ec1a198f0729efc10a3d534dd92d264b1738eb`. New `ASSIGNED` events on this branch also store the vehicle label and driver display name from that assignment. Older events without those fields stay readable and still follow the current records.
 
@@ -55,9 +55,9 @@ This publishes MongoDB only on `127.0.0.1:27017` and stores data in a local volu
 
 `npm test` does not drop the development database `coldi`. Each workflow test file points `MONGODB_URI` at its own database name and refuses to continue if that name does not match. Health tests do not delete a database.
 
-The integration branch test script adds GPS, chat, fleet, security, marketplace, marketplace form, and full lifecycle files to the Core 08 list. A clean worktree of commit `95d913284e854e8af4fd058e9310909b4873370c` reported 51 passed and 0 failed. That run used isolated test databases and did not seed demo accounts. It is not manual UI acceptance. The earlier timeline commit still reported 29 passed for its smaller script.
+`npm test` runs only the files named in `package.json`, one at a time. The list includes auth, shipments, claim, assignment, driver milestones, timeline, GPS, chat, fleet, driver accounts, marketplace, Mapbox presentation helpers, and the lifecycle integration file. The release-preparation result is recorded in `docs/mvp-review/MVP_STATUS_2026-10-18.md`. Historical counts stay in the older MVP review files and are not the current result. Those runs use isolated test databases and do not seed demo accounts. They are not manual UI acceptance.
 
-`npm run seed:demo` rewrites `passwordHash` and `role` for the four demo emails. Use it for a new local database or an intentional reset of those accounts. It does not delete shipments. `npm run seed:fleet` must run after it. This branch does not contain a password-reset script.
+`npm run seed:demo` rewrites `passwordHash` and `role` for the four demo emails. Use it for a new or disposable local database. It does not delete shipments. `npm run seed:fleet` must run after it. The published command list has no demo password-reset script. Do not add one to this guide.
 
 The development frontend origin expected by `.env.example` is `http://127.0.0.1:5173`.
 
@@ -164,6 +164,21 @@ An authenticated DRIVER does not browse the load board and cannot claim. These r
 
 Another driver, a shipper, or a carrier cannot call these routes successfully. A second pickup or delivery does not move the milestone backward and does not replace the stored time. Delivery does not set `COMPLETED` and does not record a payment.
 
+## GPS reads and writes
+
+GPS stores one latest sample. It does not change shipment status, does not append a timeline event, and does not draw a route, distance, or ETA.
+
+| Method | Path | Who |
+| --- | --- | --- |
+| `GET` | `/api/shipments/:id/location` | The shipper that created the shipment. Another shipper receives 403 |
+| `GET` | `/api/carrier/shipments/:id/location` | The carrier whose id is `shipment.carrierId`. A missing shipment or a different carrier receives 404 |
+| `POST` | `/api/driver/shipments/:id/location` | The assigned driver, and only while the shipment is `IN_TRANSIT` |
+| `GET` | `/api/driver/shipments/:id/location` | The assigned driver reading the sample for that trip |
+
+ADMIN and a guest are not granted a GPS read. A carrier must not call the shipper GPS route. A shipper must not call the carrier GPS route. Marketplace and shipment detail DTOs do not include coordinates. `warehouseProximity` stays `unavailable` because pickup and delivery addresses are text. A public Mapbox `pk.` token can render the sample in the browser. Live tiles were not verified by a passing render in this release.
+
+Driver account create, lock, unlock, reset, and the required first password change are implemented. The rules are in `docs/core-14/01-driver-account-management.md`. An older requirements matrix that still says driver provisioning is blocked is a historical snapshot.
+
 ## Shipment timeline
 
 In the timeline commit, a successful publish, claim, assignment, pickup, or delivery appends one event on the same shipment document. Failed authorization and losing concurrent updates do not append a success event. Detail reads for the owning shipper, the authorized carrier, and the assigned driver return that history.
@@ -174,6 +189,6 @@ The original timeline commit is `cd5045300ac4c788deba3c08053ed1a439481d95`. On t
 
 ## Boundaries still open
 
-Only one carrier can successfully claim a published shipment. A claim does not assign a vehicle or driver. Phone or chat contact does not reserve a shipment. GPS stores one latest sample and does not confirm pickup or delivery. The shipper page can open a Mapbox GL JS map of that sample when a public `pk.` token is configured. Live tiles were not verified in this change. Chat retention and whether a losing carrier should keep reading an old thread are not settled. Fleet editing creates and locks carrier-owned driver accounts as described in Core 14, and does not verify vehicle compliance. Audit rows are written after a successful business update and can be missing if the process stops before the insert. There is no organization tenant. The open load board scans at most 500 shipments and returns at most 100. Delivery does not set `COMPLETED` and does not record a payment.
+Only one carrier can successfully claim a published shipment. A claim does not assign a vehicle or driver. Phone or chat contact does not reserve a shipment. GPS does not confirm pickup or delivery. Live Mapbox tiles were not verified. Chat retention and whether a losing carrier should keep reading an old thread are not settled. Package entitlements and usage limits are not implemented. Fleet editing creates and locks carrier-owned driver accounts as described in Core 14, and does not verify vehicle compliance. Audit rows are written after a successful business update and can be missing if the process stops before the insert. There is no organization tenant. The open load board scans at most 500 shipments and returns at most 100. Delivery does not set `COMPLETED` and does not record a payment.
 
 Responses stay independent of MongoDB document shape. Weight, volume, package count, and the pickup and delivery windows are stored as entered. No approved rule converts units, calculates a price, or rejects a date in the past.
