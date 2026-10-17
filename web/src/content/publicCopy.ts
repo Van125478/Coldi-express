@@ -129,7 +129,7 @@ export const authMessages = {
   },
   account: {
     title: "Vào khu làm việc",
-    body: "Dùng tài khoản đã cấp. Hồ sơ doanh nghiệp, chứng từ, trao đổi và vị trí chuyến chưa mở.",
+    body: "Dùng tài khoản đã cấp để vào đúng khu làm việc. Hồ sơ doanh nghiệp và chứng từ chưa mở. Trao đổi và vị trí chỉ có trên chuyến mà tài khoản được xem.",
   },
   general: {
     title: "Đăng nhập",

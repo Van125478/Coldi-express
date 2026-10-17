@@ -1,6 +1,8 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { authPath, paths } from "@/app/paths";
+import { useAuth } from "@/features/auth/useAuth";
+import { guestAccountAction } from "@/features/guest/guestHeaderAccount";
 import { cn } from "@/lib/cn";
 import { Icon } from "@/components/ui/Icon";
 import { Logo } from "@/components/ui/Logo";
@@ -74,6 +76,19 @@ export function SiteHeader() {
   const mobileOpen = openKey === locationKey;
   const menuId = useId();
   const cinematic = location.pathname === paths.home;
+  const { snapshot } = useAuth();
+  const account = guestAccountAction(snapshot.status === "authenticated" ? snapshot.user.role : null);
+  const accountClass = cn(
+    "hidden min-h-11 items-center px-3 text-sm font-semibold min-[1200px]:inline-flex",
+    account.kind === "workspace" ? "rounded-full border" : "",
+    cinematic
+      ? account.kind === "workspace"
+        ? "border-white/40 text-white hover:bg-white/10"
+        : "text-white/80 hover:text-white"
+      : account.kind === "workspace"
+        ? "border-navy text-navy hover:bg-canvas"
+        : "text-[#475569] hover:text-navy",
+  );
 
   useEffect(() => {
     if (!cinematic) return;
@@ -122,31 +137,16 @@ export function SiteHeader() {
         </nav>
         <div className="ml-auto flex items-center gap-1 sm:gap-2 min-[1200px]:ml-0 min-[1200px]:min-w-max min-[1200px]:justify-self-end">
           <LanguageMenu className="hidden sm:block" cinematic={cinematic} />
-          <Link
-            to={paths.login}
-            className={cn(
-              "hidden min-h-11 items-center px-2 text-sm font-semibold min-[1440px]:inline-flex",
-              cinematic ? "text-white/80 hover:text-white" : "text-[#475569] hover:text-navy",
-            )}
-          >
-            Đăng nhập
-          </Link>
-          <Link
-            to={paths.register}
-            className={cn(
-              "hidden min-h-11 items-center px-2 text-sm font-semibold min-[1440px]:inline-flex",
-              cinematic ? "text-white/80 hover:text-white" : "text-[#475569] hover:text-navy",
-            )}
-          >
-            Đăng ký
+          <Link to={account.href} className={accountClass}>
+            {account.label}
           </Link>
           <ExploreSolutions
             cinematic={cinematic}
             onNavigate={() => setOpenKey(null)}
           />
           <Link
-            to={authPath("account", paths.home)}
-            aria-label="Tài khoản, yêu cầu đăng nhập"
+            to={account.kind === "workspace" ? account.href : authPath("account", paths.home)}
+            aria-label={account.kind === "workspace" ? "Vào khu làm việc" : "Tài khoản, yêu cầu đăng nhập"}
             className={cn(
               "hidden size-11 items-center justify-center rounded-full min-[1200px]:inline-flex",
               cinematic ? "border border-white/20 text-white hover:bg-white/10" : "border border-line text-navy hover:bg-canvas",
@@ -157,7 +157,7 @@ export function SiteHeader() {
           <button
             type="button"
             className={cn(
-              "inline-flex size-11 items-center justify-center rounded-xl min-[1440px]:hidden",
+              "inline-flex size-11 items-center justify-center rounded-xl min-[1200px]:hidden",
               cinematic ? "text-white hover:bg-white/10" : "text-navy hover:bg-canvas",
             )}
             aria-expanded={mobileOpen}
@@ -173,7 +173,7 @@ export function SiteHeader() {
         <nav
           id={menuId}
           className={cn(
-            "border-t px-5 py-3 sm:px-8 xl:px-10 min-[1440px]:hidden",
+            "border-t px-5 py-3 sm:px-8 xl:px-10 min-[1200px]:hidden",
             cinematic ? "site-header-menu border-white/10" : "border-line bg-surface",
           )}
           aria-label="Điều hướng di động"
@@ -212,19 +212,9 @@ export function SiteHeader() {
                 Về chúng tôi
               </MobileLink>
             </li>
-            <li className={cn("mt-2 border-t pt-2 min-[1440px]:hidden", cinematic ? "border-white/10" : "border-line")}>
-              <MobileLink to={paths.login} cinematic={cinematic}>
-                Đăng nhập
-              </MobileLink>
-            </li>
-            <li className="min-[1440px]:hidden">
-              <MobileLink to={paths.register} cinematic={cinematic}>
-                Đăng ký
-              </MobileLink>
-            </li>
-            <li className="min-[1200px]:hidden">
-              <MobileLink to={authPath("account", paths.home)} cinematic={cinematic}>
-                Tài khoản
+            <li className={cn("mt-2 border-t pt-2 min-[1200px]:hidden", cinematic ? "border-white/10" : "border-line")}>
+              <MobileLink to={account.href} cinematic={cinematic}>
+                {account.label}
               </MobileLink>
             </li>
           </ul>

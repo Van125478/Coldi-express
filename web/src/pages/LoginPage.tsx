@@ -23,7 +23,7 @@ const roleLabels: Record<BusinessRole, string> = {
 const roleWork: Record<BusinessRole, string> = {
   SHIPPER: "Niêm yết đơn và theo dõi đơn của tài khoản.",
   CARRIER: "Xem đơn đang tìm xe, nhận chuyến và phân công đội xe.",
-  DRIVER: "Xem chuyến được nhà xe phân công khi phần này mở.",
+  DRIVER: "Xem chuyến được nhà xe phân công, rồi xác nhận lấy hàng và giao hàng.",
   ADMIN: "Khu vận hành quản trị chưa mở.",
 };
 
