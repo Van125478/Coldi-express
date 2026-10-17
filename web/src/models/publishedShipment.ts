@@ -1,5 +1,25 @@
 export type TemperatureGroup = "COOL" | "FROZEN" | "DEEP_FROZEN";
 
+export type ShipmentTimelineEvent = {
+  id: string;
+  type: "PUBLISHED" | "CLAIMED" | "ASSIGNED" | "PICKUP_CONFIRMED" | "DELIVERY_CONFIRMED";
+  label: string;
+  occurredAt: string;
+  actorRole: "SHIPPER" | "CARRIER" | "DRIVER";
+  actorLabel: string;
+  statusAfter: string;
+  statusAfterLabel: string;
+  detail: string | null;
+  recorded: boolean;
+  sequence: number;
+};
+
+export type ShipmentTimeline = {
+  completeness: "recorded" | "partial";
+  note: string | null;
+  events: ShipmentTimelineEvent[];
+};
+
 type ShipmentSchedule = {
   cargoDescription: string;
   pickupCompany: string | null;
@@ -34,6 +54,7 @@ type ShipmentSchedule = {
   deliveryConfirmedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  timeline?: ShipmentTimeline;
 };
 
 export type PublishedShipment = ShipmentSchedule & {

@@ -4,6 +4,7 @@ import { paths } from "@/app/paths";
 import { useAuth } from "@/features/auth/useAuth";
 import { lostSession } from "@/features/workspace/sessionLoss";
 import { civil, money, progressNote, shipmentTone, windowText } from "@/features/workspace/format";
+import { ShipmentTimeline } from "@/features/workspace/ShipmentTimeline";
 import { DetailBlock, FactLine, PageHeader, StatusBadge } from "@/features/workspace/ui";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import type { PublishedShipment } from "@/models/publishedShipment";
@@ -99,6 +100,7 @@ export function ShipperShipmentDetail() {
               </DetailBlock>
             </div>
           </div>
+          <ShipmentTimeline timeline={shipment.timeline} />
         </>
       ) : null}
     </section>

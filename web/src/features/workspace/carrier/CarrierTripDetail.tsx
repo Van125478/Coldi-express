@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/features/auth/useAuth";
 import { lostSession } from "@/features/workspace/sessionLoss";
 import { money, primaryLinkClass, progressNote, shipmentTone, windowText } from "@/features/workspace/format";
+import { ShipmentTimeline } from "@/features/workspace/ShipmentTimeline";
 import { DetailBlock, FactLine, PageHeader, StatusBadge } from "@/features/workspace/ui";
 import type { CarrierShipment } from "@/models/publishedShipment";
 import { ApiError } from "@/services/apiClient";
-import { claimShipment, listCarrierShipments, listClaimedShipments } from "@/services/shipmentService";
+import { claimShipment, getCarrierShipment } from "@/services/shipmentService";
 
 export function CarrierTripDetail() {
   const { id } = useParams();
@@ -22,16 +23,15 @@ export function CarrierTripDetail() {
   useEffect(() => {
     if (!id) return;
     let active = true;
-    Promise.all([listCarrierShipments(), listClaimedShipments()])
-      .then(([open, mine]) => {
+    getCarrierShipment(id)
+      .then((body) => {
         if (!active) return;
-        const found = mine.shipments.find((item) => item.id === id) ?? open.shipments.find((item) => item.id === id) ?? null;
-        setShipment(found);
-        setState(found ? "ready" : "missing");
+        setShipment(body.shipment);
+        setState("ready");
       })
       .catch((error: unknown) => {
         if (!active || lostSession(error, logout)) return;
-        setState("error");
+        setState(error instanceof ApiError && error.status === 404 ? "missing" : "error");
       });
     return () => {
       active = false;
@@ -130,6 +130,7 @@ export function CarrierTripDetail() {
               </DetailBlock>
             </div>
           </div>
+          <ShipmentTimeline timeline={shipment.timeline} />
         </>
       ) : null}
     </section>

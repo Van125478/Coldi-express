@@ -9,7 +9,7 @@ import { User } from "../models/user.js";
 import { Vehicle } from "../models/vehicle.js";
 import { readAssignInput } from "../shipments/assignInput.js";
 import { toCarrierShipmentView, toCarrierShipmentViews } from "../shipments/assignmentView.js";
-import { toCarrierShipmentDto } from "../shipments/shipmentDto.js";
+import { attachTimeline, shipmentEventUpdate } from "../shipments/shipmentEvents.js";
 
 const forbiddenFields = ["carrierId", "status", "shipperId", "vehicleId", "driverId", "role"] as const;
 
@@ -40,6 +40,24 @@ carrierShipmentRouter.get("/claimed", async (request, response, next) => {
   }
 });
 
+carrierShipmentRouter.get("/:id", async (request, response, next) => {
+  try {
+    const carrierId = request.authUser?.id;
+    if (!carrierId) throw new HttpError(401, "unauthenticated", "Cần đăng nhập để tiếp tục.");
+    const id = request.params.id;
+    if (typeof id !== "string" || !isValidObjectId(id)) {
+      throw new HttpError(404, "not_found", "Không tìm thấy chuyến này.");
+    }
+    const shipment = await Shipment.findById(id);
+    const open = shipment?.status === "PUBLISHED" && shipment.carrierId == null;
+    const owned = shipment?.carrierId?.toString() === carrierId;
+    if (!shipment || (!open && !owned)) throw new HttpError(404, "not_found", "Không tìm thấy chuyến này.");
+    response.status(200).json({ shipment: await attachTimeline(shipment, await toCarrierShipmentView(shipment), "carrier") });
+  } catch (error) {
+    next(error);
+  }
+});
+
 carrierShipmentRouter.post("/:id/claim", requireTrustedOrigin, async (request, response, next) => {
   try {
     const carrierId = request.authUser?.id;
@@ -58,14 +76,25 @@ carrierShipmentRouter.post("/:id/claim", requireTrustedOrigin, async (request, r
       throw new HttpError(404, "not_found", "Không tìm thấy đơn.");
     }
 
+    const occurredAt = new Date();
     const shipment = await Shipment.findOneAndUpdate(
       {
         _id: id,
         status: "PUBLISHED",
         $or: [{ carrierId: { $exists: false } }, { carrierId: null }],
       },
-      { $set: { status: "MATCHED", carrierId } },
-      { returnDocument: "after" },
+      shipmentEventUpdate(
+        { status: "MATCHED", carrierId },
+        {
+          type: "CLAIMED",
+          occurredAt,
+          actorId: carrierId,
+          actorRole: "CARRIER",
+          statusBefore: "PUBLISHED",
+          statusAfter: "MATCHED",
+        },
+      ),
+      { returnDocument: "after", updatePipeline: true },
     );
     if (!shipment) {
       const existing = await Shipment.findById(id);
@@ -73,7 +102,7 @@ carrierShipmentRouter.post("/:id/claim", requireTrustedOrigin, async (request, r
       throw new HttpError(409, "conflict", "Đơn này đã có nhà xe nhận. Chuyến không còn mở.");
     }
 
-    response.status(200).json({ shipment: toCarrierShipmentDto(shipment) });
+    response.status(200).json({ shipment: await attachTimeline(shipment, await toCarrierShipmentView(shipment), "carrier") });
   } catch (error) {
     next(error);
   }
@@ -97,6 +126,7 @@ carrierShipmentRouter.post("/:id/assign", requireTrustedOrigin, async (request, 
       throw new HttpError(400, "invalid_request", "Xe hoặc tài xế không thuộc nhà xe này.");
     }
 
+    const occurredAt = new Date();
     const shipment = await Shipment.findOneAndUpdate(
       {
         _id: id,
@@ -107,8 +137,20 @@ carrierShipmentRouter.post("/:id/assign", requireTrustedOrigin, async (request, 
           { $or: [{ driverId: { $exists: false } }, { driverId: null }] },
         ],
       },
-      { $set: { vehicleId: input.vehicleId, driverId: input.driverId } },
-      { returnDocument: "after" },
+      shipmentEventUpdate(
+        { vehicleId: input.vehicleId, driverId: input.driverId },
+        {
+          type: "ASSIGNED",
+          occurredAt,
+          actorId: carrierId,
+          actorRole: "CARRIER",
+          statusBefore: "MATCHED",
+          statusAfter: "MATCHED",
+          vehicleId: input.vehicleId,
+          driverId: input.driverId,
+        },
+      ),
+      { returnDocument: "after", updatePipeline: true },
     );
     if (!shipment) {
       const existing = await Shipment.findById(id);
@@ -122,7 +164,7 @@ carrierShipmentRouter.post("/:id/assign", requireTrustedOrigin, async (request, 
       throw new HttpError(409, "conflict", "Chuyến chưa sẵn sàng để phân công.");
     }
 
-    response.status(200).json({ shipment: await toCarrierShipmentView(shipment) });
+    response.status(200).json({ shipment: await attachTimeline(shipment, await toCarrierShipmentView(shipment), "carrier") });
   } catch (error) {
     next(error);
   }

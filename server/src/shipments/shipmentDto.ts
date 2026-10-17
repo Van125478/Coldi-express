@@ -106,6 +106,10 @@ function numberOrNull(value: number | null | undefined): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
+export function shipmentStatusLabel(status: ShipmentStatus, assigned: boolean): string {
+  return status === "MATCHED" && assigned ? "Chờ lấy hàng" : statusLabels[status];
+}
+
 export function toShipmentDto(
   shipment: ShipmentRecord,
   names?: { vehicleLabel: string | null; driverName: string | null },
@@ -141,7 +145,7 @@ export function toShipmentDto(
     vehicleRequirement: shipment.vehicleRequirement,
     listedPriceVnd: shipment.listedPriceVnd,
     status: shipment.status,
-    statusLabel: shipment.status === "MATCHED" && assigned ? "Chờ lấy hàng" : statusLabels[shipment.status],
+    statusLabel: shipmentStatusLabel(shipment.status, assigned),
     carrierId: idOrNull(shipment.carrierId),
     vehicleId,
     driverId,

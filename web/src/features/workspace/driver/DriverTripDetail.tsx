@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/features/auth/useAuth";
 import { lostSession } from "@/features/workspace/sessionLoss";
 import { money, shipmentTone, windowText } from "@/features/workspace/format";
+import { ShipmentTimeline } from "@/features/workspace/ShipmentTimeline";
 import { DetailBlock, FactLine, PageHeader, StatusBadge } from "@/features/workspace/ui";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import type { DriverShipment } from "@/models/publishedShipment";
@@ -136,6 +137,7 @@ export function DriverTripDetail() {
               </DetailBlock>
             </div>
           </div>
+          <ShipmentTimeline timeline={shipment.timeline} />
         </>
       ) : null}
     </section>

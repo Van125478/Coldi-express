@@ -34,6 +34,10 @@ export function claimShipment(id: string): Promise<{ shipment: CarrierShipment }
   });
 }
 
+export function getCarrierShipment(id: string): Promise<{ shipment: CarrierShipment }> {
+  return apiRequest(`/api/carrier/shipments/${id}`);
+}
+
 export function listClaimedShipments(): Promise<{ shipments: CarrierShipment[] }> {
   return apiRequest("/api/carrier/shipments/claimed");
 }

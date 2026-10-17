@@ -24,6 +24,25 @@ export const shipmentStatuses = [
 
 export type ShipmentStatus = (typeof shipmentStatuses)[number];
 
+export const shipmentEventTypes = ["PUBLISHED", "CLAIMED", "ASSIGNED", "PICKUP_CONFIRMED", "DELIVERY_CONFIRMED"] as const;
+
+export type ShipmentEventType = (typeof shipmentEventTypes)[number];
+
+const shipmentEventSchema = new Schema(
+  {
+    type: { type: String, required: true, enum: shipmentEventTypes },
+    occurredAt: { type: Date, required: true },
+    actorId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    actorRole: { type: String, required: true, enum: ["SHIPPER", "CARRIER", "DRIVER"] },
+    statusBefore: { type: String, enum: shipmentStatuses },
+    statusAfter: { type: String, required: true, enum: shipmentStatuses },
+    vehicleId: { type: Schema.Types.ObjectId, ref: "Vehicle" },
+    driverId: { type: Schema.Types.ObjectId, ref: "User" },
+    sequence: { type: Number, required: true },
+  },
+  { _id: true },
+);
+
 const shipmentSchema = new Schema(
   {
     shipperId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
@@ -58,6 +77,7 @@ const shipmentSchema = new Schema(
     pickupConfirmedBy: { type: Schema.Types.ObjectId, ref: "User" },
     deliveryConfirmedAt: { type: Date },
     deliveryConfirmedBy: { type: Schema.Types.ObjectId, ref: "User" },
+    events: { type: [shipmentEventSchema], required: false },
   },
   { timestamps: true },
 );
