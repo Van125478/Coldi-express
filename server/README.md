@@ -1,6 +1,10 @@
 # COLDI API
 
-Minimal Node.js backend for the COLDI core MVP. Authentication is cookie-based. Shipment workflows are not implemented yet.
+Node.js API for the COLDI local workflow. Authentication is cookie-based. A signed-in shipper can publish a shipment. A carrier can claim one published shipment and assign a vehicle and driver. The assigned driver can confirm pickup and then delivery.
+
+This is not a production deployment and it is not the whole v2.3 MVP. GPS, chat, payment, fleet management screens, and the admin workspace are not implemented.
+
+The shipment event timeline is commit `cd5045300ac4c788deba3c08053ed1a439481d95` on `feature/cinematic-scroll`. It is not on `main`. A clone of `main` still has only the initial commit.
 
 ## Requirements
 
@@ -43,10 +47,17 @@ This publishes MongoDB only on `127.0.0.1:27017` and stores data in a local volu
 | `npm run dev` | Start the API with reload |
 | `npm run typecheck` | Type-check without emitting files |
 | `npm run lint` | Lint `src` and `tests` |
-| `npm test` | Run health tests without connecting to MongoDB |
+| `npm test` | Run the test files named in `package.json` |
 | `npm run build` | Compile TypeScript to `dist/` |
 | `npm start` | Run the compiled server |
-| `npm run seed:demo` | Create or update local demo accounts |
+| `npm run seed:demo` | Create or update the four local demo accounts |
+| `npm run seed:fleet` | Link the demo driver to the demo carrier and ensure one demo vehicle |
+
+`npm test` does not drop the development database `coldi`. Each workflow test file points `MONGODB_URI` at its own database name and refuses to continue if that name does not match. Health tests do not delete a database.
+
+The test script in the timeline commit lists health, auth, shipment, claim, assignment, driver, and `tests/timeline.test.ts`. The last run of that script reported 29 passed and 0 failed. That result is not a substitute for the manual UI acceptance recorded in `docs/core-08/03-checklist-nghiem-thu.md`. Authorization, retry, and concurrency cases in those tests were not all repeated by hand.
+
+`npm run seed:demo` rewrites `passwordHash` and `role` for the four demo emails. Use it for a new local database or an intentional reset of those accounts. It does not delete shipments. `npm run seed:fleet` must run after it. There is no committed `reset:demo-passwords` script.
 
 The development frontend origin expected by `.env.example` is `http://127.0.0.1:5173`.
 
@@ -138,6 +149,27 @@ After a successful claim, the winning carrier lists that shipment at `GET /api/c
 The vehicle and driver documents are not modified by assignment. Only the shipment document changes, so the write does not use a multi-document transaction. `npm run seed:fleet` prepares one local demo vehicle and links the demo driver to the demo carrier. It refuses production and does not print passwords. Run `npm run seed:demo` first.
 
 Reassignment, vehicle compliance, and a full driver profile are still open questions in the v2.3 decisions document, so they are not implemented. The same vehicle or driver may be named on more than one claimed shipment because exclusivity was not specified.
+
+## Driver milestones
+
+An authenticated DRIVER does not browse the load board and cannot claim. These routes are in the pushed commit:
+
+| Method | Path | Result |
+| --- | --- | --- |
+| `GET` | `/api/driver/shipments` | Trips assigned to the session driver that already have a vehicle |
+| `GET` | `/api/driver/shipments/:id` | One of those trips, or 404 |
+| `POST` | `/api/driver/shipments/:id/pickup` | From assigned `MATCHED` to `IN_TRANSIT`, with a server pickup time |
+| `POST` | `/api/driver/shipments/:id/delivery` | From `IN_TRANSIT` with a pickup time to `DELIVERY_CONFIRMED` |
+
+Another driver, a shipper, or a carrier cannot call these routes successfully. A second pickup or delivery does not move the milestone backward and does not replace the stored time. Delivery does not set `COMPLETED` and does not record a payment.
+
+## Shipment timeline
+
+In the timeline commit, a successful publish, claim, assignment, pickup, or delivery appends one event on the same shipment document. Failed authorization and losing concurrent updates do not append a success event. Detail reads for the owning shipper, the authorized carrier, and the assigned driver return that history.
+
+Event types in that commit are `PUBLISHED`, `CLAIMED`, `ASSIGNED`, `PICKUP_CONFIRMED`, and `DELIVERY_CONFIRMED`. A shipment saved before these fields existed is not rewritten. Its read shows only milestones that already have a stored time, and it says claim and assignment times are not inferred.
+
+This timeline code and `tests/timeline.test.ts` are in commit `cd5045300ac4c788deba3c08053ed1a439481d95` on `feature/cinematic-scroll`. They are not on `main`.
 
 ## Future boundaries
 

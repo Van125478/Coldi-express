@@ -1,5 +1,7 @@
 # Hướng dẫn demo Coldi Freight
 
+> Bản này mô tả giao diện trước khi có API. Không dùng để cài đặt hoặc demo hiện tại. Hướng dẫn đang dùng là [docs/core-08/README.md](core-08/README.md).
+
 Tài liệu này dành cho lập trình viên, kiểm thử, mentor và người review. Nội dung bám mã nguồn trong `web/` tại thời điểm viết, không suy ra tính năng từ bản vẽ Figma.
 
 Phân loại dùng trong toàn bộ tài liệu:
