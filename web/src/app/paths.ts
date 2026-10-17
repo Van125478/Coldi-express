@@ -24,6 +24,7 @@ export const paths = {
   carrierDrivers: "/carrier/doi-xe/tai-xe",
   driverHome: "/driver",
   driverTrips: "/driver/chuyen",
+  driverPassword: "/driver/doi-mat-khau",
   adminHome: "/admin",
 } as const;
 

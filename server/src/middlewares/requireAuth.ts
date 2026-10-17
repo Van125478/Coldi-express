@@ -1,6 +1,6 @@
 import type { RequestHandler } from "express";
 import { readCookie, SESSION_COOKIE, clearSessionCookie } from "../auth/cookies.js";
-import { readSessionSubject } from "../auth/sessionToken.js";
+import { readSession } from "../auth/sessionToken.js";
 import { toUserDto } from "../auth/userDto.js";
 import { getEnv } from "../config/env.js";
 import { User } from "../models/user.js";
@@ -14,17 +14,22 @@ export const requireAuth: RequestHandler = async (request, response, next) => {
       return;
     }
 
-    const userId = await readSessionSubject(token, getEnv().AUTH_SECRET);
-    if (!userId) {
+    const session = await readSession(token, getEnv().AUTH_SECRET);
+    if (!session) {
       clearSessionCookie(response);
       next(new HttpError(401, "unauthenticated", "Phiên đăng nhập không còn hiệu lực."));
       return;
     }
 
-    const user = await User.findById(userId);
-    if (!user) {
+    const user = await User.findById(session.userId);
+    if (!user || (user.sessionVersion ?? 0) !== session.sessionVersion) {
       clearSessionCookie(response);
       next(new HttpError(401, "unauthenticated", "Phiên đăng nhập không còn hiệu lực."));
+      return;
+    }
+    if (user.accountStatus === "LOCKED") {
+      clearSessionCookie(response);
+      next(new HttpError(401, "account_locked", "Tài khoản đã bị khóa."));
       return;
     }
 

@@ -4,6 +4,8 @@ export type AuthUser = {
   id: string;
   email: string;
   role: BusinessRole;
+  accountStatus?: "ACTIVE" | "LOCKED";
+  mustChangePassword?: boolean;
 };
 
 export type SessionSnapshot =

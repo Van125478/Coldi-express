@@ -13,6 +13,14 @@ export async function login(email: string, password: string): Promise<AuthUser> 
   return body.user;
 }
 
+export async function changeRequiredPassword(newPassword: string): Promise<AuthUser> {
+  const body = await apiRequest<UserResponse>("/api/auth/change-required-password", {
+    method: "POST",
+    body: JSON.stringify({ newPassword }),
+  });
+  return body.user;
+}
+
 export async function logout(): Promise<void> {
   await apiRequest<{ ok: true }>("/api/auth/logout", { method: "POST" });
 }

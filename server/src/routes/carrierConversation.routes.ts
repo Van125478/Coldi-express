@@ -4,12 +4,13 @@ import { readAfter, appendMessage, openCarrierConversation, readMessages } from 
 import { readEmptyBody, readMessageBody } from "../chat/messageInput.js";
 import { HttpError } from "../middlewares/errorHandler.js";
 import { requireAuth } from "../middlewares/requireAuth.js";
+import { requireOperationalSession } from "../middlewares/requireOperational.js";
 import { requireTrustedOrigin } from "../middlewares/requireOrigin.js";
 import { requireRole } from "../middlewares/requireRole.js";
 
 export const carrierConversationRouter = Router();
 
-carrierConversationRouter.use(requireAuth, requireRole("CARRIER"));
+carrierConversationRouter.use(requireAuth, requireOperationalSession, requireRole("CARRIER"));
 
 carrierConversationRouter.post("/by-shipment/:shipmentId", requireTrustedOrigin, async (request, response, next) => {
   try {

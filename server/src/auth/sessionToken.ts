@@ -2,8 +2,8 @@ import { jwtVerify, SignJWT } from "jose";
 
 export const SESSION_MAX_AGE_MS = 12 * 60 * 60 * 1000;
 
-export async function signSessionToken(userId: string, secret: string): Promise<string> {
-  return new SignJWT({})
+export async function signSessionToken(userId: string, secret: string, sessionVersion = 0): Promise<string> {
+  return new SignJWT({ sv: sessionVersion })
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(userId)
     .setIssuedAt()
@@ -11,12 +11,15 @@ export async function signSessionToken(userId: string, secret: string): Promise<
     .sign(new TextEncoder().encode(secret));
 }
 
-export async function readSessionSubject(token: string, secret: string): Promise<string | null> {
+export async function readSession(token: string, secret: string): Promise<{ userId: string; sessionVersion: number } | null> {
   try {
     const { payload } = await jwtVerify(token, new TextEncoder().encode(secret), {
       algorithms: ["HS256"],
     });
-    return typeof payload.sub === "string" && payload.sub.length > 0 ? payload.sub : null;
+    if (typeof payload.sub !== "string" || payload.sub.length === 0) return null;
+    const version = payload.sv;
+    const sessionVersion = typeof version === "number" && Number.isInteger(version) && version >= 0 ? version : 0;
+    return { userId: payload.sub, sessionVersion };
   } catch {
     return null;
   }

@@ -5,6 +5,7 @@ export type AuthContextValue = {
   snapshot: SessionSnapshot;
   login: (email: string, password: string) => Promise<AuthUser>;
   logout: () => Promise<void>;
+  acceptUser: (user: AuthUser) => void;
 };
 
 export const AuthContext = createContext<AuthContextValue | null>(null);

@@ -3,6 +3,7 @@ import { readCorrelationId, recordSuccessfulAudit } from "../audit/recordAudit.j
 import { isValidObjectId } from "mongoose";
 import { HttpError } from "../middlewares/errorHandler.js";
 import { requireAuth } from "../middlewares/requireAuth.js";
+import { requireOperationalSession } from "../middlewares/requireOperational.js";
 import { requireTrustedOrigin } from "../middlewares/requireOrigin.js";
 import { requireRole } from "../middlewares/requireRole.js";
 import { Shipment } from "../models/shipment.js";
@@ -13,7 +14,7 @@ import { readPublishInput } from "../shipments/publishInput.js";
 
 export const shipmentRouter = Router();
 
-shipmentRouter.use(requireAuth, requireRole("SHIPPER"));
+shipmentRouter.use(requireAuth, requireOperationalSession, requireRole("SHIPPER"));
 
 shipmentRouter.post("/", requireTrustedOrigin, async (request, response, next) => {
   try {

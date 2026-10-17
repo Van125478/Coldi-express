@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from "react";
 import { Eye, EyeOff, LoaderCircle } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { isRolePath, parseAuthAction, paths, workspaceHome } from "@/app/paths";
+import { parseAuthAction, paths } from "@/app/paths";
+import { destinationAfterLogin } from "@/features/auth/driverAccess";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -55,8 +56,7 @@ export function LoginPage() {
     setError(null);
     try {
       const user = await login(email, password);
-      const destination = nextPath && isRolePath(user.role, nextPath) ? nextPath : workspaceHome(user.role);
-      navigate(destination, { replace: true });
+      navigate(destinationAfterLogin(user, nextPath), { replace: true });
     } catch (caught) {
       setError(caught instanceof ApiError ? caught.message : "Không đăng nhập được. Hãy thử lại.");
     } finally {
@@ -91,7 +91,7 @@ export function LoginPage() {
         <div className="flex flex-1 items-center px-5 pb-10 sm:px-10">
           <div className="mx-auto w-full max-w-lg">
             {snapshot.status === "authenticated" ? (
-              <SignedIn email={snapshot.user.email} role={snapshot.user.role} onLogout={() => void logout()} />
+              <SignedIn user={snapshot.user} onLogout={() => void logout()} />
             ) : (
               <>
                 <h1 className="text-3xl font-extrabold tracking-tight text-ink">Chào mừng trở lại</h1>
@@ -163,19 +163,19 @@ export function LoginPage() {
   );
 }
 
-function SignedIn({ email, role, onLogout }: { email: string; role: BusinessRole; onLogout: () => void }) {
+function SignedIn({ user, onLogout }: { user: { email: string; role: BusinessRole; mustChangePassword?: boolean }; onLogout: () => void }) {
   return (
     <div>
       <p className="text-xs font-semibold tracking-[0.14em] text-navy">PHIÊN ĐANG MỞ</p>
       <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-ink">Đã đăng nhập</h1>
-      <p className="mt-2 text-base leading-relaxed text-muted">{roleWork[role]}</p>
+      <p className="mt-2 text-base leading-relaxed text-muted">{roleWork[user.role]}</p>
       <div className="mt-8 rounded-2xl border border-line bg-surface p-5">
         <p className="text-sm text-muted">Tài khoản</p>
-        <p className="mt-1 text-lg font-bold text-ink">{email}</p>
+        <p className="mt-1 text-lg font-bold text-ink">{user.email}</p>
         <p className="mt-3 text-sm text-muted">Vai trò</p>
-        <p className="mt-1 text-base font-semibold text-navy">{roleLabels[role]}</p>
+        <p className="mt-1 text-base font-semibold text-navy">{roleLabels[user.role]}</p>
       </div>
-      <Link to={workspaceHome(role)} className="mt-6 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-navy px-5 text-sm font-semibold text-white hover:bg-navy-deep">
+      <Link to={destinationAfterLogin(user, null)} className="mt-6 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-navy px-5 text-sm font-semibold text-white hover:bg-navy-deep">
         Vào khu làm việc
       </Link>
       <Button type="button" variant="outline" size="lg" className="mt-3" onClick={onLogout}>

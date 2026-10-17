@@ -10,6 +10,10 @@ export const auditActions = [
   "VEHICLE_CREATED",
   "VEHICLE_UPDATED",
   "DRIVER_PROFILE_UPDATED",
+  "DRIVER_ACCOUNT_CREATED",
+  "DRIVER_ACCOUNT_LOCKED",
+  "DRIVER_ACCOUNT_UNLOCKED",
+  "DRIVER_PASSWORD_RESET",
 ] as const;
 
 export const oneShotAuditActions = [

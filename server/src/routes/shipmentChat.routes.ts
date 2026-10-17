@@ -4,12 +4,13 @@ import { appendMessage, listShipperConversations, readAfter, readMessages } from
 import { readMessageBody } from "../chat/messageInput.js";
 import { HttpError } from "../middlewares/errorHandler.js";
 import { requireAuth } from "../middlewares/requireAuth.js";
+import { requireOperationalSession } from "../middlewares/requireOperational.js";
 import { requireTrustedOrigin } from "../middlewares/requireOrigin.js";
 import { requireRole } from "../middlewares/requireRole.js";
 
 export const shipmentChatRouter = Router();
 
-shipmentChatRouter.use(requireAuth, requireRole("SHIPPER"));
+shipmentChatRouter.use(requireAuth, requireOperationalSession, requireRole("SHIPPER"));
 
 shipmentChatRouter.get("/:id/conversations", async (request, response, next) => {
   try {

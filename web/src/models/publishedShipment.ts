@@ -78,6 +78,9 @@ export type CarrierVehicle = {
 export type CarrierDriver = {
   id: string;
   displayName: string | null;
+  email?: string;
+  accountStatus?: "ACTIVE" | "LOCKED";
+  mustChangePassword?: boolean;
 };
 
 export type CarrierShipment = ShipmentSchedule & {

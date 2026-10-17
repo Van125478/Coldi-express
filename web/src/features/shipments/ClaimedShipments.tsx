@@ -8,6 +8,7 @@ import { EmptyPanel, PageHeader, StatusBadge } from "@/features/workspace/ui";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import type { CarrierDriver, CarrierShipment, CarrierVehicle } from "@/models/publishedShipment";
 import { ApiError } from "@/services/apiClient";
+import { isAssignableDriver } from "@/features/auth/driverAccess";
 import { assignShipment, listCarrierDrivers, listCarrierVehicles, listClaimedShipments } from "@/services/shipmentService";
 
 export function ClaimedShipments() {
@@ -205,7 +206,7 @@ export function ClaimedShipments() {
                         }
                       >
                         <option value="">Chọn tài xế</option>
-                        {drivers.map((driver) => (
+                        {drivers.filter(isAssignableDriver).map((driver) => (
                           <option key={driver.id} value={driver.id}>
                             {driver.displayName ?? "Tài xế chưa có tên"}
                           </option>

@@ -1,8 +1,10 @@
 import { Router } from "express";
 import { readCorrelationId, recordSuccessfulAudit } from "../audit/recordAudit.js";
 import { isValidObjectId } from "mongoose";
+import { claimDriverForAssignment, releaseDriverHold } from "../fleet/driverAccount.js";
 import { HttpError } from "../middlewares/errorHandler.js";
 import { requireAuth } from "../middlewares/requireAuth.js";
+import { requireOperationalSession } from "../middlewares/requireOperational.js";
 import { requireTrustedOrigin } from "../middlewares/requireOrigin.js";
 import { requireRole } from "../middlewares/requireRole.js";
 import { Shipment } from "../models/shipment.js";
@@ -17,7 +19,7 @@ const forbiddenFields = ["carrierId", "status", "shipperId", "vehicleId", "drive
 
 export const carrierShipmentRouter = Router();
 
-carrierShipmentRouter.use(requireAuth, requireRole("CARRIER"));
+carrierShipmentRouter.use(requireAuth, requireOperationalSession, requireRole("CARRIER"));
 
 carrierShipmentRouter.get("/", async (request, response, next) => {
   try {
@@ -148,37 +150,48 @@ carrierShipmentRouter.post("/:id/assign", requireTrustedOrigin, async (request, 
     if (!vehicle || !driver) {
       throw new HttpError(400, "invalid_request", "Xe hoặc tài xế không thuộc nhà xe này.");
     }
+    const claim = await claimDriverForAssignment(input.driverId, carrierId, id);
+    if (claim !== "claimed") {
+      throw new HttpError(409, "conflict", "Tài xế chưa thể nhận chuyến.");
+    }
 
     const occurredAt = new Date();
-    const shipment = await Shipment.findOneAndUpdate(
-      {
-        _id: id,
-        carrierId,
-        status: "MATCHED",
-        $and: [
-          { $or: [{ vehicleId: { $exists: false } }, { vehicleId: null }] },
-          { $or: [{ driverId: { $exists: false } }, { driverId: null }] },
-        ],
-      },
-      shipmentEventUpdate(
-        { vehicleId: input.vehicleId, driverId: input.driverId },
+    let shipment;
+    try {
+      shipment = await Shipment.findOneAndUpdate(
         {
-          type: "ASSIGNED",
-          occurredAt,
-          actorId: carrierId,
-          actorRole: "CARRIER",
-          statusBefore: "MATCHED",
-          statusAfter: "MATCHED",
-          vehicleId: input.vehicleId,
-          driverId: input.driverId,
-          assignedVehicleLabel: vehicle.label.trim(),
-          ...(driver.displayName?.trim() ? { assignedDriverName: driver.displayName.trim() } : {}),
+          _id: id,
+          carrierId,
+          status: "MATCHED",
+          $and: [
+            { $or: [{ vehicleId: { $exists: false } }, { vehicleId: null }] },
+            { $or: [{ driverId: { $exists: false } }, { driverId: null }] },
+          ],
         },
-      ),
-      { returnDocument: "after", updatePipeline: true },
-    );
+        shipmentEventUpdate(
+          { vehicleId: input.vehicleId, driverId: input.driverId },
+          {
+            type: "ASSIGNED",
+            occurredAt,
+            actorId: carrierId,
+            actorRole: "CARRIER",
+            statusBefore: "MATCHED",
+            statusAfter: "MATCHED",
+            vehicleId: input.vehicleId,
+            driverId: input.driverId,
+            assignedVehicleLabel: vehicle.label.trim(),
+            ...(driver.displayName?.trim() ? { assignedDriverName: driver.displayName.trim() } : {}),
+          },
+        ),
+        { returnDocument: "after", updatePipeline: true },
+      );
+    } catch (error) {
+      await releaseDriverHold(input.driverId, id);
+      throw error;
+    }
     if (!shipment) {
       const existing = await Shipment.findById(id);
+      if (existing?.driverId?.toString() !== input.driverId) await releaseDriverHold(input.driverId, id);
       if (!existing) throw new HttpError(404, "not_found", "Không tìm thấy đơn.");
       if (existing.carrierId?.toString() !== carrierId) {
         throw new HttpError(403, "forbidden", "Nhà xe này không phụ trách chuyến.");

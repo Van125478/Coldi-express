@@ -12,6 +12,7 @@ import { RegisterPage } from "@/pages/RegisterPage";
 import { SolutionPage } from "@/pages/SolutionPage";
 import { LegacyPublishRedirect } from "@/app/LegacyPublishRedirect";
 import { RoleGate } from "@/app/RoleGate";
+import { ActivatedDriverGate } from "@/app/guards/ActivatedDriverGate";
 import { WorkspaceLayout } from "@/components/layout/WorkspaceLayout";
 import { CarrierLoadBoard } from "@/features/shipments/CarrierLoadBoard";
 import { ClaimedShipments } from "@/features/shipments/ClaimedShipments";
@@ -27,6 +28,7 @@ import { CarrierVehicles } from "@/features/workspace/carrier/fleet/CarrierVehic
 import { CarrierTripDetail } from "@/features/workspace/carrier/CarrierTripDetail";
 import { CreateShipmentPage } from "@/features/workspace/CreateShipmentPage";
 import { DriverHome } from "@/features/workspace/driver/DriverHome";
+import { DriverPasswordChange } from "@/features/workspace/driver/DriverPasswordChange";
 import { DriverTripDetail } from "@/features/workspace/driver/DriverTripDetail";
 import { DriverTrips } from "@/features/workspace/driver/DriverTrips";
 import { ShipperDashboard } from "@/features/workspace/shipper/ShipperDashboard";
@@ -74,12 +76,18 @@ export const router = createBrowserRouter([
   {
     element: <RoleGate role="DRIVER" />,
     children: [
+      { path: "/driver/doi-mat-khau", element: <DriverPasswordChange /> },
       {
-        element: <WorkspaceLayout />,
+        element: <ActivatedDriverGate />,
         children: [
-          { path: "/driver", element: <DriverHome /> },
-          { path: "/driver/chuyen", element: <DriverTrips /> },
-          { path: "/driver/chuyen/:id", element: <DriverTripDetail /> },
+          {
+            element: <WorkspaceLayout />,
+            children: [
+              { path: "/driver", element: <DriverHome /> },
+              { path: "/driver/chuyen", element: <DriverTrips /> },
+              { path: "/driver/chuyen/:id", element: <DriverTripDetail /> },
+            ],
+          },
         ],
       },
     ],

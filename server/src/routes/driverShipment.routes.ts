@@ -2,7 +2,9 @@ import { Router } from "express";
 import { readCorrelationId, recordSuccessfulAudit } from "../audit/recordAudit.js";
 import { isValidObjectId } from "mongoose";
 import { HttpError } from "../middlewares/errorHandler.js";
+import { releaseDriverHold } from "../fleet/driverAccount.js";
 import { requireAuth } from "../middlewares/requireAuth.js";
+import { requireOperationalSession } from "../middlewares/requireOperational.js";
 import { requireTrustedOrigin } from "../middlewares/requireOrigin.js";
 import { requireRole } from "../middlewares/requireRole.js";
 import { readLocationSample } from "../gps/locationInput.js";
@@ -21,7 +23,7 @@ export type DriverShipmentDto = CarrierShipmentDto & {
 
 export const driverShipmentRouter = Router();
 
-driverShipmentRouter.use(requireAuth, requireRole("DRIVER"));
+driverShipmentRouter.use(requireAuth, requireOperationalSession, requireRole("DRIVER"));
 
 driverShipmentRouter.get("/", async (request, response, next) => {
   try {
@@ -171,6 +173,7 @@ driverShipmentRouter.post("/:id/delivery", requireTrustedOrigin, async (request,
     if (shipment.status !== "DELIVERY_CONFIRMED" || shipment.deliveryConfirmedAt == null) {
       throw new HttpError(409, "conflict", "Chuyến chưa sẵn sàng để xác nhận giao hàng.");
     }
+    await releaseDriverHold(driverId, id);
     if (updated) {
       await recordSuccessfulAudit({
         action: "SHIPMENT_DELIVERY_CONFIRMED",
