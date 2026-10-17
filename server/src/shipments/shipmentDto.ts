@@ -34,6 +34,8 @@ export type ShipmentDto = {
   driverId: string | null;
   vehicleLabel: string | null;
   driverName: string | null;
+  pickupConfirmedAt: string | null;
+  deliveryConfirmedAt: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -80,9 +82,15 @@ export type ShipmentRecord = {
   carrierId?: { toString(): string } | null;
   vehicleId?: { toString(): string } | null;
   driverId?: { toString(): string } | null;
+  pickupConfirmedAt?: Date | null;
+  deliveryConfirmedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 };
+
+function instantOrNull(value: Date | null | undefined): string | null {
+  return value instanceof Date ? value.toISOString() : null;
+}
 
 function idOrNull(value: { toString(): string } | null | undefined): string | null {
   return value ? value.toString() : null;
@@ -139,6 +147,8 @@ export function toShipmentDto(
     driverId,
     vehicleLabel: names?.vehicleLabel ?? null,
     driverName: names?.driverName ?? null,
+    pickupConfirmedAt: instantOrNull(shipment.pickupConfirmedAt),
+    deliveryConfirmedAt: instantOrNull(shipment.deliveryConfirmedAt),
     createdAt: shipment.createdAt.toISOString(),
     updatedAt: shipment.updatedAt.toISOString(),
   };
@@ -175,6 +185,8 @@ export type CarrierShipmentDto = {
   driverId: string | null;
   vehicleLabel: string | null;
   driverName: string | null;
+  pickupConfirmedAt: string | null;
+  deliveryConfirmedAt: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -215,6 +227,8 @@ export function toCarrierShipmentDto(
     driverId: dto.driverId,
     vehicleLabel: dto.vehicleLabel,
     driverName: dto.driverName,
+    pickupConfirmedAt: dto.pickupConfirmedAt,
+    deliveryConfirmedAt: dto.deliveryConfirmedAt,
     createdAt: dto.createdAt,
     updatedAt: dto.updatedAt,
   };

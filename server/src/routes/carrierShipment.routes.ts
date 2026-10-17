@@ -30,7 +30,10 @@ carrierShipmentRouter.get("/claimed", async (request, response, next) => {
   try {
     const carrierId = request.authUser?.id;
     if (!carrierId) throw new HttpError(401, "unauthenticated", "Cần đăng nhập để tiếp tục.");
-    const shipments = await Shipment.find({ carrierId, status: "MATCHED" }).sort({ createdAt: 1, _id: 1 });
+    const shipments = await Shipment.find({
+      carrierId,
+      status: { $in: ["MATCHED", "IN_TRANSIT", "DELIVERY_CONFIRMED"] },
+    }).sort({ createdAt: 1, _id: 1 });
     response.status(200).json({ shipments: await toCarrierShipmentViews(shipments) });
   } catch (error) {
     next(error);

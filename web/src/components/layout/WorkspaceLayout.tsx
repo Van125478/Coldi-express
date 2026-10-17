@@ -26,7 +26,10 @@ const navigation: Record<BusinessRole, readonly { to: string; label: string; ico
     { to: paths.carrierFind, label: "Tìm chuyến", icon: Search },
     { to: paths.carrierTrips, label: "Chuyến của tôi", icon: Route },
   ],
-  DRIVER: [{ to: paths.driverHome, label: "Trang chủ", icon: Truck }],
+  DRIVER: [
+    { to: paths.driverHome, label: "Trang chủ", icon: Truck },
+    { to: paths.driverTrips, label: "Chuyến của tôi", icon: Route },
+  ],
   ADMIN: [{ to: paths.adminHome, label: "Khu quản trị", icon: LayoutDashboard }],
 };
 

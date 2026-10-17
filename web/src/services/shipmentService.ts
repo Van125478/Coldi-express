@@ -1,6 +1,7 @@
 import type {
   CarrierDriver,
   CarrierShipment,
+  DriverShipment,
   CarrierVehicle,
   PublishedShipment,
   PublishShipmentInput,
@@ -43,6 +44,22 @@ export function listCarrierVehicles(): Promise<{ vehicles: CarrierVehicle[] }> {
 
 export function listCarrierDrivers(): Promise<{ drivers: CarrierDriver[] }> {
   return apiRequest("/api/carrier/fleet/drivers");
+}
+
+export function listDriverShipments(): Promise<{ shipments: DriverShipment[] }> {
+  return apiRequest("/api/driver/shipments");
+}
+
+export function getDriverShipment(id: string): Promise<{ shipment: DriverShipment }> {
+  return apiRequest(`/api/driver/shipments/${id}`);
+}
+
+export function confirmDriverPickup(id: string): Promise<{ shipment: DriverShipment }> {
+  return apiRequest(`/api/driver/shipments/${id}/pickup`, { method: "POST", body: JSON.stringify({}) });
+}
+
+export function confirmDriverDelivery(id: string): Promise<{ shipment: DriverShipment }> {
+  return apiRequest(`/api/driver/shipments/${id}/delivery`, { method: "POST", body: JSON.stringify({}) });
 }
 
 export function assignShipment(

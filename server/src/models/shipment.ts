@@ -54,6 +54,10 @@ const shipmentSchema = new Schema(
     carrierId: { type: Schema.Types.ObjectId, ref: "User" },
     vehicleId: { type: Schema.Types.ObjectId, ref: "Vehicle" },
     driverId: { type: Schema.Types.ObjectId, ref: "User" },
+    pickupConfirmedAt: { type: Date },
+    pickupConfirmedBy: { type: Schema.Types.ObjectId, ref: "User" },
+    deliveryConfirmedAt: { type: Date },
+    deliveryConfirmedBy: { type: Schema.Types.ObjectId, ref: "User" },
   },
   { timestamps: true },
 );

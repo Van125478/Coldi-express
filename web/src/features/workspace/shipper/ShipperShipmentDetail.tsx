@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { paths } from "@/app/paths";
 import { useAuth } from "@/features/auth/useAuth";
 import { lostSession } from "@/features/workspace/sessionLoss";
-import { civil, money, shipmentTone, windowText } from "@/features/workspace/format";
+import { civil, money, progressNote, shipmentTone, windowText } from "@/features/workspace/format";
 import { DetailBlock, FactLine, PageHeader, StatusBadge } from "@/features/workspace/ui";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import type { PublishedShipment } from "@/models/publishedShipment";
@@ -84,18 +84,18 @@ export function ShipperShipmentDetail() {
                 <p className="text-sm text-muted">Giá chủ hàng nhập khi đăng đơn. Chưa phải thanh toán.</p>
               </DetailBlock>
               <DetailBlock title="Phân công">
-                {shipment.status === "MATCHED" && shipment.vehicleId !== null ? (
+                {shipment.vehicleId !== null && shipment.driverId !== null ? (
                   <>
                     <FactLine term="Xe" value={shipment.vehicleLabel ?? "Xe đã phân công"} />
                     <FactLine term="Tài xế" value={shipment.driverName ?? "Tài xế đã phân công"} />
-                    <p className="text-sm text-muted">Chưa xác nhận lấy hàng.</p>
+                    <p className="text-sm text-muted">{progressNote(shipment.status)}</p>
                   </>
                 ) : (
                   <p className="text-sm leading-relaxed text-ink">
                     {shipment.status === "PUBLISHED" ? "Đơn đang mở, chưa có nhà xe nhận." : "Đã có nhà xe nhận. Chưa phân công xe và tài xế."}
                   </p>
                 )}
-                <p className="text-sm leading-relaxed text-muted">Theo dõi vị trí và mốc lấy hàng, giao hàng chưa mở. Ngày tạo {civil(shipment.createdAt.slice(0, 10))}.</p>
+                <p className="text-sm leading-relaxed text-muted">Vị trí chuyến chưa mở. Ngày tạo {civil(shipment.createdAt.slice(0, 10))}.</p>
               </DetailBlock>
             </div>
           </div>

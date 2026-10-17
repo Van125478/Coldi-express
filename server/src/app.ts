@@ -8,6 +8,7 @@ import { requireRole } from "./middlewares/requireRole.js";
 import { authRouter } from "./routes/auth.routes.js";
 import { carrierFleetRouter } from "./routes/carrierFleet.routes.js";
 import { carrierShipmentRouter } from "./routes/carrierShipment.routes.js";
+import { driverShipmentRouter } from "./routes/driverShipment.routes.js";
 import { healthRouter } from "./routes/health.routes.js";
 import { shipmentRouter } from "./routes/shipment.routes.js";
 
@@ -33,6 +34,7 @@ export function createApp() {
   app.use("/api/shipments", shipmentRouter);
   app.use("/api/carrier/shipments", carrierShipmentRouter);
   app.use("/api/carrier/fleet", carrierFleetRouter);
+  app.use("/api/driver/shipments", driverShipmentRouter);
   if (env.NODE_ENV === "test") {
     app.get("/api/test/shipper-only", requireAuth, requireRole("SHIPPER"), (_request, response) => {
       response.status(200).json({ ok: true });

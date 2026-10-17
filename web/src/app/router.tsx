@@ -22,6 +22,8 @@ import { CarrierDashboard } from "@/features/workspace/carrier/CarrierDashboard"
 import { CarrierTripDetail } from "@/features/workspace/carrier/CarrierTripDetail";
 import { CreateShipmentPage } from "@/features/workspace/CreateShipmentPage";
 import { DriverHome } from "@/features/workspace/driver/DriverHome";
+import { DriverTripDetail } from "@/features/workspace/driver/DriverTripDetail";
+import { DriverTrips } from "@/features/workspace/driver/DriverTrips";
 import { ShipperDashboard } from "@/features/workspace/shipper/ShipperDashboard";
 import { ShipperShipmentDetail } from "@/features/workspace/shipper/ShipperShipmentDetail";
 import { ShipperShipments } from "@/features/workspace/shipper/ShipperShipments";
@@ -63,7 +65,11 @@ export const router = createBrowserRouter([
     children: [
       {
         element: <WorkspaceLayout />,
-        children: [{ path: "/driver", element: <DriverHome /> }],
+        children: [
+          { path: "/driver", element: <DriverHome /> },
+          { path: "/driver/chuyen", element: <DriverTrips /> },
+          { path: "/driver/chuyen/:id", element: <DriverTripDetail /> },
+        ],
       },
     ],
   },

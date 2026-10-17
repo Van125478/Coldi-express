@@ -34,9 +34,10 @@ export function CarrierDashboard() {
     };
   }, [logout]);
 
-  const waiting = claimed.filter((item) => item.vehicleId === null || item.driverId === null);
-  const assigned = claimed.filter((item) => item.vehicleId !== null && item.driverId !== null);
-  const ordered = [...waiting, ...assigned];
+  const waiting = claimed.filter((item) => item.status === "MATCHED" && (item.vehicleId === null || item.driverId === null));
+  const awaitingPickup = claimed.filter((item) => item.status === "MATCHED" && item.vehicleId !== null && item.driverId !== null);
+  const later = claimed.filter((item) => item.status !== "MATCHED");
+  const ordered = [...waiting, ...awaitingPickup, ...later];
 
   return (
     <section className="space-y-6">
@@ -62,7 +63,7 @@ export function CarrierDashboard() {
               { label: "Đơn đang mở", value: available.length, hint: "Có thể nhận. Gọi điện không giữ chỗ." },
               { label: "Đã nhận", value: claimed.length, hint: "Chuyến của nhà xe này." },
               { label: "Chờ phân công", value: waiting.length, hint: "Chưa gán xe và tài xế." },
-              { label: "Chờ lấy hàng", value: assigned.length, hint: "Đã phân công. Chưa xác nhận lấy hàng." },
+              { label: "Chờ lấy hàng", value: awaitingPickup.length, hint: "Đã phân công. Chưa xác nhận lấy hàng." },
             ]}
           />
           {available.length === 0 ? (

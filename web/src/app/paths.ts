@@ -20,6 +20,7 @@ export const paths = {
   carrierFind: "/carrier/tim-chuyen",
   carrierTrips: "/carrier/chuyen-cua-toi",
   driverHome: "/driver",
+  driverTrips: "/driver/chuyen",
   adminHome: "/admin",
 } as const;
 

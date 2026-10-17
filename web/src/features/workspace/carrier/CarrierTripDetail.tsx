@@ -4,7 +4,7 @@ import { assignmentPath, paths } from "@/app/paths";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/features/auth/useAuth";
 import { lostSession } from "@/features/workspace/sessionLoss";
-import { money, primaryLinkClass, shipmentTone, windowText } from "@/features/workspace/format";
+import { money, primaryLinkClass, progressNote, shipmentTone, windowText } from "@/features/workspace/format";
 import { DetailBlock, FactLine, PageHeader, StatusBadge } from "@/features/workspace/ui";
 import type { CarrierShipment } from "@/models/publishedShipment";
 import { ApiError } from "@/services/apiClient";
@@ -119,7 +119,7 @@ export function CarrierTripDetail() {
                   <>
                     <FactLine term="Xe" value={shipment.vehicleLabel ?? "Xe đã phân công"} />
                     <FactLine term="Tài xế" value={shipment.driverName ?? "Tài xế đã phân công"} />
-                    <p className="text-sm text-muted">Chưa xác nhận lấy hàng. Chưa đổi phân công.</p>
+                    <p className="text-sm text-muted">{progressNote(shipment.status)}</p>
                   </>
                 ) : null}
                 {notice ? (

@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { paths } from "@/app/paths";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { money, shipmentTone, windowText } from "@/features/workspace/format";
+import { money, progressNote, shipmentTone, windowText } from "@/features/workspace/format";
 import { EmptyPanel, PageHeader, StatusBadge } from "@/features/workspace/ui";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import type { CarrierDriver, CarrierShipment, CarrierVehicle } from "@/models/publishedShipment";
@@ -155,7 +155,7 @@ export function ClaimedShipments() {
                   <div className="grid gap-3 border-t border-line bg-canvas px-5 py-4 text-sm text-ink sm:grid-cols-2">
                     <p>Xe: {shipment.vehicleLabel ?? "Xe đã phân công"}</p>
                     <p>Tài xế: {shipment.driverName ?? "Tài xế đã phân công"}</p>
-                    <p className="sm:col-span-2 text-muted">Chưa xác nhận lấy hàng. Chưa đổi phân công.</p>
+                    <p className="sm:col-span-2 text-muted">{progressNote(shipment.status)}</p>
                   </div>
                 ) : (
                   <form

@@ -1,0 +1,146 @@
+import { Router } from "express";
+import { isValidObjectId } from "mongoose";
+import { HttpError } from "../middlewares/errorHandler.js";
+import { requireAuth } from "../middlewares/requireAuth.js";
+import { requireTrustedOrigin } from "../middlewares/requireOrigin.js";
+import { requireRole } from "../middlewares/requireRole.js";
+import { Shipment } from "../models/shipment.js";
+import { toCarrierShipmentViews } from "../shipments/assignmentView.js";
+import type { CarrierShipmentDto, ShipmentRecord } from "../shipments/shipmentDto.js";
+
+const forbiddenFields = ["driverId", "carrierId", "status", "shipperId", "vehicleId", "role"] as const;
+const visibleStatuses = ["MATCHED", "IN_TRANSIT", "DELIVERY_CONFIRMED"] as const;
+
+export type DriverShipmentDto = CarrierShipmentDto & {
+  nextAction: "pickup" | "delivery" | "none";
+};
+
+export const driverShipmentRouter = Router();
+
+driverShipmentRouter.use(requireAuth, requireRole("DRIVER"));
+
+driverShipmentRouter.get("/", async (request, response, next) => {
+  try {
+    const driverId = request.authUser?.id;
+    if (!driverId) throw new HttpError(401, "unauthenticated", "Cần đăng nhập để tiếp tục.");
+    const shipments = await Shipment.find(assignedFilter(driverId)).sort({ createdAt: 1, _id: 1 });
+    response.status(200).json({ shipments: await present(shipments) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+driverShipmentRouter.get("/:id", async (request, response, next) => {
+  try {
+    const driverId = request.authUser?.id;
+    if (!driverId) throw new HttpError(401, "unauthenticated", "Cần đăng nhập để tiếp tục.");
+    const shipment = await findAssigned(driverId, routeId(request.params.id));
+    const [view] = await present([shipment]);
+    response.status(200).json({ shipment: view });
+  } catch (error) {
+    next(error);
+  }
+});
+
+driverShipmentRouter.post("/:id/pickup", requireTrustedOrigin, async (request, response, next) => {
+  try {
+    rejectForbiddenBody(request.body);
+    const driverId = request.authUser?.id;
+    if (!driverId) throw new HttpError(401, "unauthenticated", "Cần đăng nhập để tiếp tục.");
+    const id = routeId(request.params.id);
+    const confirmedAt = new Date();
+    const updated = await Shipment.findOneAndUpdate(
+      {
+        _id: id,
+        driverId,
+        vehicleId: { $ne: null },
+        status: "MATCHED",
+        $or: [{ pickupConfirmedAt: { $exists: false } }, { pickupConfirmedAt: null }],
+      },
+      { $set: { status: "IN_TRANSIT", pickupConfirmedAt: confirmedAt, pickupConfirmedBy: driverId } },
+      { returnDocument: "after" },
+    );
+    const shipment = updated ?? (await currentForDriver(driverId, id));
+    if (!shipment.pickupConfirmedAt) {
+      throw new HttpError(409, "conflict", "Chuyến chưa sẵn sàng để xác nhận lấy hàng.");
+    }
+    const [view] = await present([shipment]);
+    response.status(200).json({ shipment: view });
+  } catch (error) {
+    next(error);
+  }
+});
+
+driverShipmentRouter.post("/:id/delivery", requireTrustedOrigin, async (request, response, next) => {
+  try {
+    rejectForbiddenBody(request.body);
+    const driverId = request.authUser?.id;
+    if (!driverId) throw new HttpError(401, "unauthenticated", "Cần đăng nhập để tiếp tục.");
+    const id = routeId(request.params.id);
+    const confirmedAt = new Date();
+    const updated = await Shipment.findOneAndUpdate(
+      {
+        _id: id,
+        driverId,
+        status: "IN_TRANSIT",
+        pickupConfirmedAt: { $ne: null },
+        $or: [{ deliveryConfirmedAt: { $exists: false } }, { deliveryConfirmedAt: null }],
+      },
+      { $set: { status: "DELIVERY_CONFIRMED", deliveryConfirmedAt: confirmedAt, deliveryConfirmedBy: driverId } },
+      { returnDocument: "after" },
+    );
+    const shipment = updated ?? (await currentForDriver(driverId, id));
+    if (shipment.status === "MATCHED" || shipment.pickupConfirmedAt == null) {
+      throw new HttpError(409, "conflict", "Chưa xác nhận lấy hàng.");
+    }
+    if (shipment.status !== "DELIVERY_CONFIRMED" || shipment.deliveryConfirmedAt == null) {
+      throw new HttpError(409, "conflict", "Chuyến chưa sẵn sàng để xác nhận giao hàng.");
+    }
+    const [view] = await present([shipment]);
+    response.status(200).json({ shipment: view });
+  } catch (error) {
+    next(error);
+  }
+});
+
+function routeId(value: string | string[] | undefined): string {
+  const id = Array.isArray(value) ? value[0] : value;
+  if (!id || !isValidObjectId(id)) throw new HttpError(404, "not_found", "Không tìm thấy chuyến này.");
+  return id;
+}
+
+function assignedFilter(driverId: string) {
+  return {
+    driverId,
+    vehicleId: { $ne: null },
+    status: { $in: visibleStatuses },
+  };
+}
+
+async function findAssigned(driverId: string, id: string) {
+  const shipment = await Shipment.findOne({ _id: id, ...assignedFilter(driverId) });
+  if (!shipment) throw new HttpError(404, "not_found", "Không tìm thấy chuyến này.");
+  return shipment;
+}
+
+async function currentForDriver(driverId: string, id: string) {
+  const shipment = await Shipment.findById(id);
+  if (!shipment || shipment.driverId?.toString() !== driverId) {
+    throw new HttpError(404, "not_found", "Không tìm thấy chuyến này.");
+  }
+  return shipment;
+}
+
+function rejectForbiddenBody(body: unknown) {
+  if (typeof body !== "object" || body === null) return;
+  const present = forbiddenFields.filter((field) => field in (body as Record<string, unknown>));
+  if (present.length > 0) throw new HttpError(400, "invalid_request", "Yêu cầu chứa trường không được phép.");
+}
+
+async function present(shipments: readonly ShipmentRecord[]): Promise<DriverShipmentDto[]> {
+  const views = await toCarrierShipmentViews(shipments);
+  return views.map((view) => ({
+    ...view,
+    nextAction: view.status === "MATCHED" ? "pickup" : view.status === "IN_TRANSIT" ? "delivery" : "none",
+  }));
+}

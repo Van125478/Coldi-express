@@ -18,7 +18,15 @@ export function shipmentTone(status: string, vehicleId: string | null, driverId:
   if (status === "PUBLISHED") return "open";
   if (status === "MATCHED" && (vehicleId === null || driverId === null)) return "waiting";
   if (status === "MATCHED") return "assigned";
+  if (status === "IN_TRANSIT") return "open";
+  if (status === "DELIVERY_CONFIRMED") return "assigned";
   return "neutral";
+}
+
+export function progressNote(status: string): string {
+  if (status === "IN_TRANSIT") return "Đã xác nhận lấy hàng. Đang vận chuyển. Chưa xác nhận giao hàng và chưa phải thanh toán.";
+  if (status === "DELIVERY_CONFIRMED") return "Đã xác nhận giao hàng. Giao xong chưa phải đã thanh toán.";
+  return "Chưa xác nhận lấy hàng. Chưa đổi phân công.";
 }
 
 export const primaryLinkClass =

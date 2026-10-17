@@ -30,6 +30,8 @@ type ShipmentSchedule = {
   driverId: string | null;
   vehicleLabel: string | null;
   driverName: string | null;
+  pickupConfirmedAt: string | null;
+  deliveryConfirmedAt: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -53,6 +55,10 @@ export type CarrierDriver = {
 
 export type CarrierShipment = ShipmentSchedule & {
   id: string;
+};
+
+export type DriverShipment = CarrierShipment & {
+  nextAction: "pickup" | "delivery" | "none";
 };
 
 export type PublishShipmentInput = {
