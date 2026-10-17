@@ -66,25 +66,21 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-svh bg-canvas lg:grid lg:grid-cols-[minmax(20rem,0.86fr)_minmax(24rem,1.14fr)]">
+    <div className="min-h-svh bg-white lg:grid lg:grid-cols-[minmax(22rem,0.92fr)_minmax(24rem,1.08fr)]">
       <aside className="relative hidden overflow-hidden bg-navy-deep text-white lg:flex lg:min-h-svh lg:flex-col lg:justify-between lg:px-12 lg:py-10">
-        <img src={roadStill} alt="" className="absolute inset-0 h-full w-full object-cover opacity-50" />
-        <div className="absolute inset-0 bg-gradient-to-b from-navy-deep/80 via-navy-deep/78 to-navy-deep" />
+        <img src={roadStill} alt="" className="absolute inset-0 h-full w-full object-cover object-[62%_center]" />
+        <div className="absolute inset-0 bg-gradient-to-r from-navy-deep/78 via-navy-deep/42 to-navy-deep/18" />
         <div className="relative z-10 flex min-h-0 flex-1 flex-col justify-between">
           <Logo tone="inverse" />
           <div className="max-w-md">
-            <p className="text-xs font-semibold tracking-[0.16em] text-white/70">VẬN TẢI LẠNH</p>
-            <h2 className="mt-4 text-4xl leading-tight font-extrabold">Kết nối chủ hàng và nhà xe</h2>
-            <ol className="mt-8 space-y-4 text-sm leading-relaxed text-white/80">
-              <li>01 · Chủ hàng niêm yết đơn. Đơn mới ở trạng thái Đang tìm xe.</li>
-              <li>02 · Nhà xe tự nhận chuyến. Gọi điện không giữ chỗ.</li>
-              <li>03 · Sau khi nhận, nhà xe phân công xe và tài xế.</li>
-            </ol>
+            <p className="text-[11px] font-semibold tracking-[0.22em] text-white/80">VẬN TẢI LẠNH B2B</p>
+            <h2 className="mt-4 text-4xl leading-[1.08] font-extrabold tracking-tight text-balance xl:text-5xl">Rõ từng hành trình lạnh.</h2>
+            <p className="mt-5 max-w-sm text-base leading-relaxed text-white/85">Một cổng vào cho chủ hàng, nhà xe, tài xế và quản trị.</p>
           </div>
-          <p className="text-sm text-white/60">© 2026 COLDI</p>
+          <p className="text-sm text-white/75">© 2026 COLDI</p>
         </div>
       </aside>
-      <section className="hero-dots flex min-h-svh flex-col">
+      <section className="flex min-h-svh flex-col bg-white">
         <header className="flex items-center justify-between gap-4 px-5 py-5 sm:px-10 lg:justify-end">
           <div className="lg:hidden">
             <Logo />
@@ -99,8 +95,8 @@ export function LoginPage() {
               <SignedIn user={snapshot.user} onLogout={() => void logout()} />
             ) : (
               <>
-                <h1 className="text-3xl font-extrabold tracking-tight text-ink">Chào mừng trở lại</h1>
-                <p className="mt-2 text-base leading-relaxed text-muted">Đăng nhập để vào khu làm việc của tài khoản đã cấp.</p>
+                <h1 className="text-4xl font-extrabold tracking-tight text-ink">Đăng nhập</h1>
+                <p className="mt-3 text-base leading-relaxed text-muted">Dùng tài khoản đã được cấp. Trang này không chọn vai trò thay bạn.</p>
                 {context ? (
                   <div className="mt-6 rounded-2xl border border-line bg-surface px-4 py-3 text-sm leading-relaxed">
                     <p className="font-semibold text-ink">{context.title}</p>
@@ -147,7 +143,7 @@ export function LoginPage() {
                       </Button>
                     </div>
                   </div>
-                  <Button type="submit" size="lg" disabled={pending || snapshot.status === "loading"} aria-busy={pending}>
+                  <Button type="submit" size="lg" className="w-full" disabled={pending || snapshot.status === "loading"} aria-busy={pending}>
                     {pending ? <LoaderCircle className="size-4 animate-spin" aria-hidden="true" /> : null}
                     {pending ? "Đang đăng nhập" : "Đăng nhập"}
                   </Button>
