@@ -2,6 +2,6 @@ import { CinematicLanding } from "@/features/guest/cinematic/CinematicLanding";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
 export function LandingPage() {
-  usePageTitle("Coldi Freight");
+  usePageTitle("COLDI");
   return <CinematicLanding />;
 }

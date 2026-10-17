@@ -4,7 +4,7 @@ const steps = [
   "Chuẩn bị hàng lạnh tại kho",
   "Xe lạnh đi theo tuyến",
   "Hàng đến điểm giao",
-  "Coldi kết nối chủ hàng và nhà xe",
+  "COLDI kết nối chủ hàng và nhà xe",
 ] as const;
 
 type ColdChainSceneProps = {
@@ -19,7 +19,7 @@ export function ColdChainScene({ tone = "light", className }: ColdChainSceneProp
     <figure className={cn("min-w-0", className)}>
       <div
         role="img"
-        aria-label="Minh họa chuỗi lạnh: hàng được chuẩn bị tại kho lạnh, xe lạnh đi theo tuyến, đến điểm giao, rồi Coldi kết nối chủ hàng với nhà xe. Đây không phải hành trình GPS thật."
+        aria-label="Minh họa chuỗi lạnh: hàng được chuẩn bị tại kho lạnh, xe lạnh đi theo tuyến, đến điểm giao, rồi COLDI kết nối chủ hàng với nhà xe. Đây không phải hành trình GPS thật."
         className={cn("overflow-hidden rounded-2xl", inverse ? "bg-white/10" : "bg-[#f8fafc]")}
       >
         <svg viewBox="0 0 640 228" className={cn("h-auto w-full font-sans", inverse ? "text-white" : "text-navy")} aria-hidden="true">

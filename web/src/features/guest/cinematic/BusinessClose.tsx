@@ -2,6 +2,8 @@ import { Link } from "react-router-dom";
 import { authPath, paths } from "@/app/paths";
 import { Button } from "@/components/ui/button";
 
+/** Kept for a later section. Not mounted while the bridge and the two audiences are on the page. */
+
 const columns = [
   {
     title: "Chủ hàng",
@@ -19,20 +21,25 @@ const columns = [
     title: "Nhìn thấy chuyến",
     body: "Khi đã có quyền trên chuyến, vị trí GPS giúp theo dõi. Lấy hàng và giao hàng là thao tác của tài xế được giao. GPS không tự xác nhận hai mốc đó.",
     to: paths.about,
-    label: "Cách Coldi vận hành",
+    label: "Cách COLDI vận hành",
   },
 ] as const;
 
 export function BusinessClose() {
   return (
-    <section className="bg-[#f8fafc] text-[#1e293b]" aria-labelledby="business-title">
+    <section
+      id="sau-hanh-trinh"
+      tabIndex={-1}
+      className="scroll-mt-20 bg-[#f8fafc] text-[#1e293b] outline-none"
+      aria-labelledby="business-title"
+    >
       <div className="mx-auto max-w-6xl px-5 py-20 sm:px-8 sm:py-28">
         <p className="text-xs font-bold tracking-[0.2em] text-[#1e3a8a] uppercase">Năng lực đã chốt</p>
         <h2 id="business-title" className="mt-3 max-w-3xl text-4xl leading-tight font-extrabold tracking-tight sm:text-6xl">
           Minh bạch trên đơn, không tự điều xe.
         </h2>
         <p className="mt-5 max-w-2xl text-lg leading-relaxed text-[#475569]">
-          Coldi nối chủ hàng và nhà xe cho vận tải lạnh đường bộ. Không tự ghép đơn, không tự điều phối, không tự gán xe.
+          COLDI nối chủ hàng và nhà xe cho vận tải lạnh đường bộ. Không tự ghép đơn, không tự điều phối, không tự gán xe.
         </p>
         <div className="mt-12 grid gap-6 lg:grid-cols-3">
           {columns.map((column) => (

@@ -17,6 +17,22 @@
   --color-warning-line: #fde68a;
   --color-danger: #dc2626;
   --color-muted: #475569;
+  --color-background: #f8fafc;
+  --color-foreground: #1e293b;
+  --color-card: #ffffff;
+  --color-card-foreground: #1e293b;
+  --color-primary: #1e3a8a;
+  --color-primary-foreground: #ffffff;
+  --color-primary-deep: #172554;
+  --color-secondary: #f8fafc;
+  --color-secondary-foreground: #1e293b;
+  --color-destructive: #dc2626;
+  --color-destructive-foreground: #ffffff;
+  --color-border: #e2e8f0;
+  --color-input: #e2e8f0;
+  --color-ring: #1e3a8a;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #1e293b;
 }
 
 @layer base {
@@ -340,4 +356,33 @@
 
 .site-header-cinematic :focus-visible {
   outline-color: #fff;
+}
+
+#hanh-trinh :focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 4px;
+}
+
+#hanh-trinh a {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow;
+}
+
+.guest-frame {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 96rem;
+  margin-inline: auto;
+  padding-inline: 1.25rem;
+}
+
+@media (min-width: 640px) {
+  .guest-frame {
+    padding-inline: 2rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .guest-frame {
+    padding-inline: 2.5rem;
+  }
 }

@@ -5,22 +5,26 @@ import logo from "../../../../Asset/logo coldi 5.png";
 
 type LogoProps = {
   tone?: "default" | "inverse";
+  /** Recolor the original blue mark to white. Use only on a dark surface. */
+  mark?: "brand" | "light";
+  to?: string;
 };
 
 /** Opaque ink inside the square asset. Padding stays transparent; it is not part of the mark. */
-const ink = { x: 43, y: 226, width: 924, height: 554 };
+const ink = { x: 43, y: 226, width: 925, height: 555 };
 const inkHeight = "1.75rem";
+const pad = "4px";
 
-export function Logo({ tone = "default" }: LogoProps) {
+export function Logo({ tone = "default", mark = "brand", to = paths.home }: LogoProps) {
   const inverse = tone === "inverse";
 
   return (
-    <Link to={paths.home} className="inline-flex min-h-11 min-w-0 items-center gap-2.5 rounded-lg">
+    <Link to={to} className="inline-flex min-h-11 min-w-0 items-center gap-2.5 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-navy">
       <span
-        className="relative inline-block shrink-0 overflow-hidden rounded-md bg-white"
+        className="relative inline-block shrink-0 overflow-hidden"
         style={{
-          width: `calc(${inkHeight} * ${ink.width} / ${ink.height} + 6px)`,
-          height: `calc(${inkHeight} + 6px)`,
+          width: `calc(${inkHeight} * ${ink.width} / ${ink.height} + ${pad} * 2)`,
+          height: `calc(${inkHeight} + ${pad} * 2)`,
         }}
       >
         <img
@@ -28,12 +32,12 @@ export function Logo({ tone = "default" }: LogoProps) {
           alt=""
           width={1000}
           height={1000}
-          className="absolute max-w-none"
+          className={cn("absolute max-w-none", mark === "light" && "brightness-0 invert")}
           style={{
             width: `calc(${inkHeight} * 1000 / ${ink.height})`,
             height: `calc(${inkHeight} * 1000 / ${ink.height})`,
-            left: `calc(3px - ${inkHeight} * ${ink.x} / ${ink.height})`,
-            top: `calc(3px - ${inkHeight} * ${ink.y} / ${ink.height})`,
+            left: `calc(${pad} - ${inkHeight} * ${ink.x} / ${ink.height})`,
+            top: `calc(${pad} - ${inkHeight} * ${ink.y} / ${ink.height})`,
           }}
         />
       </span>

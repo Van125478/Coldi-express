@@ -26,7 +26,7 @@ export function AuthLayout() {
       <main id="noi-dung" className="flex flex-1 items-start justify-center px-4 py-10 sm:px-6 sm:py-16">
         <Outlet />
       </main>
-      <footer className="px-4 py-6 text-center text-sm text-muted">© 2026 Coldi Freight</footer>
+      <footer className="px-4 py-6 text-center text-sm text-muted">© 2026 COLDI</footer>
     </div>
   );
 }

@@ -1,0 +1,37 @@
+{
+  "name": "coldi-server",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "lint": "oxlint src tests",
+    "test": "tsx --test --test-concurrency=1 tests/health.test.ts tests/auth.test.ts tests/shipment.test.ts tests/claim.test.ts tests/assignment.test.ts tests/driver.test.ts tests/timeline.test.ts tests/gps.test.ts tests/chat.test.ts tests/fleet.test.ts tests/security.test.ts tests/marketplace.test.ts tests/marketplaceForm.test.ts tests/mapboxMap.test.ts tests/driverAccount.test.ts tests/driverAccountForm.test.ts tests/carrierNavigation.test.ts tests/shipperGroups.test.ts tests/driverLanes.test.ts tests/guestHeaderAccount.test.ts tests/integration.test.ts",
+    "seed:demo": "tsx src/scripts/seedDemoUsers.ts",
+    "seed:fleet": "tsx src/scripts/seedDemoFleet.ts"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.8",
+    "express": "^5.3.0",
+    "helmet": "^8.3.0",
+    "jose": "^6.2.12",
+    "mongoose": "^9.11.2"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.6.5",
+    "oxlint": "^1.88.0",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}

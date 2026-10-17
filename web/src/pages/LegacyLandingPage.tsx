@@ -4,7 +4,7 @@ import { ProofStrip } from "@/components/guest/ProofStrip";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
 export function LegacyLandingPage() {
-  usePageTitle("Coldi Freight");
+  usePageTitle("COLDI");
 
   return (
     <>

@@ -1,17 +1,1 @@
-import type { InputHTMLAttributes } from "react";
-import { cn } from "@/lib/utils";
-
-function Input({ className, type = "text", ...props }: InputHTMLAttributes<HTMLInputElement>) {
-  return (
-    <input
-      type={type}
-      className={cn(
-        "flex h-12 w-full rounded-xl border border-line bg-surface px-3 text-base text-ink placeholder:text-muted disabled:cursor-not-allowed disabled:opacity-50",
-        className,
-      )}
-      {...props}
-    />
-  );
-}
-
-export { Input };
+export { Input } from "@/shared/components/ui/input";

@@ -1,5 +1,3 @@
-import { paths } from "@/app/paths";
-
 export const designPresentationNote =
   "Các chỉ số, điểm đánh giá và dòng cam kết trên trang chủ lấy từ bản thiết kế Guest. Chúng chưa phải số liệu vận hành đã kiểm chứng hay chính sách đã phê duyệt.";
 
@@ -17,7 +15,7 @@ export const heroCopy = {
 };
 
 export const trustItems = [
-  { id: "shield", label: "Cam kết Coldi Shield", icon: "shield" },
+  { id: "shield", label: "Cam kết COLDI Shield", icon: "shield" },
   { id: "contract", label: "Hợp đồng điện tử ký số", icon: "file" },
   { id: "rate", label: "Cước phí minh bạch", icon: "receipt" },
 ] as const;
@@ -55,74 +53,75 @@ export const proofPoints = [
 
 export const platformNames = ["Windows", "macOS", "Android", "iOS"] as const;
 
-export const aboutFacts = [
-  {
-    term: "Sản phẩm",
-    detail:
-      "Coldi là nền tảng logistics lạnh B2B. Bản giao diện này là website đáp ứng, dùng chung định hướng một tài khoản với ứng dụng di động khi ứng dụng đó được phát hành.",
-  },
-  {
-    term: "Khách",
-    detail:
-      "Người chưa đăng nhập chỉ xem thông tin công khai. Khách không phải vai trò nghiệp vụ và không có quyền Chủ hàng, Nhà xe, Tài xế hay Quản trị.",
-  },
-  {
-    term: "Bốn vai trò",
-    detail:
-      "Chủ hàng đăng đơn. Nhà xe xem sàn và tự nhận chuyến, rồi tự gán xe và tài xế. Tài xế chỉ xử lý chuyến được giao. Quản trị là vận hành nội bộ Coldi.",
-  },
-  {
-    term: "Phạm vi pilot",
-    detail:
-      "Tiền Giang và Long An tới TP. Hồ Chí Minh, Bình Dương và Đồng Nai. Nhóm hàng ưu tiên là rau quả tươi hoặc lạnh và thủy sản đông lạnh.",
-  },
-  {
-    term: "Cách nhận chuyến",
-    detail:
-      "Không tự động ghép đơn, điều phối hay gán xe. Nhà xe bấm nhận chuyến; máy chủ phải khóa đơn để chỉ một nhà xe thành công. Gọi điện hoặc chat không giữ chỗ.",
-  },
-  {
-    term: "Lấy hàng và giao hàng",
-    detail:
-      "Sau khi được gán, chuyến chờ lấy hàng. Tài xế được giao xác nhận lấy hàng trước khi chuyến chuyển sang đang vận chuyển, và xác nhận giao hàng khi hoàn thành. GPS chỉ theo dõi vị trí.",
-  },
-  {
-    term: "Tài chính",
-    detail:
-      "Phí nền tảng, công nợ, hạn mức, ký quỹ và tạm ứng cước chưa được phê duyệt. Trang này không trình bày các hạng mục đó như quy định đang áp dụng.",
-  },
-] as const;
+export const aboutStory = {
+  eyebrow: "Về COLDI",
+  title: "Nối hàng lạnh với xe lạnh.",
+  lede: "COLDI là nền tảng vận tải lạnh cho doanh nghiệp. Chủ hàng đăng nhu cầu. Nhà xe tự tìm chuyến và tự nhận.",
+  problemTitle: "Hàng lạnh cần đúng xe, đúng lúc.",
+  problem:
+    "Chủ hàng có hàng cần giữ lạnh. Nhà xe có xe lạnh nhưng không phải lúc nào cũng thấy được nhu cầu phù hợp. Việc kết nối thường nằm ngoài một nơi chung.",
+  approachTitle: "Một nơi để đăng đơn, tìm chuyến và phối hợp vận chuyển.",
+  approach:
+    "Chủ hàng mô tả hàng, điểm lấy, điểm giao và nhóm nhiệt. Nhà xe đã đăng nhập xem các đơn đang mở, tự nhận chuyến, rồi giao xe và tài xế. Hành trình được ghi lại theo những gì đã xảy ra.",
+  audiences: [
+    { label: "Chủ hàng", body: "Doanh nghiệp có hàng cần vận chuyển lạnh." },
+    { label: "Nhà xe", body: "Đơn vị có xe lạnh, tự chọn chuyến phù hợp." },
+    { label: "Tài xế", body: "Làm việc trên chuyến mà nhà xe đã giao. Tài khoản do nhà xe cấp." },
+  ],
+  pilotTitle: "Phạm vi ưu tiên của giai đoạn đầu",
+  pilotNote: "Đây là phạm vi pilot dự kiến, chưa phải mạng lưới đang khai thác.",
+  origins: ["Tiền Giang", "Long An"],
+  hubs: ["TP. Hồ Chí Minh", "Bình Dương", "Đồng Nai"],
+  cargo: [
+    { label: "Lạnh mát", body: "Trái cây và nông sản tươi." },
+    { label: "Đông", body: "Thủy hải sản." },
+  ],
+  cargoNote: "COLDI còn ghi nhận nhóm Cực lạnh. Ưu tiên ban đầu là Lạnh mát và Đông.",
+  qualification: "Phí nền tảng và thanh toán chưa thuộc phần đang vận hành.",
+} as const;
 
 export const solutions = {
   "chu-hang": {
-    title: "Dành cho chủ hàng",
-    lede: "Chủ hàng tạo và niêm yết đơn vận tải lạnh, rồi theo dõi chuyến theo quyền của mình.",
-    points: [
-      "Đăng đơn với hàng hóa, điểm lấy, điểm giao, nhóm nhiệt độ, yêu cầu xe và giá cước niêm yết.",
-      "Đơn đã đăng ở trạng thái đang tìm xe trên sàn công khai.",
-      "Trao đổi với nhà xe theo đơn không tạo lượt nhận chuyến và không giữ chỗ.",
-      "Xem mốc chuyến và vị trí GPS khi đã có quyền trên chuyến đó.",
+    pageTitle: "Dành cho chủ hàng",
+    eyebrow: "Giải pháp · Chủ hàng",
+    title: "Chủ động gửi hàng lạnh, theo dõi hành trình rõ ràng.",
+    lede: "Đăng nhu cầu vận chuyển với hàng hóa, điểm lấy, điểm giao và nhóm nhiệt. Nhà xe xem đơn và tự nhận chuyến. Bạn theo dõi trạng thái, mốc đã ghi và vị trí xe khi chuyến cho phép.",
+    benefitsTitle: "Chủ hàng làm được những việc này",
+    benefits: [
+      { title: "Mô tả đúng nhu cầu", body: "Hàng hóa, điểm lấy, điểm giao, nhóm nhiệt và yêu cầu xe nằm trên cùng một đơn." },
+      { title: "Để nhà xe tìm thấy đơn", body: "Đơn đã đăng xuất hiện để nhà xe đã đăng nhập xem và tự nhận." },
+      { title: "Theo dõi tiến độ vận chuyển", body: "Trạng thái và các mốc đã ghi đi cùng đơn. Vị trí xe hiện khi chuyến đã cho phép xem." },
     ],
-    limit:
-      "Tạo đơn chưa mở trên website này. Biểu mẫu và API đăng đơn chưa được nối, nên khách không thể niêm yết chuyến.",
-    actionLabel: "Đăng đơn cần đăng nhập",
-    action: "publish" as const,
-    actionNext: paths.publish,
+    journeyTitle: "Từ đơn nháp đến chuyến đang chạy",
+    journey: [
+      { title: "Tạo đơn", body: "Chủ hàng đăng nhu cầu vận chuyển." },
+      { title: "Nhà xe nhận chuyến", body: "Nhà xe tự xem và tự nhận. COLDI không tự ghép xe." },
+      { title: "Vận chuyển và theo dõi", body: "Chuyến đi tiếp theo phân công và các mốc đã được ghi." },
+    ],
+    cta: "Đăng nhập để đăng đơn",
+    action: "publish",
   },
   "nha-xe": {
-    title: "Dành cho nhà xe",
-    lede: "Nhà xe tự xem đơn đang tìm xe, tự bấm nhận chuyến, rồi tự chọn xe và tài xế.",
-    points: [
-      "Xem lộ trình, quy cách hàng, nhóm nhiệt độ và giá niêm yết của đơn đang tìm xe.",
-      "Bấm nhận chuyến. Chỉ một nhà xe thành công sau khi máy chủ xác nhận.",
-      "Sau khi nhận, nhà xe tự gán xe và tài xế. Chuyến khi đó đang chờ lấy hàng.",
-      "Tài xế trực thuộc không tự mở sàn và không tự nhận chuyến.",
+    pageTitle: "Dành cho nhà xe",
+    eyebrow: "Giải pháp · Nhà xe",
+    title: "Tìm chuyến hàng lạnh phù hợp với đội xe của bạn.",
+    lede: "Sau khi đăng nhập, nhà xe xem các đơn đang tìm xe, lọc theo nhu cầu, rồi tự nhận chuyến. Xe và tài xế được giao sau khi đã nhận.",
+    benefitsTitle: "Nhà xe làm được những việc này",
+    benefits: [
+      { title: "Xem đơn đang mở", body: "Đăng nhập để khám phá các chuyến hàng đang được niêm yết." },
+      { title: "Lọc theo nhu cầu thật", body: "Hàng, tuyến, nhóm nhiệt, xe yêu cầu, lịch lấy và giá niêm yết đều có trên đơn." },
+      { title: "Tự nhận, rồi phân công", body: "Nhà xe tự nhận chuyến còn mở, sau đó chọn xe và tài xế của mình." },
     ],
-    limit:
-      "Nút nhận chuyến trên trang khách không gửi yêu cầu. Việc nhận chuyến phải do máy chủ kiểm tra khi tài khoản Nhà xe và API đã sẵn sàng.",
-    actionLabel: "Nhận chuyến cần đăng nhập",
-    action: "claim" as const,
-    actionNext: paths.shipments,
+    journeyTitle: "Từ đơn đang mở đến chuyến của đội xe",
+    journey: [
+      { title: "Tìm chuyến", body: "Xem và lọc các đơn đang tìm xe." },
+      { title: "Nhận chuyến", body: "Nhà xe tự nhận. Không có điều phối tự động." },
+      { title: "Giao xe và tài xế", body: "Chuyến đã nhận được phân công trong đội xe của nhà xe." },
+    ],
+    fleetTitle: "Quản lý đội xe và tài xế",
+    fleet: "Nhà xe quản lý xe lạnh và tài khoản tài xế của mình. Tài xế làm việc trên chuyến đã được giao, không tự mở sàn để nhận chuyến.",
+    cta: "Đăng nhập để vào sàn",
+    action: "claim",
   },
 } as const;
 
@@ -131,18 +130,18 @@ export type SolutionId = keyof typeof solutions;
 export const authMessages = {
   publish: {
     title: "Đăng đơn cần tài khoản Chủ hàng",
-    body: "Khách chưa đăng nhập không thể tạo hoặc niêm yết đơn. Giao thức đăng nhập và API tạo đơn chưa được kết nối, nên biểu mẫu này không gửi dữ liệu và không tạo đơn.",
+    body: "Đăng nhập bằng tài khoản Chủ hàng để niêm yết đơn. Đơn đã đăng ở trạng thái Đang tìm xe.",
   },
   claim: {
     title: "Nhận chuyến cần tài khoản Nhà xe",
-    body: "Chỉ Nhà xe đã đăng nhập mới được nhận chuyến, và máy chủ phải khóa đơn để chỉ một nhà xe thành công. Bản này chưa gọi API nhận chuyến, nên không giữ chỗ và không đổi trạng thái đơn.",
+    body: "Gọi điện hoặc nhắn tin không giữ chỗ. Nhà xe đăng nhập để xem đơn Đang tìm xe và tự nhận chuyến. Nhận chuyến chưa gán xe hoặc tài xế.",
   },
   account: {
-    title: "Chưa có phiên đăng nhập",
-    body: "Khách không xem hồ sơ doanh nghiệp, đội xe, tài xế, chứng từ, chat hay GPS của một chuyến thật.",
+    title: "Vào khu làm việc",
+    body: "Dùng tài khoản đã cấp để vào đúng khu làm việc. Hồ sơ doanh nghiệp và chứng từ chưa mở. Trao đổi và vị trí chỉ có trên chuyến mà tài khoản được xem.",
   },
   general: {
-    title: "Đăng nhập chưa được kết nối",
-    body: "Giao thức xác thực, token và phiên làm việc đang chờ quyết định kỹ thuật. Biểu mẫu không xác thực người dùng và không lưu mật khẩu.",
+    title: "Đăng nhập",
+    body: "Dùng email và mật khẩu của tài khoản đã được cấp.",
   },
 } as const;

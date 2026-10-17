@@ -1,6 +1,8 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { authPath, paths } from "@/app/paths";
+import { useAuth } from "@/features/auth/useAuth";
+import { guestAccountAction } from "@/features/guest/guestHeaderAccount";
 import { cn } from "@/lib/cn";
 import { Icon } from "@/components/ui/Icon";
 import { Logo } from "@/components/ui/Logo";
@@ -12,6 +14,60 @@ const desktopNav = [
   { to: paths.about, label: "Về chúng tôi", end: false },
 ] as const;
 
+const scrollKeys = new Set(["ArrowDown", "ArrowUp", "PageDown", "PageUp", "Home", "End", " "]);
+
+function alignAudienceHeading() {
+  let cancelled = false;
+  let frame = 0;
+  const cancel = () => {
+    cancelled = true;
+  };
+  const onWheel = () => cancel();
+  const onTouch = () => cancel();
+  const onKey = (event: KeyboardEvent) => {
+    if (scrollKeys.has(event.key)) cancel();
+  };
+  window.addEventListener("wheel", onWheel, { passive: true, capture: true });
+  window.addEventListener("touchmove", onTouch, { passive: true, capture: true });
+  window.addEventListener("keydown", onKey, true);
+
+  const align = () => {
+    if (cancelled) return;
+    const target = document.getElementById("audiences-title");
+    if (!target) return;
+    target.scrollIntoView({ block: "start", behavior: "instant" });
+  };
+  const alignOnce = () => {
+    cancelAnimationFrame(frame);
+    frame = requestAnimationFrame(() => {
+      frame = requestAnimationFrame(align);
+    });
+  };
+
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const pinReady = () => reduced || document.querySelector(".pin-spacer") !== null;
+  let observer: MutationObserver | undefined;
+  if (pinReady()) {
+    alignOnce();
+  } else {
+    observer = new MutationObserver(() => {
+      if (!pinReady()) return;
+      observer?.disconnect();
+      alignOnce();
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+  }
+
+  return () => {
+    cancelled = true;
+    observer?.disconnect();
+    cancelAnimationFrame(frame);
+    window.removeEventListener("wheel", onWheel, true);
+    window.removeEventListener("touchmove", onTouch, true);
+    window.removeEventListener("keydown", onKey, true);
+  };
+}
+
 export function SiteHeader() {
   const location = useLocation();
   const locationKey = `${location.pathname}${location.search}`;
@@ -20,6 +76,19 @@ export function SiteHeader() {
   const mobileOpen = openKey === locationKey;
   const menuId = useId();
   const cinematic = location.pathname === paths.home;
+  const { snapshot } = useAuth();
+  const account = guestAccountAction(snapshot.status === "authenticated" ? snapshot.user.role : null);
+  const accountClass = cn(
+    "hidden min-h-11 items-center px-3 text-sm font-semibold min-[1200px]:inline-flex",
+    account.kind === "workspace" ? "rounded-full border" : "",
+    cinematic
+      ? account.kind === "workspace"
+        ? "border-white/40 text-white hover:bg-white/10"
+        : "text-white/80 hover:text-white"
+      : account.kind === "workspace"
+        ? "border-navy text-navy hover:bg-canvas"
+        : "text-[#475569] hover:text-navy",
+  );
 
   useEffect(() => {
     if (!cinematic) return;
@@ -29,17 +98,26 @@ export function SiteHeader() {
     return () => window.removeEventListener("scroll", onScroll);
   }, [cinematic]);
 
+  useEffect(() => {
+    if (location.pathname !== paths.home || location.hash !== "#audiences-title") return;
+    return alignAudienceHeading();
+  }, [location.pathname, location.hash]);
+
   return (
     <header
       data-scrolled={cinematic && (scrolled || mobileOpen) ? "true" : "false"}
       className={cn(
-        "z-50 border-b",
-        cinematic ? "site-header-cinematic fixed inset-x-0 top-0 text-white" : "sticky top-0 border-line bg-surface/95 backdrop-blur",
+        "border-b",
+        cinematic
+          ? "site-header-cinematic fixed inset-x-0 top-0 z-[80] text-white"
+          : "sticky top-0 z-50 border-line bg-surface/95 backdrop-blur",
       )}
     >
-      <div className="mx-auto flex w-full max-w-7xl items-center gap-2 px-4 py-2 sm:px-6 min-[1200px]:gap-3">
-        <Logo tone={cinematic ? "inverse" : "default"} />
-        <nav className="hidden shrink-0 items-center gap-0.5 min-[1200px]:flex" aria-label="Điều hướng chính">
+      <div className="guest-frame flex items-center gap-2 py-2 min-[1200px]:grid min-[1200px]:grid-cols-[1fr_auto_1fr] min-[1200px]:gap-x-2 xl:gap-x-4">
+        <div className="min-[1200px]:min-w-max min-[1200px]:justify-self-start">
+          <Logo tone={cinematic ? "inverse" : "default"} />
+        </div>
+        <nav className="hidden shrink-0 items-center gap-0.5 min-[1200px]:flex min-[1200px]:justify-self-center" aria-label="Điều hướng chính">
           <NavItem to={paths.home} end cinematic={cinematic}>
             Trang chủ
           </NavItem>
@@ -57,29 +135,18 @@ export function SiteHeader() {
             Về chúng tôi
           </NavItem>
         </nav>
-        <div className="ml-auto flex items-center gap-1 sm:gap-2">
+        <div className="ml-auto flex items-center gap-1 sm:gap-2 min-[1200px]:ml-0 min-[1200px]:min-w-max min-[1200px]:justify-self-end">
           <LanguageMenu className="hidden sm:block" cinematic={cinematic} />
-          <Link
-            to={paths.login}
-            className={cn(
-              "hidden min-h-11 items-center rounded-full px-4 text-sm font-semibold sm:inline-flex",
-              cinematic ? "bg-white/10 text-white ring-1 ring-white/15 hover:bg-white/15" : "bg-canvas text-ink ring-1 ring-line hover:bg-white",
-            )}
-          >
-            Đăng nhập
+          <Link to={account.href} className={accountClass}>
+            {account.label}
           </Link>
+          <ExploreSolutions
+            cinematic={cinematic}
+            onNavigate={() => setOpenKey(null)}
+          />
           <Link
-            to={paths.register}
-            className={cn(
-              "inline-flex min-h-11 items-center rounded-full px-4 text-sm font-semibold",
-              cinematic ? "bg-white text-navy hover:bg-white/90" : "bg-navy text-white hover:bg-navy-deep",
-            )}
-          >
-            Đăng ký
-          </Link>
-          <Link
-            to={authPath("account", paths.home)}
-            aria-label="Tài khoản, yêu cầu đăng nhập"
+            to={account.kind === "workspace" ? account.href : authPath("account", paths.home)}
+            aria-label={account.kind === "workspace" ? "Vào khu làm việc" : "Tài khoản, yêu cầu đăng nhập"}
             className={cn(
               "hidden size-11 items-center justify-center rounded-full min-[1200px]:inline-flex",
               cinematic ? "border border-white/20 text-white hover:bg-white/10" : "border border-line text-navy hover:bg-canvas",
@@ -106,7 +173,7 @@ export function SiteHeader() {
         <nav
           id={menuId}
           className={cn(
-            "border-t px-4 py-3 min-[1200px]:hidden",
+            "border-t px-5 py-3 sm:px-8 xl:px-10 min-[1200px]:hidden",
             cinematic ? "site-header-menu border-white/10" : "border-line bg-surface",
           )}
           aria-label="Điều hướng di động"
@@ -145,14 +212,9 @@ export function SiteHeader() {
                 Về chúng tôi
               </MobileLink>
             </li>
-            <li className={cn("mt-2 border-t pt-2 sm:hidden", cinematic ? "border-white/10" : "border-line")}>
-              <MobileLink to={paths.login} cinematic={cinematic}>
-                Đăng nhập
-              </MobileLink>
-            </li>
-            <li>
-              <MobileLink to={authPath("account", paths.home)} cinematic={cinematic}>
-                Tài khoản
+            <li className={cn("mt-2 border-t pt-2 min-[1200px]:hidden", cinematic ? "border-white/10" : "border-line")}>
+              <MobileLink to={account.href} cinematic={cinematic}>
+                {account.label}
               </MobileLink>
             </li>
           </ul>
@@ -219,6 +281,31 @@ function MobileLink({
     >
       {children}
     </NavLink>
+  );
+}
+
+function ExploreSolutions({ cinematic, onNavigate }: { cinematic: boolean; onNavigate: () => void }) {
+  const location = useLocation();
+
+  return (
+    <Link
+      to={{ pathname: paths.home, hash: "#audiences-title" }}
+      className={cn(
+        "inline-flex min-h-11 items-center whitespace-nowrap rounded-full px-3 text-sm font-semibold sm:px-4",
+        cinematic ? "bg-[#1e3a8a] text-white ring-1 ring-white/45 hover:bg-[#172554]" : "bg-navy text-white hover:bg-navy-deep",
+      )}
+      onClick={(event) => {
+        onNavigate();
+        if (location.pathname !== paths.home) return;
+        const target = document.getElementById("audiences-title");
+        if (!target) return;
+        event.preventDefault();
+        target.scrollIntoView({ block: "start", behavior: "instant" });
+        window.history.replaceState(null, "", "#audiences-title");
+      }}
+    >
+      Khám phá giải pháp
+    </Link>
   );
 }
 
