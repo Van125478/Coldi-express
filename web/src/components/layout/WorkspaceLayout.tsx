@@ -1,10 +1,11 @@
 import type { LucideIcon } from "lucide-react";
-import { ClipboardList, Container, LayoutDashboard, PackagePlus, Route, Search, Truck } from "lucide-react";
+import { ClipboardList, Container, LayoutDashboard, PackagePlus, Route, Search, Truck, Users } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 import { paths } from "@/app/paths";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/ui/Logo";
 import { useAuth } from "@/features/auth/useAuth";
+import { logoDestination } from "@/features/workspace/logoDestination";
 import type { BusinessRole } from "@/models/session";
 import { cn } from "@/lib/cn";
 
@@ -22,10 +23,11 @@ const navigation: Record<BusinessRole, readonly { to: string; label: string; ico
     { to: paths.shipperShipments, label: "Đơn của tôi", icon: ClipboardList },
   ],
   CARRIER: [
-    { to: paths.carrierHome, label: "Tổng quan", icon: LayoutDashboard },
+    { to: paths.carrierHome, label: "Sàn chuyến", icon: LayoutDashboard },
     { to: paths.carrierFind, label: "Tìm chuyến", icon: Search },
     { to: paths.carrierTrips, label: "Chuyến của tôi", icon: Route },
     { to: paths.carrierFleet, label: "Đội xe", icon: Container },
+    { to: paths.carrierDrivers, label: "Tài xế", icon: Users },
   ],
   DRIVER: [
     { to: paths.driverHome, label: "Trang chủ", icon: Truck },
@@ -39,6 +41,8 @@ export function WorkspaceLayout() {
   if (snapshot.status !== "authenticated") return null;
   const role = snapshot.user.role;
   const items = navigation[role];
+  const carrier = role === "CARRIER";
+  const home = logoDestination(role);
 
   return (
     <div className="min-h-screen bg-canvas lg:grid lg:grid-cols-[16.5rem_minmax(0,1fr)]">
@@ -48,14 +52,16 @@ export function WorkspaceLayout() {
       >
         Đi tới nội dung
       </a>
-      <aside className="hidden border-r border-line bg-surface lg:flex lg:min-h-screen lg:flex-col">
-        <div className="border-b border-line px-5 py-5">
-          <Logo />
-          <p className="mt-4 text-xs font-semibold tracking-[0.14em] text-navy">{roleLabels[role].toUpperCase()}</p>
+      <aside className={cn("hidden border-r lg:flex lg:min-h-screen lg:flex-col", carrier ? "border-navy-deep bg-navy text-white" : "border-line bg-surface")}>
+        <div className={cn("border-b px-5 py-5", carrier ? "border-white/15" : "border-line")}>
+          <span className={carrier ? "inline-flex rounded-lg bg-white px-2" : undefined}>
+            <Logo to={home} />
+          </span>
+          <p className={cn("mt-4 text-xs font-semibold tracking-[0.14em]", carrier ? "text-white/80" : "text-navy")}>{roleLabels[role].toUpperCase()}</p>
         </div>
         <nav aria-label="Khu làm việc" className="flex flex-1 flex-col gap-1 px-3 py-4">
           {items.map((item) => (
-            <WorkspaceLink key={item.to} to={item.to} label={item.label} icon={item.icon} />
+            <WorkspaceLink key={item.to} to={item.to} label={item.label} icon={item.icon} carrier={carrier} />
           ))}
         </nav>
       </aside>
@@ -63,7 +69,7 @@ export function WorkspaceLayout() {
         <header className="sticky top-0 z-20 border-b border-line bg-surface">
           <div className="flex min-h-16 flex-wrap items-center gap-3 px-4 sm:px-6 lg:px-8">
             <div className="lg:hidden">
-              <Logo />
+              <Logo to={home} />
             </div>
             <nav aria-label="Khu làm việc" className="flex min-w-0 gap-1 overflow-x-auto lg:hidden">
               {items.map((item) => (
@@ -89,16 +95,22 @@ export function WorkspaceLayout() {
   );
 }
 
-function WorkspaceLink({ to, label, icon: Icon, compact = false }: { to: string; label: string; icon: LucideIcon; compact?: boolean }) {
+function WorkspaceLink({ to, label, icon: Icon, compact = false, carrier = false }: { to: string; label: string; icon: LucideIcon; compact?: boolean; carrier?: boolean }) {
   return (
     <NavLink
       to={to}
-      end={to === paths.shipperHome || to === paths.carrierHome || to === paths.driverHome || to === paths.adminHome}
+      end={to === paths.shipperHome || to === paths.carrierHome || to === paths.driverHome || to === paths.adminHome || to === paths.carrierFleet}
       className={({ isActive }) =>
         cn(
           "inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-xl px-3 text-sm font-semibold transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-navy",
           compact ? "shrink-0" : "w-full",
-          isActive ? "bg-navy text-white" : "text-ink hover:bg-canvas",
+          carrier && !compact
+            ? isActive
+              ? "bg-white text-navy"
+              : "text-white hover:bg-white/10"
+            : isActive
+              ? "bg-navy text-white"
+              : "text-ink hover:bg-canvas",
         )
       }
     >
