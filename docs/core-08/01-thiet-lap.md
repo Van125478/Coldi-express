@@ -1,6 +1,6 @@
 # Thiết lập COLDI trên một máy
 
-Người mới làm theo [Team Testing Guide](../team-testing/TEAM_TESTING_GUIDE.md): `git checkout main`, `npm ci` trong `server` và `web`. File này giữ các biến môi trường và cách xử lý máy local của Core 08. Đừng checkout `feature/cinematic-scroll`.
+Người mới làm theo [cài đặt Windows](../team-testing/TEAM_TESTING_GUIDE.md), rồi [cách dùng](../team-testing/USER_GUIDE_BEGINNERS.md). Lỗi thường gặp nằm ở [xử lý sự cố](../team-testing/TROUBLESHOOTING.md). File này giữ biến môi trường và ghi chú máy local của Core 08. Đừng checkout `feature/cinematic-scroll`.
 
 Mỗi người chạy một bản trên máy của mình. Dữ liệu tạo trên máy này không xuất hiện trên máy người khác. Cách dùng chung một máy chủ chưa có. Xem [giới hạn nhiều máy](04-su-co-va-gioi-han.md).
 

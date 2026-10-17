@@ -1,297 +1,442 @@
-# Hướng dẫn kiểm thử COLDI cho nhóm
+# Cài đặt và chạy COLDI trên Windows
 
-Bản này là **WIP / Team Testing**. Không phải bản production và không phải MVP đã hoàn thành.
+Tài liệu này dành cho người chưa quen Git, terminal, Node.js hay MongoDB. Làm lần lượt. Đừng nhảy bước.
 
-Nhánh kiểm thử: `main`.
+Bản này là **WIP / Team Testing**. Không phải production. Không phải MVP đã hoàn thành.
 
-Sau khi clone hoặc `git pull`, chạy:
+Cách dùng sau khi đã mở được website: [USER_GUIDE_BEGINNERS.md](USER_GUIDE_BEGINNERS.md). Khi lệnh hoặc trang báo lỗi: [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
+
+Môi trường viết hướng dẫn: Windows 10/11, PowerShell. Lệnh dưới đây là lệnh PowerShell. Đừng đổi sang lệnh Linux nếu máy bạn là Windows.
+
+## Bản đồ tài liệu
+
+Người mới → cài đặt (file này) → chạy ứng dụng (file này) → đăng nhập (file này) → dùng từng vai ([hướng dẫn sử dụng](USER_GUIDE_BEGINNERS.md)) → kịch bản thử ([cùng file đó](USER_GUIDE_BEGINNERS.md)) → xử lý lỗi ([TROUBLESHOOTING.md](TROUBLESHOOTING.md)).
+
+## 1. Phần mềm cần có
+
+### Bắt buộc
+
+| Phần mềm | Việc nó làm | Cách biết đã có |
+| --- | --- | --- |
+| Git | Tải mã từ GitHub về máy | `git --version` |
+| Node.js `>= 20.19.0` | Chạy API và giao diện. Vite 8 cần `^20.19.0` hoặc `>= 22.12.0` | `node --version` |
+| npm | Cài thư viện. Đi kèm Node.js | `npm --version` |
+| MongoDB nghe `127.0.0.1:27017` | Nơi lưu tài khoản và đơn | Một trong hai cách ở mục 5 |
+| Chrome hoặc Edge | Mở website | Mở trình duyệt được |
+
+`server/package.json` khai báo `"node": ">=20.19.0"`. `web/package.json` không khai báo engines. Vite 8.3 đang dùng trong `web` khai báo `"node": "^20.19.0 || >=22.12.0"`. Một bản Node thỏa cả hai, ví dụ 20.19.0 trở lên trong nhánh 20, hoặc 22.12.0 trở lên.
+
+### Không bắt buộc
+
+| Phần mềm | Khi nào cần |
+| --- | --- |
+| Docker Desktop | Chỉ khi máy chưa có MongoDB và bạn chọn cách B |
+| VS Code hoặc Cursor | Để đọc mã. Không cần để chạy website |
+| Token Mapbox | Chỉ khi muốn thấy bản đồ. Đăng nhập và đăng đơn không cần token |
+
+**Mục đích của bước kiểm tra:** biết máy thiếu gì trước khi clone.
+
+**Thực hiện ở đâu:** PowerShell, thư mục nào cũng được.
 
 ```powershell
-git rev-parse HEAD
+git --version
+node --version
+npm --version
+docker --version
 ```
 
-Ghi đúng SHA đó vào mỗi báo lỗi. Đừng chép SHA từ một báo cáo cũ.
+**Kết quả mong đợi:**
 
-## A. Bản đang thử
+- Git in một dòng bắt đầu bằng `git version`.
+- Node in `v20.19.0` hoặc số mới hơn còn đúng dải ở trên. `v18` là chưa đủ.
+- npm in một số phiên bản. Không cần một số cố định.
+- `docker --version` chỉ chứng minh lệnh Docker có trên máy. Nó không chứng minh Docker Desktop đang chạy. Nếu chưa cài Docker và bạn dùng MongoDB cài sẵn, bỏ qua lỗi “docker không nhận lệnh”.
 
-Logistics đã có mã. Test API đã chạy trên database tách biệt trong lượt chuẩn bị bản này. Kết quả ghi ở [MVP_STATUS_2026-10-18.md](../mvp-review/MVP_STATUS_2026-10-18.md). Web không có bộ test giao diện tự động.
+**Nếu gặp lỗi:** xem [TROUBLESHOOTING.md](TROUBLESHOOTING.md), nhóm Cài đặt.
 
-| Mức | Nghĩa trong bản này |
-| --- | --- |
-| Code complete | Màn hoặc API có trong mã `main` |
-| Automated tested | Có test API trên database `*_test`, không đụng database phát triển |
-| Browser inspected | Đã mở trên trình duyệt, thường không ghi nghiệp vụ |
-| E2E pending | Chưa bấm đủ chuỗi đăng → nhận → phân công → lấy → GPS → giao |
-| Mapbox real rendering pending | Chưa chứng minh tile và marker Mapbox |
-| User visual accepted | Chỉ bố cục trang chủ tài xế đã được chủ dự án chấp nhận. Các màn FE-05A khác chưa được chấp nhận hình ảnh |
+**Dữ liệu:** bốn lệnh này chỉ đọc phiên bản. Không tạo đơn, không đổi mật khẩu.
 
-Chưa xong, hoặc cố ý chưa làm:
+## 2. Tải mã về máy
 
-- E2E logistics chưa được nghiệm thu.
-- Tile và marker Mapbox chưa được chứng minh.
-- FE-05B chưa bắt đầu.
-- Package Management chưa triển khai. Phương án B yêu cầu phần này cho MVP cuối, nhưng bản team testing này chưa có gói, hạn mức hay thanh toán.
-- Đăng ký công khai chưa có. Trang `/dang-ky` không tạo tài khoản.
-- Vai trò WAREHOUSE chưa có.
-- Huy hiệu xác thực doanh nghiệp chưa có.
-- Không tự ghép đơn, không tự điều phối, không tự gán xe.
-- Không có ETA, không có vị trí xe bịa, không có tuyến vẽ.
-- Thanh toán online chưa có và nằm sau MVP.
-- Khu quản trị chỉ là trang báo chưa mở.
-- Sàn nhà xe trống khi không có đơn đang tìm xe.
+**Mục đích:** có một thư mục chứa đúng mã nhóm đang thử.
 
-Đừng đánh dấu PASS cho mục chưa chạy.
+**Điều kiện:** Git đã có. Có mạng tới GitHub.
 
-## B. Máy cần có
-
-| Công cụ | Yêu cầu |
-| --- | --- |
-| Git | Để clone |
-| Node.js | `>= 20.19.0`, cùng mức `server/package.json`. Vite 8 cần `^20.19.0` hoặc `>= 22.12.0` |
-| npm | Đi kèm Node. Bản clone sạch dùng `npm ci` |
-| MongoDB | Nghe `127.0.0.1:27017` |
-| Docker Desktop | Không bắt buộc. Chỉ dùng nếu chưa có MongoDB |
-| Chrome hoặc Edge | Bản mới |
-
-Không có `package.json` ở thư mục gốc. Đừng chạy `npm install` ở gốc.
-
-## C. Clone và cài
-
-PowerShell:
+**Thực hiện ở đâu:** PowerShell. Hãy `cd` vào thư mục bạn muốn chứa dự án, ví dụ `C:\Users\TenBan`. Đừng clone vào trong một bản COLDI đang sửa dở.
 
 ```powershell
 git clone https://github.com/Van125478/Coldi-express.git
 cd Coldi-express
 git checkout main
-git pull
+git pull --ff-only
+git branch --show-current
+git status --short
+git rev-parse HEAD
+```
+
+Mỗi lệnh nghĩa là:
+
+| Lệnh | Nghĩa |
+| --- | --- |
+| `git clone ...` | Tải kho `Van125478/Coldi-express` thành thư mục `Coldi-express` |
+| `cd Coldi-express` | Đi vào thư mục vừa tải. Đây là thư mục gốc của dự án |
+| `git checkout main` | Chọn nhánh `main`. `main` là bản nhóm dùng sau khi chủ dự án merge |
+| `git pull --ff-only` | Kéo commit mới, chỉ khi lịch sử nối thẳng. Nếu lệnh dừng, đừng tự sửa lịch sử; gửi nguyên văn lỗi |
+| `git branch --show-current` | In tên nhánh hiện tại. Phải là `main` |
+| `git status --short` | Bản clone sạch thường không in dòng nào |
+| `git rev-parse HEAD` | In mã commit, gọi là SHA hoặc HEAD. Ghi vào báo lỗi |
+
+HEAD là “commit mà thư mục này đang đứng”. Nó không phải mật khẩu và không phải địa chỉ website.
+
+Nhánh cũ như `feature/cinematic-scroll` không phải điểm bắt đầu của người mới. Đừng checkout nhánh đó để cài bản thử.
+
+**Kết quả mong đợi:** thư mục có `server`, `web`, `docs`. `git branch --show-current` in `main`.
+
+**Cách kiểm tra:**
+
+```powershell
+Test-Path server\package.json
+Test-Path web\package.json
+Test-Path docs\team-testing\TEAM_TESTING_GUIDE.md
+```
+
+Mỗi lệnh in `True`.
+
+**Dữ liệu:** clone không đụng MongoDB.
+
+Nếu pull request của bản tài liệu này chưa được merge, `main` trên GitHub chưa có file hướng dẫn mới. Lúc đó người review dùng đúng nhánh của pull request, không bảo người mới checkout nhánh tích hợp như việc thường ngày. Sau khi merge, người mới chỉ dùng `main`.
+
+## 3. Thư mục trong kho
+
+| Thư mục | Việc của nó |
+| --- | --- |
+| `server\` | API: đăng nhập, đơn, nhận chuyến, đội xe, GPS, chat, nối MongoDB. Test nằm ở `server\tests\` |
+| `web\` | Giao diện React mà trình duyệt mở |
+| `docs\` | Hướng dẫn, quyết định, báo cáo |
+
+Thư mục gốc **không** có `package.json`. `npm ci` ở thư mục gốc sẽ thất bại vì npm không thấy dự án. Phải vào `server` hoặc `web`.
+
+`server\package-lock.json` và `web\package-lock.json` đều có. Vì vậy bản clone sạch dùng `npm ci`, không dùng `npm install` để tự nâng thư viện.
+
+## 4. Cài thư viện
+
+**Mục đích:** tải đúng phiên bản thư viện đã khóa trong lockfile.
+
+**Điều kiện:** đã `cd` vào `Coldi-express`. Node và npm đã đúng phiên bản. Có mạng.
+
+**Thực hiện ở đâu:** PowerShell, lần lượt hai thư mục.
+
+```powershell
 cd server
 npm ci
 cd ..\web
 npm ci
 ```
 
-`npm ci` cài đúng lockfile. Dùng `npm install` chỉ khi cố ý cập nhật phụ thuộc.
+**`npm ci` làm gì:** xóa `node_modules` nếu có, rồi cài đúng lockfile. Không sửa `package.json`. Phù hợp máy clone sạch.
 
-## D. Biến môi trường
+**Kết quả mong đợi:** mỗi lệnh chạy một lúc rồi trở lại dấu nhắc, không có dòng `npm ERR!`.
 
-Trong `server`:
+**Cách kiểm tra:**
 
 ```powershell
-copy .env.example .env
+Test-Path ..\server\node_modules
+Test-Path node_modules
 ```
 
-Mở `server/.env`. Không commit file này. Không gửi file này vào nhóm.
+Lệnh thứ hai chạy khi bạn còn đứng trong `web`. Cả hai in `True`.
 
-Điền:
+**Nếu gặp lỗi:** đừng chạy `npm audit fix` và đừng tự nâng gói. Gửi nguyên văn `npm ERR!`. Xem [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
+
+**Dữ liệu:** chỉ tạo thư mục `node_modules`. Không ghi MongoDB.
+
+## 5. MongoDB — chọn một cách
+
+COLDI cần một MongoDB nghe `127.0.0.1`, cổng `27017`. Địa chỉ mặc định trong `server\.env.example` là `mongodb://127.0.0.1:27017/coldi`.
+
+Chỉ chạy **một** MongoDB trên cổng đó. Đừng bật cả MongoDB cài sẵn lẫn container Docker cùng cổng.
+
+### Cách A — MongoDB đã cài trên Windows
+
+**Mục đích:** dùng chương trình MongoDB có sẵn.
+
+**Điều kiện:** MongoDB Community hoặc bản tương đương đã cài. Tên dịch vụ Windows không cố định. Đừng đoán tên. Mở `services.msc`, tìm dịch vụ có chữ MongoDB, trạng thái phải là Running. Nếu không thấy, dùng cách B hoặc cài MongoDB theo trang mongodb.com. Hướng dẫn này không gắn một tên dịch vụ.
+
+**Cách kiểm tra cổng**, PowerShell:
+
+```powershell
+Test-NetConnection -ComputerName 127.0.0.1 -Port 27017
+```
+
+`TcpTestSucceeded : True` nghĩa là có chương trình đang nghe cổng. Nó không chứng minh chương trình đó là MongoDB cho đến khi API health báo `database: connected`.
+
+**Dữ liệu:** `Test-NetConnection` không ghi đơn.
+
+Đừng xóa thư mục data của MongoDB để “sửa cổng”.
+
+### Cách B — Docker Desktop, chỉ khi chưa có MongoDB
+
+**Mục đích:** tạo một MongoDB riêng trong container.
+
+**Điều kiện:** Docker Desktop đã mở và engine đang chạy. `docker --version` không đủ. Chạy:
+
+```powershell
+docker info
+```
+
+Nếu báo daemon không chạy, mở Docker Desktop và đợi đến khi ứng dụng nói engine đã sẵn sàng, rồi chạy lại `docker info`.
+
+**Trước khi bật container**, kiểm tra cổng 27017 như cách A. Nếu `TcpTestSucceeded` là `True`, đã có MongoDB. Dừng. Đừng chạy `docker compose up`.
+
+**Thực hiện ở đâu:** PowerShell, thư mục `server` của bản clone. File thật là `server\docker-compose.yml`. Image là `mongo:7`. Cổng xuất ra chỉ `127.0.0.1:27017`. Dữ liệu nằm trong volume tên `coldi-mongo`.
+
+```powershell
+cd server
+docker compose up -d
+docker compose ps
+```
+
+**Kết quả mong đợi:** `docker compose ps` cho thấy service `mongodb` đang chạy.
+
+**Dừng container mà giữ dữ liệu:**
+
+```powershell
+cd server
+docker compose stop
+```
+
+`stop` tắt container. Volume `coldi-mongo` còn. Đừng chạy `docker compose down -v` và đừng xóa volume chỉ để xử lý trùng cổng. Hướng dẫn này không yêu cầu lệnh xóa dữ liệu.
+
+**Nếu cổng bị chiếm:** Docker sẽ báo không bind được `27017`. Tắt lệnh. Dùng MongoDB đang nghe cổng đó. Đừng đổi cổng trong tài liệu và đừng xóa container của người khác.
+
+## 6. File cấu hình backend
+
+**Mục đích:** API biết cổng, database, trang web được phép gọi, và chuỗi ký phiên đăng nhập.
+
+File `.env` nằm trên máy bạn. Git không nhận file này. Đừng gửi file này cho người khác và đừng dán vào issue.
+
+**Điều kiện:** đã đứng được trong thư mục `server`. File `server\.env.example` có trong kho.
+
+```powershell
+cd server
+Copy-Item .env.example .env
+notepad .env
+```
+
+`Copy-Item` tạo `server\.env` từ file mẫu. `notepad .env` mở file để sửa. Có thể dùng VS Code hoặc Cursor thay cho notepad.
+
+Điền đúng các dòng sau. Giữ nguyên tên biến, bên trái dấu `=`.
 
 ```text
 PORT=4000
 MONGODB_URI=mongodb://127.0.0.1:27017/coldi
 FRONTEND_ORIGIN=http://127.0.0.1:5173
 NODE_ENV=development
-AUTH_SECRET=<chuỗi tự đặt, ít nhất 32 ký tự>
+AUTH_SECRET=
 ```
 
-`AUTH_SECRET` mỗi máy một chuỗi. Không dán chuỗi đó vào GitHub.
+| Biến | Nghĩa | Giá trị local |
+| --- | --- | --- |
+| `PORT` | Cổng API | `4000`. Phải là số nguyên từ 1 đến 65535. Mã từ chối giá trị khác |
+| `MONGODB_URI` | Địa chỉ database | `mongodb://127.0.0.1:27017/coldi` nếu dùng MongoDB trên máy. Phải bắt đầu bằng `mongodb://` hoặc `mongodb+srv://` |
+| `FRONTEND_ORIGIN` | Địa chỉ trang web được phép gọi API và nhận cookie | Đúng `http://127.0.0.1:5173`. Dấu `*` bị từ chối. `http://localhost:5173` là một nguồn khác |
+| `NODE_ENV` | Chế độ chạy | `development` khi tự chạy máy. Giá trị hợp lệ chỉ có `development`, `test`, `production` |
+| `AUTH_SECRET` | Chuỗi ký cookie phiên | Bạn tự đặt, **ít nhất 32 ký tự**. Ô trống trong file mẫu không chạy được. API báo `AUTH_SECRET must be at least 32 characters.` |
 
-Bốn tài khoản demo. Email giữ như mẫu. Mật khẩu mỗi người tự đặt, 8 đến 72 ký tự. Không ghi mật khẩu vào Git hay vào issue.
+Ví dụ độ dài, không phải chuỗi để chép vào máy thật: một câu tiếng Việt không dấu dài hơn 32 ký tự. Mỗi máy một chuỗi. Đừng dùng chuỗi mẫu nếu bạn vừa đọc nó trên một kênh chung. Đừng commit chuỗi đó.
+
+`PORT` và địa chỉ web phải khớp nhau: trình duyệt mở `http://127.0.0.1:5173`, API nghe `http://127.0.0.1:4000`, và `FRONTEND_ORIGIN` là địa chỉ trình duyệt. Cookie đăng nhập gắn với đúng cặp đó.
+
+Bốn tài khoản demo đọc thêm các biến trong cùng file. Email để như mẫu. Mật khẩu mỗi người tự đặt, từ 8 đến 72 ký tự. Để trống cho đến khi bạn cố ý tạo tài khoản demo ở mục 9.
 
 ```text
 DEMO_SHIPPER_EMAIL=shipper.demo@coldi.local
-DEMO_SHIPPER_PASSWORD=<mật khẩu local>
+DEMO_SHIPPER_PASSWORD=
 DEMO_CARRIER_EMAIL=carrier.demo@coldi.local
-DEMO_CARRIER_PASSWORD=<mật khẩu local>
+DEMO_CARRIER_PASSWORD=
 DEMO_DRIVER_EMAIL=driver.demo@coldi.local
-DEMO_DRIVER_PASSWORD=<mật khẩu local>
+DEMO_DRIVER_PASSWORD=
 DEMO_ADMIN_EMAIL=admin.demo@coldi.local
-DEMO_ADMIN_PASSWORD=<mật khẩu local>
+DEMO_ADMIN_PASSWORD=
 ```
 
-Frontend gọi API tại `http://127.0.0.1:4000` khi không đặt `VITE_API_ORIGIN`.
+**Cách kiểm tra file tồn tại**, không in nội dung ra màn hình nhóm:
 
-Mapbox chỉ cần khi muốn thử vẽ bản đồ. Tạo `web/.env.local`, không commit:
+```powershell
+Test-Path .env
+```
+
+In `True`. Đừng chạy `Get-Content .env` trên một cuộc họp có người khác nhìn màn hình.
+
+**Dữ liệu:** tạo file chữ trên đĩa. Chưa ghi MongoDB.
+
+## 7. Mapbox — không bắt buộc để đăng nhập
+
+Mapbox vẽ bản đồ nền và marker khi đã có tọa độ GPS. Trang chủ và đăng nhập không cần token.
+
+Khi muốn thử bản đồ, tạo `web\.env.local`. File này cũng không được commit. Mở PowerShell ở thư mục `web`:
+
+```powershell
+cd web
+notepad .env.local
+```
+
+Một dòng:
 
 ```text
-VITE_MAPBOX_PUBLIC_TOKEN=<token công khai bắt đầu bằng pk.>
+VITE_MAPBOX_PUBLIC_TOKEN=
 ```
 
-Không dùng token `sk.`. Token hạn chế theo tên miền có thể trả 403 tại `127.0.0.1`. Không có token thì ứng dụng vẫn chạy và vẫn hiện tọa độ, nhưng không vẽ bản đồ. Việc hiện tọa độ không có nghĩa tile đã pass.
+Điền token công khai bắt đầu bằng `pk.`. Không điền token `sk.`. Token `sk.` là khóa bí mật, không được đưa vào giao diện.
 
-Mở web bằng `http://127.0.0.1:5173`. Đừng dùng `localhost`. Cookie và CORS gắn với `127.0.0.1`. Đăng nhập từ `localhost` bị từ chối.
+Không có dòng này, hoặc để trống: ứng dụng vẫn chạy. Khối vị trí vẫn hiện tọa độ nếu API đã có điểm. Câu trên màn hình là `Bản đồ chưa được cấu hình. Tọa độ vẫn hiện ở trên.`
 
-## E. Chạy ứng dụng
+Token Mapbox bị giới hạn theo tên miền có thể trả 403 tại `http://127.0.0.1:5173`, vì Mapbox không nhận địa chỉ IP trong phần hạn chế URL. Máy local cần một token `pk.` không hạn chế URL. Đó là ghi chú trong `web\.env.example`.
 
-Ba cửa sổ.
+Sau khi sửa `.env.local`, tắt Vite bằng `Ctrl+C` trong cửa sổ đang chạy `npm run dev`, rồi chạy lại `npm run dev` trong `web`. Vite chỉ đọc biến lúc khởi động.
 
-1. MongoDB tại `127.0.0.1:27017`.
+**Dữ liệu:** file token không ghi đơn hàng.
 
-Nếu cổng 27017 đã có MongoDB local, dùng bản đó. Đừng dựng thêm một container cùng cổng.
+## 8. Ba địa chỉ, đừng trộn
 
-Nếu máy chưa có MongoDB, trong thư mục `server`:
+| Địa chỉ | Việc |
+| --- | --- |
+| `http://127.0.0.1:5173` | Trang web. Cổng 5173 bị khóa trong `web\vite.config.ts`. Nếu cổng bận, Vite dừng, không đổi sang 5174 |
+| `http://127.0.0.1:4000` | API |
+| `127.0.0.1:27017` | MongoDB. Trình duyệt không mở cổng này |
+
+`localhost` và `127.0.0.1` là hai nguồn khác nhau với cookie và kiểm tra origin. Trên Windows, `localhost` có thể đi IPv6 trước. Mở web bằng `http://127.0.0.1:5173`. Đăng nhập từ `http://localhost:5173` bị từ chối, mã `invalid_origin`.
+
+## 9. Bật và tắt
+
+Cần ba thứ cùng chạy: MongoDB, API, trang web. Mỗi cái một cửa sổ PowerShell. Đừng tắt cửa sổ API rồi vẫn mong trang web gọi được dữ liệu.
+
+### Cửa sổ 1 — MongoDB
+
+Cách A: dịch vụ Windows đang Running. Không có lệnh thêm.
+
+Cách B: đã `docker compose up -d` trong `server`.
+
+### Cửa sổ 2 — API
+
+**Thực hiện ở đâu:** PowerShell, thư mục `server`.
 
 ```powershell
-docker compose up -d
-```
-
-File `server/docker-compose.yml` dùng image `mongo:7` và chỉ mở cổng ra `127.0.0.1:27017`. Nếu Docker báo cổng đã bị chiếm, dừng lệnh và dùng MongoDB đang nghe cổng đó.
-
-2. API, trong `server`:
-
-```powershell
+cd server
 npm run dev
 ```
 
-Kiểm tra:
+**Kết quả mong đợi khi MongoDB nối được:** log có `MongoDB connected.` và `COLDI API listening on port 4000.`
+
+**Cách kiểm tra**, mở cửa sổ PowerShell thứ tư, không tắt cửa sổ API:
 
 ```powershell
 Invoke-RestMethod http://127.0.0.1:4000/api/health
 ```
 
-Khi MongoDB đã nối, kết quả có `status` là `ok`, `service` là `coldi-api`, `database` là `connected`. Nếu MongoDB tắt, API vẫn mở, HTTP 503, `status` là `degraded`, `database` là `unavailable`.
+Khi database nối được, HTTP 200 và nội dung:
 
-3. Web, trong `web`:
+```text
+status   : ok
+service  : coldi-api
+database : connected
+```
+
+Khi API đang chạy nhưng MongoDB chưa nối, HTTP 503. PowerShell báo lỗi vì mã 503. Nội dung JSON trong mã là `status: degraded`, `service: coldi-api`, `database: unavailable`. `degraded` không có nghĩa API đã tắt.
+
+Khi cửa sổ API chưa chạy hoặc cổng 4000 không mở, `Invoke-RestMethod` báo không kết nối được. Đó không phải 401 hay 403.
+
+### Cửa sổ 3 — trang web
+
+**Thực hiện ở đâu:** PowerShell khác, thư mục `web`.
 
 ```powershell
+cd web
 npm run dev
 ```
 
-Mở `http://127.0.0.1:5173`.
+**Kết quả mong đợi:** dòng `Local: http://127.0.0.1:5173/`.
 
-Cổng cố định: API `4000`, web `5173`. Nếu `5173` đang bị chiếm, Vite dừng, không nhảy sang cổng khác.
+Mở Chrome hoặc Edge tại đúng địa chỉ đó.
 
-## F. Tài khoản demo
+**Tắt an toàn:** bấm vào cửa sổ đang chạy `npm run dev`, nhấn `Ctrl+C`, xác nhận nếu PowerShell hỏi. Làm riêng cho API và cho web. `Ctrl+C` dừng tiến trình trong cửa sổ đó. Đừng tắt mọi `node.exe` trên máy, vì máy có thể đang chạy việc khác.
 
-Chỉ chạy seed trên database mới hoặc database dùng một lần để thử. Seed ghi đè mật khẩu đã băm của đúng bốn email demo. Đừng chạy trên database đang giữ tài khoản hoặc đơn cần giữ.
+`docker compose stop` chỉ dùng nếu bạn đã bật MongoDB bằng Docker và muốn tắt container. Không dùng lệnh đó với cách A.
 
-Trong `server`, sau khi MongoDB và `.env` đã sẵn sàng:
+### Sau khi tắt máy và mở lại, tôi cần chạy gì?
+
+1. Bật MongoDB: dịch vụ Windows, hoặc mở Docker Desktop rồi trong `server` chạy `docker compose up -d` nếu lần trước bạn dùng Docker.
+2. Cửa sổ PowerShell, `cd` vào `Coldi-express\server`, `npm run dev`.
+3. Cửa sổ khác, `cd` vào `Coldi-express\web`, `npm run dev`.
+4. Mở `http://127.0.0.1:5173`.
+5. Đăng nhập lại nếu cookie hết hoặc đã mất. Cookie `coldi_session` sống 12 giờ, `HttpOnly`, `SameSite=Lax`.
+
+Không cần `npm ci` lại nếu không xóa `node_modules` và không đổi lockfile.
+
+## 10. Tài khoản demo
+
+Chỉ làm mục này trên database mới hoặc database bạn chấp nhận ghi đè. `npm run seed:demo` tạo hoặc cập nhật bốn email demo và **ghi lại mật khẩu đã băm** của đúng bốn email đó. Nó không xóa đơn. Nó từ chối chạy khi `NODE_ENV=production`.
+
+Đừng chạy seed trên database dùng chung, database đang giữ tài khoản người khác, hoặc database phát triển của máy đang có đơn cần giữ.
+
+**Điều kiện:** MongoDB đang chạy. `server\.env` đã có bốn email và bốn mật khẩu 8–72 ký tự. API không cần đang chạy. `NODE_ENV` không phải `production`.
+
+**Thực hiện ở đâu:** PowerShell, thư mục `server`.
 
 ```powershell
+cd server
 npm run seed:demo
 npm run seed:fleet
 ```
 
-`seed:demo` tạo hoặc cập nhật bốn tài khoản theo email trong `.env`. Script không xóa đơn. Script từ chối chạy khi `NODE_ENV=production`.
+| Lệnh | Việc | Dữ liệu |
+| --- | --- | --- |
+| `npm run seed:demo` | Tạo hoặc cập nhật bốn tài khoản theo email trong `.env` | Ghi đè `passwordHash` và `role` của bốn email đó. Không xóa đơn |
+| `npm run seed:fleet` | Gắn tài xế demo vào nhà xe demo và tạo một xe demo nếu xe đó chưa có | Phải chạy sau `seed:demo`. Nếu tài xế đã gắn nhà xe khác, script dừng và không đổi mối gắn |
 
-| Email | Vai trò |
+| Email | Vai |
 | --- | --- |
-| `shipper.demo@coldi.local` | SHIPPER, chủ hàng |
-| `carrier.demo@coldi.local` | CARRIER, nhà xe |
-| `driver.demo@coldi.local` | DRIVER, tài xế |
-| `admin.demo@coldi.local` | ADMIN, quản trị |
+| `shipper.demo@coldi.local` | SHIPPER, Chủ hàng |
+| `carrier.demo@coldi.local` | CARRIER, Nhà xe |
+| `driver.demo@coldi.local` | DRIVER, Tài xế |
+| `admin.demo@coldi.local` | ADMIN, Quản trị |
 
-`seed:fleet` chạy sau `seed:demo`. Script gắn tài xế demo với nhà xe demo và tạo một xe demo nếu xe đó chưa có.
+Mật khẩu là giá trị bạn đã ghi trong `.env` của máy mình. Tài liệu này không chứa mật khẩu.
 
-Bản đã publish không có lệnh đặt lại mật khẩu demo. Đừng chạy script reset ngoài hướng dẫn này.
+Tài xế demo sau `seed:fleet` thuộc nhà xe demo nên nhà xe đó phân công được. Tài xế do nhà xe tạo mới trên màn hình có thể bị yêu cầu đổi mật khẩu lần đầu tại `/driver/doi-mat-khau` trước khi vào chuyến. Tài khoản seed dùng mật khẩu trong `.env` và không đi đường mật khẩu tạm, trừ khi bạn tự tạo tài xế mới trên giao diện.
 
-Muốn đổi vai trò: Đăng xuất, rồi đăng nhập tài khoản kia. Không có nút đổi vai trò trong một phiên.
+Bản `package.json` đã commit không có lệnh đặt lại mật khẩu demo. Đừng chạy script reset nào ngoài hai lệnh seed ở trên.
 
-Tài xế do nhà xe tạo mới có thể bị yêu cầu đổi mật khẩu lần đầu trước khi vào chuyến. Tài khoản demo seed dùng mật khẩu trong `.env` của máy mình.
+**Đổi vai:** bấm `Đăng xuất` trên khu làm việc, rồi đăng nhập email kia. Không có nút đổi vai trong cùng một phiên.
 
-Đơn kiểm thử do chính người thử tạo trên máy local. Đừng sửa đơn demo cũ nếu không phải đơn mình vừa tạo để thử.
+## 11. Đăng nhập để biết máy chạy
 
-## G. Việc cần bấm
+**Mục đích:** xác nhận trình duyệt nói chuyện được với API.
 
-Đánh dấu từng mục là đã chạy hoặc chưa chạy. Đừng ghi PASS cho mục bỏ qua.
+**Điều kiện:** cả ba cửa sổ ở mục 9 đang chạy, và bạn đã seed trên database dùng để thử.
 
-### Khách
+1. Mở `http://127.0.0.1:5173/dang-nhap`.
+2. Ô `Email`: `shipper.demo@coldi.local`.
+3. Ô mật khẩu: mật khẩu trong `.env` của máy bạn, không chép từ chat.
+4. Nút `Đăng nhập`.
 
-- `/` mở được và phần điện ảnh hiện.
-- `/giai-phap/chu-hang`, `/giai-phap/nha-xe`, `/ve-chung-toi` mở được.
-- `/dang-nhap` có email, mật khẩu, nút hiện mật khẩu và nút đăng nhập.
-- `/dang-ky` không tạo tài khoản.
-- `/shipper`, `/carrier`, `/driver`, `/admin` khi chưa đăng nhập không vào được khu làm việc.
+**Kết quả mong đợi:** trình duyệt tới `/shipper`. Menu trái có `Trang chủ`, `Tạo đơn`, `Quản lý đơn`.
 
-### SHIPPER
+Sai email hoặc sai mật khẩu cùng câu `Email hoặc mật khẩu không đúng.`
 
-Đăng nhập `shipper.demo@coldi.local`.
+**Dữ liệu:** đăng nhập tạo cookie. Không tạo đơn.
 
-- Vào `/shipper`.
-- Đăng một đơn mới trên `/shipper/tao-don`.
-- Thấy đơn trong quản lý đơn.
-- Mở chi tiết, xem trạng thái và timeline.
-- Mở chatbox nếu đã có nhà xe nhắn. Enter gửi, Shift+Enter xuống dòng. Chat không nhận chuyến và không đổi giá.
-- Xem GPS của đơn thuộc mình. Không có điểm thì câu là chưa có vị trí, không phải một vị trí bịa.
-- Đăng xuất.
+Việc bấm từng luồng nghiệp vụ nằm ở [USER_GUIDE_BEGINNERS.md](USER_GUIDE_BEGINNERS.md). Đừng đánh dấu PASS cho bước bạn chưa bấm.
 
-### CARRIER
+## 12. Mức “có mã” và mức “đã nghiệm thu”
 
-Đăng nhập `carrier.demo@coldi.local`.
+| Mức | Nghĩa |
+| --- | --- |
+| Code complete | Màn hoặc API có trong mã |
+| Automated tested | Test API trên database tên `*_test`. Không đụng database `coldi` |
+| Browser inspected | Đã mở trình duyệt. Thường không ghi nghiệp vụ |
+| E2E pending | Chưa có biên bản bấm đủ đăng → nhận → phân công → lấy → GPS → giao |
+| Mapbox real rendering pending | Chưa chứng minh tile và marker |
+| User visual accepted | Chỉ bố cục trang chủ tài xế. Các màn khác chưa được chấp nhận hình ảnh |
 
-- `/carrier` là trang chủ.
-- `/carrier/tim-chuyen` là sàn thật. Tìm, lọc, sắp xếp. Sàn trống nghĩa là chưa có đơn đang tìm xe.
-- Mở một đơn đang tìm xe do chủ hàng vừa tạo.
-- Mở chatbox. Chat không nhận chuyến.
-- Nhận chuyến bằng tay, có xác nhận.
-- Vào Chuyến của tôi, phân công xe và tài xế thuộc nhà xe này.
-- `/carrier/doi-xe` xem và, nếu cố ý, tạo hoặc sửa xe thử.
-- `/carrier/doi-xe/tai-xe` xem quản lý tài khoản tài xế. Tạo, khóa, mở khóa hoặc đặt lại mật khẩu chỉ khi đang thử luồng đó trên dữ liệu thử.
-- Trên chuyến nhà xe đã nhận, xem GPS. Đơn chưa nhận không được hiện vị trí của nhà xe khác.
-
-### DRIVER
-
-Đăng nhập `driver.demo@coldi.local` sau khi nhà xe đã phân công chuyến cho tài xế này.
-
-- `/driver` là dashboard mới: số đếm và chuyến cần làm.
-- `/driver/chuyen` là danh sách chuyến.
-- Mở chi tiết. Xác nhận lấy hàng, rồi xác nhận giao hàng, trên đơn thử.
-- Khi chuyến đang vận chuyển, thử chia sẻ GPS nếu trình duyệt cho phép.
-- Xem timeline. GPS không tự xác nhận lấy hoặc giao. Giao không phải thanh toán.
-- Nếu tài khoản bị yêu cầu đổi mật khẩu, hoàn tất `/driver/doi-mat-khau` trước khi vào chuyến. Tài khoản demo seed thường không rơi vào bước này.
-
-### ADMIN
-
-Đăng nhập `admin.demo@coldi.local`.
-
-- Vào được `/admin`.
-- Trang nói khu vận hành chưa mở.
-- Không dùng tài khoản này để xem đơn chủ hàng, nhận chuyến hay phân công.
-
-### Cách ly vai trò
-
-- Chủ hàng không vào được khu nhà xe.
-- Nhà xe không vào được khu chủ hàng.
-- Tài xế không nhận đơn trên sàn.
-- Sau đăng nhập, mỗi vai trò về đúng trang của mình.
-
-## H. Giới hạn đã biết
-
-- E2E logistics chưa nghiệm thu trên bản này.
-- Mapbox tile và marker chưa được chứng minh.
-- Package Management chưa có.
-- Đăng ký công khai chưa làm.
-- WAREHOUSE chưa làm.
-- Huy hiệu xác thực chưa làm.
-- Sàn trống khi không có đơn đang tìm xe.
-- Không tự ghép, không tự điều phối.
-- Không bịa vị trí xe, tuyến hay ETA.
-- Thanh toán online chưa làm.
-- FE-05A chưa được chấp nhận hình ảnh toàn bộ. Bố cục trang chủ tài xế đã được xem và chấp nhận.
-- FE-05B chưa bắt đầu.
-
-Đừng báo các mục trên như thể chúng đã hứa hoạt động rồi bị hỏng, trừ khi màn hình đang nói rằng chúng đã chạy.
-
-## I. Mẫu báo lỗi
-
-Tạo issue trên GitHub. Không dán mật khẩu, `AUTH_SECRET`, token, cookie, hay dữ liệu cá nhân.
-
-```text
-Tiêu đề:
-
-SHA đang thử:
-Vai trò:
-Trang / URL:
-Máy: Windows / Node / Chrome hoặc Edge
-Các bước:
-1.
-2.
-3.
-Kết quả mong đợi:
-Kết quả thực tế:
-Ảnh hoặc lỗi console:
-Mức: Blocker / High / Medium / Low
-```
-
-Blocker: không đăng nhập được, không mở được app, hoặc mất dữ liệu đơn vừa tạo.
-High: một luồng chính của vai trò gãy.
-Medium: sai nhưng còn đường khác để làm tiếp.
-Low: chữ, khoảng cách, hoặc lỗi nhỏ không chặn luồng.
+Chi tiết và phương án B: [MVP_STATUS_2026-10-18.md](../mvp-review/MVP_STATUS_2026-10-18.md).

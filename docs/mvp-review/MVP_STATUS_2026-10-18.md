@@ -42,6 +42,18 @@ Web: `npm run lint`, `npx tsc -b`, `npm run build` thuộc cùng lượt chuẩn
 | FE-05B | Chưa bắt đầu. Bước tiếp theo, chưa làm trong bản này |
 | Package Implementation | Bước tiếp theo theo phương án B. Chưa làm. Chưa có số gói, tên gói, giá, hạn mức, chu kỳ hay cách nâng hạ |
 
+## Phương án B
+
+Đã có mã logistics ở mức team testing. Phương án B còn bắt buộc Package Management, quyền gói và hạn mức trên backend. Các mục đó chưa triển khai. Không có tên gói, giá, hạn mức hay chu kỳ. Thanh toán online nằm sau MVP. Chi tiết cho người thử: [USER_GUIDE_BEGINNERS.md](../team-testing/USER_GUIDE_BEGINNERS.md).
+
+Hướng dẫn người mới, viết sau lượt chuẩn bị phía dưới:
+
+- [TEAM_TESTING_GUIDE.md](../team-testing/TEAM_TESTING_GUIDE.md)
+- [USER_GUIDE_BEGINNERS.md](../team-testing/USER_GUIDE_BEGINNERS.md)
+- [TROUBLESHOOTING.md](../team-testing/TROUBLESHOOTING.md)
+
+Kịch bản đầu-cuối trong hướng dẫn sử dụng là quy trình để người thử tự bấm trên database dùng một lần. Chưa phải PASS.
+
 ## Lượt chuẩn bị
 
 `npm test` trong `server/`: 71 pass, 0 fail, 0 skipped, `duration_ms` 64729.9884. Database là các tên `*_test`, không phải `coldi`.
