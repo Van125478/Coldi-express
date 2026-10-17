@@ -116,7 +116,7 @@ export function ClaimedShipments() {
     <section className="space-y-6">
       <PageHeader
         title="Chuyến của tôi"
-        summary="Đơn đã nhận vẫn giữ trạng thái MATCHED cho đến khi tài xế xác nhận lấy hàng. Nhãn “Chờ lấy hàng” là cách đọc khi đã phân công, không phải trạng thái mới."
+        summary="Chuyến đã nhận, xếp theo việc cần làm. Phân công xe và tài xế trước khi tài xế xác nhận lấy hàng."
       />
       {notice ? (
         <p role="status" className={`mt-6 max-w-3xl text-sm leading-relaxed ${noticeTone === "success" ? "text-success" : "text-ink"}`}>
@@ -281,7 +281,7 @@ function renderTrip(shipment: CarrierShipment) {
                         ))}
                       </select>
                     </div>
-                    <Button type="submit" disabled={pendingId !== null || !resourcesReady || selected.vehicleId === "" || selected.driverId === ""}>
+                    <Button type="submit" className="min-h-12 lg:min-w-44" disabled={pendingId !== null || !resourcesReady || selected.vehicleId === "" || selected.driverId === ""}>
                       {pendingId === shipment.id ? "Đang phân công" : "Phân công xe và tài xế"}
                     </Button>
                   </form>

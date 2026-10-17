@@ -90,7 +90,7 @@ export const solutions = {
     benefits: [
       { title: "Mô tả đúng nhu cầu", body: "Hàng hóa, điểm lấy, điểm giao, nhóm nhiệt và yêu cầu xe nằm trên cùng một đơn." },
       { title: "Để nhà xe tìm thấy đơn", body: "Đơn đã đăng xuất hiện để nhà xe đã đăng nhập xem và tự nhận." },
-      { title: "Biết chuyến đang ở đâu", body: "Trạng thái và các mốc đã ghi đi cùng đơn. Vị trí xe hiện khi chuyến đã cho phép xem." },
+      { title: "Theo dõi tiến độ vận chuyển", body: "Trạng thái và các mốc đã ghi đi cùng đơn. Vị trí xe hiện khi chuyến đã cho phép xem." },
     ],
     journeyTitle: "Từ đơn nháp đến chuyến đang chạy",
     journey: [
@@ -108,7 +108,7 @@ export const solutions = {
     lede: "Sau khi đăng nhập, nhà xe xem các đơn đang tìm xe, lọc theo nhu cầu, rồi tự nhận chuyến. Xe và tài xế được giao sau khi đã nhận.",
     benefitsTitle: "Nhà xe làm được những việc này",
     benefits: [
-      { title: "Xem đơn đang mở", body: "Sàn chuyến chỉ mở sau khi đăng nhập. Khách chưa có tài khoản không xem được danh sách vận hành." },
+      { title: "Xem đơn đang mở", body: "Đăng nhập để khám phá các chuyến hàng đang được niêm yết." },
       { title: "Lọc theo nhu cầu thật", body: "Hàng, tuyến, nhóm nhiệt, xe yêu cầu, lịch lấy và giá niêm yết đều có trên đơn." },
       { title: "Tự nhận, rồi phân công", body: "Nhà xe tự nhận chuyến còn mở, sau đó chọn xe và tài xế của mình." },
     ],
@@ -118,7 +118,7 @@ export const solutions = {
       { title: "Nhận chuyến", body: "Nhà xe tự nhận. Không có điều phối tự động." },
       { title: "Giao xe và tài xế", body: "Chuyến đã nhận được phân công trong đội xe của nhà xe." },
     ],
-    fleetTitle: "Đội xe và tài xế đã có trên COLDI",
+    fleetTitle: "Quản lý đội xe và tài xế",
     fleet: "Nhà xe quản lý xe lạnh và tài khoản tài xế của mình. Tài xế làm việc trên chuyến đã được giao, không tự mở sàn để nhận chuyến.",
     cta: "Đăng nhập để vào sàn",
     action: "claim",

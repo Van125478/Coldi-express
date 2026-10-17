@@ -76,7 +76,7 @@ export function CarrierVehicleForm({ mode }: { mode: "create" | "edit" }) {
   }
 
   return (
-    <section className="max-w-2xl space-y-6">
+    <section className="mx-auto w-full max-w-4xl space-y-6">
       <Link to={paths.carrierFleet} className="text-sm font-semibold text-navy underline-offset-4 hover:underline">
         Danh sách xe
       </Link>
@@ -87,7 +87,7 @@ export function CarrierVehicleForm({ mode }: { mode: "create" | "edit" }) {
       {state === "error" ? <p className="text-sm text-ink">Không tải được xe.</p> : null}
       {state === "ready" ? (
         <form
-          className="space-y-4 rounded-2xl border border-line bg-surface p-5"
+          className="space-y-8 rounded-2xl border border-line bg-surface p-5 sm:p-8"
           onSubmit={(event) => {
             event.preventDefault();
             void save();
@@ -95,11 +95,14 @@ export function CarrierVehicleForm({ mode }: { mode: "create" | "edit" }) {
         >
           <fieldset className="space-y-4">
             <legend className="text-sm font-bold text-navy">Nhận diện xe</legend>
-            <Field label="Tên xe" value={draft.label} onChange={(value) => update("label", value)} />
-            <Field label="Biển số" value={draft.plate} onChange={(value) => update("plate", value)} />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Tên xe" value={draft.label} onChange={(value) => update("label", value)} />
+              <Field label="Biển số" value={draft.plate} onChange={(value) => update("plate", value)} />
+            </div>
           </fieldset>
           <fieldset className="space-y-4">
             <legend className="text-sm font-bold text-navy">Khả năng chở</legend>
+            <div className="grid gap-4 sm:grid-cols-2">
           <label className="block space-y-2 text-sm font-semibold text-ink">
             Loại phương tiện
             <select className={fieldClass} value={draft.vehicleKind} onChange={(event) => update("vehicleKind", event.target.value)}>
@@ -119,6 +122,7 @@ export function CarrierVehicleForm({ mode }: { mode: "create" | "edit" }) {
             </select>
           </label>
           <Field label="Tải trọng (tấn)" value={draft.capacityTon} onChange={(value) => update("capacityTon", value)} inputMode="decimal" />
+            </div>
           </fieldset>
           {notice ? (
             <p role="alert" className="text-sm text-ink">

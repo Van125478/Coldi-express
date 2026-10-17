@@ -85,7 +85,7 @@ export function AboutPage() {
         </div>
       </section>
       <ClosingBand
-        title="Chọn phía bạn đang đứng."
+        title="Khám phá COLDI dành cho bạn"
         body="Xem giải pháp cho chủ hàng hoặc nhà xe, hoặc đăng nhập bằng tài khoản đã được cấp."
         links={[
           { href: paths.shipperSolution, label: "Giải pháp cho chủ hàng" },
@@ -93,7 +93,7 @@ export function AboutPage() {
           { href: authPath("general"), label: "Đăng nhập" },
         ]}
       />
-      <p className="guest-frame py-6 text-sm leading-relaxed text-muted">{aboutStory.qualification}</p>
+      <p className="guest-frame pb-8 pt-3 text-xs leading-relaxed text-muted">{aboutStory.qualification}</p>
     </>
   );
 }

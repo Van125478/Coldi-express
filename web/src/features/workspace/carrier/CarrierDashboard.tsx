@@ -4,7 +4,7 @@ import { assignmentPath, paths } from "@/app/paths";
 import { useAuth } from "@/features/auth/useAuth";
 import { lostSession } from "@/features/workspace/sessionLoss";
 import { MarketShipmentCard } from "@/features/shipments/MarketShipmentCard";
-import { money, primaryLinkClass, shipmentTone } from "@/features/workspace/format";
+import { civil, money, primaryLinkClass, shipmentTone } from "@/features/workspace/format";
 import { PageHeader, StatusBadge } from "@/features/workspace/ui";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { Button } from "@/components/ui/button";
@@ -48,7 +48,7 @@ export function CarrierDashboard() {
 
   return (
     <section className="space-y-6">
-      <PageHeader title="Sàn vận tải lạnh" summary="Đơn lạnh đang niêm yết. Nhà xe tự tìm, tự nhận, rồi tự phân công xe và tài xế." />
+      <PageHeader title="Tổng quan nhà xe" summary="Chuyến đang mở, chuyến đang theo dõi và chuyến đã nhận. Đơn mới nằm trên sàn tìm chuyến." />
       <form
         className="rounded-2xl border border-line bg-surface p-4 shadow-sm"
         onSubmit={(event) => {
@@ -119,10 +119,12 @@ export function CarrierDashboard() {
               </div>
             </section>
           ) : null}
-          <div className="overflow-hidden rounded-2xl border border-line bg-surface">
-            <div className="flex flex-wrap items-end justify-between gap-3 border-b border-line px-5 py-4">
+          <section className="space-y-3" aria-labelledby="claimed-shipments-title">
+            <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
-                <h2 className="text-base font-bold text-ink">Chuyến đã nhận</h2>
+                <h2 id="claimed-shipments-title" className="text-base font-bold text-ink">
+                  Chuyến đã nhận
+                </h2>
                 <p className="mt-1 text-sm text-muted">
                   {claimed.length} chuyến đã nhận, {waiting.length} chờ phân công, {awaitingPickup.length} đã phân công và chờ lấy hàng.
                 </p>
@@ -131,15 +133,18 @@ export function CarrierDashboard() {
                 Chuyến của tôi
               </Link>
             </div>
-            {ordered.length === 0 ? <p className="px-5 py-6 text-sm text-muted">Chưa nhận chuyến nào.</p> : null}
-            <ul>
-              {ordered.slice(0, 5).map((shipment) => (
-                <li key={shipment.id} className="border-b border-line last:border-b-0">
-                  <TripRow shipment={shipment} action={shipment.vehicleId === null || shipment.driverId === null ? "Phân công" : "Xem"} />
-                </li>
-              ))}
-            </ul>
-          </div>
+            {ordered.length === 0 ? (
+              <p className="rounded-2xl border border-dashed border-line bg-surface px-5 py-4 text-sm leading-relaxed text-muted">Chưa nhận chuyến nào.</p>
+            ) : (
+              <ul className="grid items-stretch gap-4 md:grid-cols-2 min-[1440px]:grid-cols-3">
+                {ordered.slice(0, 6).map((shipment) => (
+                  <li key={shipment.id} className="min-w-0">
+                    <HomeTripCard shipment={shipment} />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
         </>
       ) : null}
     </section>
@@ -155,23 +160,37 @@ function TemperatureLink({ value, label }: { value: string; label: string }) {
   );
 }
 
-function TripRow({ shipment, action }: { shipment: CarrierShipment; action: string }) {
+function HomeTripCard({ shipment }: { shipment: CarrierShipment }) {
   const needsAssignment = shipment.vehicleId === null || shipment.driverId === null;
   const href = needsAssignment && shipment.status !== "PUBLISHED" ? assignmentPath(shipment.id) : `${paths.carrierHome}/chuyen/${shipment.id}`;
+  const pickup = shipment.pickupDate ? civil(shipment.pickupDate) : "Chưa ghi ngày lấy";
   return (
-    <div className="grid items-center gap-3 px-5 py-4 lg:grid-cols-[max-content_minmax(0,1.3fr)_minmax(0,1fr)_auto_auto]">
-      <StatusBadge tone={shipmentTone(shipment.status, shipment.vehicleId, shipment.driverId)}>{shipment.statusLabel}</StatusBadge>
-      <p className="font-semibold text-ink">
-        {shipment.pickupLocation} → {shipment.deliveryLocation}
-      </p>
-      <p className="text-sm text-muted">
-        {shipment.cargoDescription} · {shipment.temperatureLabel}
-        {shipment.cargoWeightTon === null ? "" : ` · ${shipment.cargoWeightTon} tấn`}
-      </p>
-      <p className="text-sm font-semibold text-ink">{money(shipment.listedPriceVnd)}</p>
-      <Link to={href} className="text-sm font-semibold text-navy underline-offset-4 hover:underline">
-        {action}
+    <article className="flex h-full flex-col rounded-2xl border border-line bg-surface p-5">
+      <div className="flex items-start justify-between gap-3">
+        <StatusBadge tone={shipmentTone(shipment.status, shipment.vehicleId, shipment.driverId)}>{shipment.statusLabel}</StatusBadge>
+        <p className="shrink-0 text-right text-sm font-extrabold whitespace-nowrap text-navy">{money(shipment.listedPriceVnd)}</p>
+      </div>
+      <h3 className="mt-4 text-lg font-extrabold leading-snug tracking-tight text-ink">
+        {shipment.pickupLocation} <span aria-hidden="true">→</span> {shipment.deliveryLocation}
+      </h3>
+      <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-muted">{shipment.cargoDescription}</p>
+      <dl className="mt-4 grid grid-cols-2 gap-x-3 gap-y-3 text-sm">
+        <div>
+          <dt className="text-[11px] font-semibold tracking-wide text-muted uppercase">Nhiệt</dt>
+          <dd className="mt-1 font-semibold text-ink">{shipment.temperatureLabel}</dd>
+        </div>
+        <div>
+          <dt className="text-[11px] font-semibold tracking-wide text-muted uppercase">Xe yêu cầu</dt>
+          <dd className="mt-1 font-semibold text-ink">{shipment.vehicleRequirement}</dd>
+        </div>
+        <div className="col-span-2">
+          <dt className="text-[11px] font-semibold tracking-wide text-muted uppercase">Ngày lấy</dt>
+          <dd className="mt-1 font-semibold text-ink">{pickup}</dd>
+        </div>
+      </dl>
+      <Link to={href} className={`${primaryLinkClass} mt-5 w-full`}>
+        {needsAssignment ? "Phân công" : "Xem"}
       </Link>
-    </div>
+    </article>
   );
 }

@@ -50,20 +50,38 @@ export function CarrierVehicles() {
         <EmptyPanel title="Chưa có xe" body="Thêm xe lạnh của nhà xe. Thêm xe không nhận chuyến và không tự phân công." />
       ) : null}
       {state === "ready" && vehicles.length > 0 ? (
-        <ul className="grid gap-4 lg:grid-cols-2">
+        <ul className="grid gap-4 xl:grid-cols-2">
           {vehicles.map((vehicle) => (
-            <li key={vehicle.id} className="rounded-2xl border border-line bg-surface p-5">
-              <h2 className="text-lg font-bold text-ink">
-                <Link to={`${paths.carrierFleet}/xe/${vehicle.id}`} className="hover:text-navy">
-                  {vehicle.label}
-                </Link>
-              </h2>
-              <p className="mt-2 text-sm text-muted">{vehicle.plate ?? "Chưa có biển số"} · {vehicle.vehicleKindLabel ?? "Chưa có loại xe"}</p>
-              <p className="mt-1 text-sm text-ink">{vehicle.temperatureLabel ?? "Chưa có nhóm nhiệt"} · {vehicle.capacityTon == null ? "Chưa có tải trọng" : `${vehicle.capacityTon} tấn`}</p>
+            <li key={vehicle.id} className={vehicles.length === 1 ? "xl:col-span-2" : undefined}>
+              <article className="grid gap-6 rounded-2xl border border-line bg-surface p-5 sm:p-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-center">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold tracking-[0.16em] text-navy uppercase">Xe</p>
+                  <h2 className="mt-2 text-2xl font-extrabold tracking-tight text-ink">
+                    <Link to={`${paths.carrierFleet}/xe/${vehicle.id}`} className="hover:text-navy">
+                      {vehicle.label}
+                    </Link>
+                  </h2>
+                  <p className="mt-2 font-mono text-sm font-semibold text-ink">{vehicle.plate ?? "Chưa ghi biển số"}</p>
+                </div>
+                <dl className="grid grid-cols-3 gap-3 border-t border-line pt-4 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
+                  <Spec label="Loại" value={vehicle.vehicleKindLabel} />
+                  <Spec label="Nhiệt" value={vehicle.temperatureLabel} />
+                  <Spec label="Tải trọng" value={vehicle.capacityTon == null ? null : `${vehicle.capacityTon} tấn`} />
+                </dl>
+              </article>
             </li>
           ))}
         </ul>
       ) : null}
     </section>
+  );
+}
+
+function Spec({ label, value }: { label: string; value: string | null }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-[11px] font-semibold tracking-wide text-muted uppercase">{label}</dt>
+      <dd className="mt-1 text-sm font-semibold text-ink">{value ?? "Chưa ghi"}</dd>
+    </div>
   );
 }

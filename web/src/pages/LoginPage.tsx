@@ -66,12 +66,12 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-svh bg-white lg:grid lg:grid-cols-[minmax(22rem,0.92fr)_minmax(24rem,1.08fr)]">
-      <aside className="relative hidden overflow-hidden bg-navy-deep text-white lg:flex lg:min-h-svh lg:flex-col lg:justify-between lg:px-12 lg:py-10">
-        <img src={roadStill} alt="" className="absolute inset-0 h-full w-full object-cover object-[62%_center]" />
-        <div className="absolute inset-0 bg-gradient-to-r from-navy-deep/78 via-navy-deep/42 to-navy-deep/18" />
+    <div className="min-h-svh bg-white lg:grid lg:grid-cols-[minmax(0,1.12fr)_minmax(26rem,0.88fr)]">
+      <aside className="relative hidden overflow-hidden bg-navy-deep text-white lg:flex lg:min-h-svh lg:flex-col lg:justify-between lg:px-12 lg:py-10 xl:px-16">
+        <img src={roadStill} alt="" className="absolute inset-0 h-full w-full object-cover object-[70%_46%]" />
+        <div className="absolute inset-0 bg-gradient-to-r from-navy-deep/80 via-navy-deep/36 to-navy-deep/8" />
         <div className="relative z-10 flex min-h-0 flex-1 flex-col justify-between">
-          <Logo tone="inverse" />
+          <Logo tone="inverse" mark="light" />
           <div className="max-w-md">
             <p className="text-[11px] font-semibold tracking-[0.22em] text-white/80">VẬN TẢI LẠNH B2B</p>
             <h2 className="mt-4 text-4xl leading-[1.08] font-extrabold tracking-tight text-balance xl:text-5xl">Rõ từng hành trình lạnh.</h2>
@@ -89,21 +89,21 @@ export function LoginPage() {
             Về trang chủ
           </Link>
         </header>
-        <div className="flex flex-1 items-center px-5 pb-10 sm:px-10">
-          <div className="animate-rise mx-auto w-full max-w-lg">
+        <div className="flex flex-1 items-center px-6 py-10 sm:px-12 lg:px-14 xl:px-16">
+          <div className="animate-rise w-full max-w-xl">
             {snapshot.status === "authenticated" ? (
               <SignedIn user={snapshot.user} onLogout={() => void logout()} />
             ) : (
               <>
                 <h1 className="text-4xl font-extrabold tracking-tight text-ink">Đăng nhập</h1>
-                <p className="mt-3 text-base leading-relaxed text-muted">Dùng tài khoản đã được cấp. Trang này không chọn vai trò thay bạn.</p>
+                <p className="mt-3 max-w-md text-base leading-relaxed text-muted">Đăng nhập để tiếp tục quản lý công việc và các chuyến hàng trên COLDI.</p>
                 {context ? (
                   <div className="mt-6 rounded-2xl border border-line bg-surface px-4 py-3 text-sm leading-relaxed">
                     <p className="font-semibold text-ink">{context.title}</p>
                     <p className="mt-1 text-muted">{context.body}</p>
                   </div>
                 ) : null}
-                <form className="mt-8 space-y-5" onSubmit={(event) => void handleSubmit(event)} noValidate>
+                <form className="mt-8 space-y-6" onSubmit={(event) => void handleSubmit(event)} noValidate>
                   <div className="space-y-2">
                     <Label htmlFor="login-email">Email</Label>
                     <Input
@@ -143,7 +143,7 @@ export function LoginPage() {
                       </Button>
                     </div>
                   </div>
-                  <Button type="submit" size="lg" className="w-full" disabled={pending || snapshot.status === "loading"} aria-busy={pending}>
+                  <Button type="submit" size="lg" className="mt-2 h-12 w-full text-base" disabled={pending || snapshot.status === "loading"} aria-busy={pending}>
                     {pending ? <LoaderCircle className="size-4 animate-spin" aria-hidden="true" /> : null}
                     {pending ? "Đang đăng nhập" : "Đăng nhập"}
                   </Button>

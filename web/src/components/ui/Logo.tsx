@@ -5,6 +5,8 @@ import logo from "../../../../Asset/logo coldi 5.png";
 
 type LogoProps = {
   tone?: "default" | "inverse";
+  /** Recolor the original blue mark to white. Use only on a dark surface. */
+  mark?: "brand" | "light";
   to?: string;
 };
 
@@ -13,7 +15,7 @@ const ink = { x: 43, y: 226, width: 925, height: 555 };
 const inkHeight = "1.75rem";
 const pad = "4px";
 
-export function Logo({ tone = "default", to = paths.home }: LogoProps) {
+export function Logo({ tone = "default", mark = "brand", to = paths.home }: LogoProps) {
   const inverse = tone === "inverse";
 
   return (
@@ -30,7 +32,7 @@ export function Logo({ tone = "default", to = paths.home }: LogoProps) {
           alt=""
           width={1000}
           height={1000}
-          className="absolute max-w-none"
+          className={cn("absolute max-w-none", mark === "light" && "brightness-0 invert")}
           style={{
             width: `calc(${inkHeight} * 1000 / ${ink.height})`,
             height: `calc(${inkHeight} * 1000 / ${ink.height})`,

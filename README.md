@@ -2,7 +2,15 @@
 
 COLDI là website vận tải lạnh B2B. Chủ hàng đăng đơn. Nhà xe tự nhận chuyến rồi phân công xe và tài xế. Tài xế được phân công xác nhận lấy hàng, sau đó mới xác nhận giao hàng. Xác nhận giao hàng không phải thanh toán.
 
-Tài liệu này mô tả nhánh `integration/coldi-v2.3-mvp`. Nhánh đó chứa luồng đã có từ Core 08, cộng GPS vị trí mới nhất, chat riêng, đội xe, audit, sàn lọc và snapshot tên lúc gán. `main` chưa nhận các commit này. Chưa có nghiệm thu tay trên trình duyệt.
+## Team Testing — Latest Development Build
+
+Bản trên `main` sau lần merge này là bản WIP để nhóm FPT thử và báo lỗi. Đây không phải bản phát hành và chưa nghiệm thu hình ảnh.
+
+Đọc và làm theo [hướng dẫn kiểm thử](docs/team-testing/TEAM_TESTING_GUIDE.md). Clone xong thì ở nhánh `main`, mở `http://127.0.0.1:5173`.
+
+Các mục phía dưới ghi lại lịch sử nhánh tích hợp và các báo cáo cũ. Chúng mô tả thời điểm viết báo cáo đó, không thay hướng dẫn kiểm thử hiện tại.
+
+Tài liệu lịch sử này được viết khi mã nằm trên `integration/coldi-v2.3-mvp`: Core 08, GPS vị trí mới nhất, chat riêng, đội xe, audit, sàn lọc và snapshot tên lúc gán. Chưa có nghiệm thu hình ảnh.
 
 ## Lấy mã
 
