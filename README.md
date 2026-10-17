@@ -2,7 +2,21 @@
 
 COLDI là website vận tải lạnh B2B. Chủ hàng đăng đơn. Nhà xe tự nhận chuyến rồi phân công xe và tài xế. Tài xế được phân công xác nhận lấy hàng, sau đó mới xác nhận giao hàng. Xác nhận giao hàng không phải thanh toán.
 
-Đây chưa phải toàn bộ MVP trong tài liệu v2.3. GPS, chat, thanh toán, quản lý đội xe và khu quản trị vận hành chưa được làm.
+Tài liệu này mô tả nhánh `integration/coldi-v2.3-mvp`. Nhánh đó chứa luồng đã có từ Core 08, cộng GPS vị trí mới nhất, chat riêng, đội xe, audit, sàn lọc và snapshot tên lúc gán. `main` chưa nhận các commit này. Chưa có nghiệm thu tay trên trình duyệt.
+
+## Lấy mã
+
+```bash
+git clone https://github.com/Van125478/Coldi-express.git
+cd Coldi-express
+git checkout integration/coldi-v2.3-mvp
+```
+
+Cần Node.js 20.19 trở lên và npm. Lệnh clone ở trên chưa được thực hiện lại từ một máy sạch trong lượt tạo nhánh. Kiểm tra tự động dùng một worktree local của commit code `95d913284e854e8af4fd058e9310909b4873370c`.
+
+Lúc tạo nhánh, `git ls-remote` thấy GitHub `main` tại `a2a2c3846c04614f34cc0d96effd5b488ee7fdda`. Cây của commit đó không được mở ra. Hash đó không chứng minh `main` đã có hoặc chưa có một tính năng. Ref `origin/main` trên máy làm việc vẫn là `44e4791134690c72a261d91c60388994668fcdcb` vì lượt này không fetch.
+
+`feature/cinematic-scroll` vẫn dừng ở `69ec1a198f0729efc10a3d534dd92d264b1738eb`. Core 07 là `cd5045300ac4c788deba3c08053ed1a439481d95`. Core 08 là commit cùng hash với đầu nhánh feature.
 
 ## Tài liệu cho người mới
 
@@ -10,23 +24,28 @@ COLDI là website vận tải lạnh B2B. Chủ hàng đăng đơn. Nhà xe tự
 
 1. [Thiết lập máy local](docs/core-08/01-thiet-lap.md)
 2. [Kịch bản demo ba vai trò](docs/core-08/02-kich-ban-demo.md)
-3. [Checklist nghiệm thu](docs/core-08/03-checklist-nghiem-thu.md)
-4. [Sự cố và giới hạn](docs/core-08/04-su-co-va-gioi-han.md)
+3. [Checklist nghiệm thu Core 08](docs/core-08/03-checklist-nghiem-thu.md)
+4. [Sự cố và giới hạn Core 08](docs/core-08/04-su-co-va-gioi-han.md)
+5. [Danh sách nghiệm thu tay hiện tại](docs/mvp-review/07-manual-acceptance-readiness.md)
 
 Mẫu báo lỗi: [docs/core-08/05-mau-bao-loi.md](docs/core-08/05-mau-bao-loi.md).
 
-`docs/COLDI_DEMO_GUIDE.md` là bản mô tả giao diện cũ. Không dùng file đó để cài đặt.
+Core 08 mô tả máy local và luồng đã nghiệm thu trước GPS, chat, đội xe và sàn lọc. Trạng thái các phần mới nằm ở `docs/core-09/` đến `docs/core-13/` và `docs/mvp-review/`. `docs/COLDI_DEMO_GUIDE.md` là bản mô tả giao diện cũ. Không dùng file đó để cài đặt.
 
-## Hai trạng thái mã nguồn
+## Trạng thái trên nhánh tích hợp
 
-Đừng trộn hai trạng thái này.
+| Phần | Mã và test API | Nghiệm thu tay | Giới hạn còn lại |
+| --- | --- | --- | --- |
+| Đăng, nhận, gán, lấy, giao | Đã có | Checklist Core 08 đã bấm luồng chính trước đó. Chưa bấm lại trên nhánh này | Giao hàng không phải thanh toán và không sang `COMPLETED` |
+| Timeline năm sự kiện | Đã có | Chưa bấm lại | Event `ASSIGNED` mới giữ tên xe và tên tài xế lúc gán. Event cũ không có snapshot vẫn đọc tên hiện tại, không phải bản lịch sử đã chứng minh |
+| GPS vị trí mới nhất | Đã có | Chưa | Không có bản đồ Goong hay Mapbox. Gần kho luôn không áp dụng |
+| Chat riêng theo đơn và nhà xe | Đã có | Chưa | Chưa chốt thời gian lưu tin. Nhà xe thua vẫn đọc thread cũ là quy tắc tạm |
+| Đội xe: thêm, sửa, xem xe; sửa tên tài xế đã gắn | Đã có | Chưa | Chưa có tạo tài khoản tài xế. Chưa có kiểm định xe |
+| Audit sau ghi thành công | Đã có | Không có màn hình | Process chết giữa ghi đơn và ghi log có thể mất audit. Không có tenant tổ chức |
+| Sàn: tìm, lọc, sắp xếp, so sánh, xác nhận Claim | Đã có | Chưa | Danh sách quét tối đa 500 đơn và trả tối đa 100 dòng |
+| Thanh toán, bản đồ, tenant | Chưa làm | — | Còn chờ quyết định ở `docs/mvp-review/04-open-decisions.md` |
 
-| Trạng thái | Timeline năm sự kiện | Ghi chú |
-| --- | --- | --- |
-| Nhánh `feature/cinematic-scroll` | Có, tại commit `cd5045300ac4c788deba3c08053ed1a439481d95` | `npm test` của commit đó gồm `tests/timeline.test.ts` |
-| `main` | Chưa có | `origin/main` vẫn là commit khởi tạo `44e4791134690c72a261d91c60388994668fcdcb` |
-
-Commit timeline nằm trên nhánh làm việc này, trước tài liệu hướng dẫn. `main` chưa nhận commit đó và chưa có hash merge. Sau khi merge được duyệt, người trong nhóm clone `main`. Trước thời điểm đó, đừng coi `feature/cinematic-scroll` là nhánh cố định.
+Worktree sạch của commit code `95d913284e854e8af4fd058e9310909b4873370c` báo `npm test` 51 pass, 0 fail. Web `npm run lint`, `npx tsc -b` và `npm run build` pass trên cùng worktree. Commit README sau commit đó chỉ sửa hai file hướng dẫn. Đó không phải nghiệm thu trình duyệt và không phải clone mới từ GitHub.
 
 ## Chạy local
 

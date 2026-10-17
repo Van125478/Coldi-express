@@ -1,10 +1,10 @@
 # COLDI API
 
-Node.js API for the COLDI local workflow. Authentication is cookie-based. A signed-in shipper can publish a shipment. A carrier can claim one published shipment and assign a vehicle and driver. The assigned driver can confirm pickup and then delivery.
+Node.js API for the COLDI local workflow on `integration/coldi-v2.3-mvp`. Authentication is cookie-based. A signed-in shipper can publish a shipment. A carrier can search the open board, claim one published shipment, and assign a vehicle and driver. The assigned driver can confirm pickup, send a latest GPS sample while the trip is `IN_TRANSIT`, and then confirm delivery. The shipper and the winning carrier can use a private shipment thread.
 
-This is not a production deployment and it is not the whole v2.3 MVP. GPS, chat, payment, fleet management screens, and the admin workspace are not implemented.
+This is not a production deployment and it is not the whole v2.3 MVP. These additions are on the integration branch. They are not merged into `main`. Browser acceptance has not been run for this branch.
 
-The shipment event timeline is commit `cd5045300ac4c788deba3c08053ed1a439481d95` on `feature/cinematic-scroll`. It is not on `main`. A clone of `main` still has only the initial commit.
+The shipment event timeline began in commit `cd5045300ac4c788deba3c08053ed1a439481d95`. Core 08, the team setup guide, is `69ec1a198f0729efc10a3d534dd92d264b1738eb`. New `ASSIGNED` events on this branch also store the vehicle label and driver display name from that assignment. Older events without those fields stay readable and still follow the current records.
 
 ## Requirements
 
@@ -55,9 +55,9 @@ This publishes MongoDB only on `127.0.0.1:27017` and stores data in a local volu
 
 `npm test` does not drop the development database `coldi`. Each workflow test file points `MONGODB_URI` at its own database name and refuses to continue if that name does not match. Health tests do not delete a database.
 
-The test script in the timeline commit lists health, auth, shipment, claim, assignment, driver, and `tests/timeline.test.ts`. The last run of that script reported 29 passed and 0 failed. That result is not a substitute for the manual UI acceptance recorded in `docs/core-08/03-checklist-nghiem-thu.md`. Authorization, retry, and concurrency cases in those tests were not all repeated by hand.
+The integration branch test script adds GPS, chat, fleet, security, marketplace, marketplace form, and full lifecycle files to the Core 08 list. A clean worktree of commit `95d913284e854e8af4fd058e9310909b4873370c` reported 51 passed and 0 failed. That run used isolated test databases and did not seed demo accounts. It is not manual UI acceptance. The earlier timeline commit still reported 29 passed for its smaller script.
 
-`npm run seed:demo` rewrites `passwordHash` and `role` for the four demo emails. Use it for a new local database or an intentional reset of those accounts. It does not delete shipments. `npm run seed:fleet` must run after it. There is no committed `reset:demo-passwords` script.
+`npm run seed:demo` rewrites `passwordHash` and `role` for the four demo emails. Use it for a new local database or an intentional reset of those accounts. It does not delete shipments. `npm run seed:fleet` must run after it. This branch does not contain a password-reset script.
 
 The development frontend origin expected by `.env.example` is `http://127.0.0.1:5173`.
 
@@ -169,10 +169,10 @@ In the timeline commit, a successful publish, claim, assignment, pickup, or deli
 
 Event types in that commit are `PUBLISHED`, `CLAIMED`, `ASSIGNED`, `PICKUP_CONFIRMED`, and `DELIVERY_CONFIRMED`. A shipment saved before these fields existed is not rewritten. Its read shows only milestones that already have a stored time, and it says claim and assignment times are not inferred.
 
-This timeline code and `tests/timeline.test.ts` are in commit `cd5045300ac4c788deba3c08053ed1a439481d95` on `feature/cinematic-scroll`. They are not on `main`.
+The original timeline commit is `cd5045300ac4c788deba3c08053ed1a439481d95`. On this integration branch, a new `ASSIGNED` event also stores `assignedVehicleLabel` and `assignedDriverName` from the server vehicle and driver records. A later fleet rename does not change that sentence. An older event without those fields still uses the current name, so that sentence is not an immutable historical snapshot. Neither case was checked in a browser for this branch.
 
-## Future boundaries
+## Boundaries still open
 
-GPS and payment are not implemented. Only one carrier can successfully claim a published shipment. A claim does not assign a vehicle or driver. Phone or chat contact does not reserve a shipment. GPS does not confirm business milestones. Completion does not mean payment.
+Only one carrier can successfully claim a published shipment. A claim does not assign a vehicle or driver. Phone or chat contact does not reserve a shipment. GPS stores one latest sample and does not confirm pickup or delivery. There is no geographic map provider. Chat retention and whether a losing carrier should keep reading an old thread are not settled. Fleet editing does not create driver accounts or verify vehicle compliance. Audit rows are written after a successful business update and can be missing if the process stops before the insert. There is no organization tenant. The open load board scans at most 500 shipments and returns at most 100. Delivery does not set `COMPLETED` and does not record a payment.
 
 Responses stay independent of MongoDB document shape. Weight, volume, package count, and the pickup and delivery windows are stored as entered. No approved rule converts units, calculates a price, or rejects a date in the past.
