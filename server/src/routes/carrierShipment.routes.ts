@@ -13,6 +13,7 @@ import { Vehicle } from "../models/vehicle.js";
 import { readAssignInput } from "../shipments/assignInput.js";
 import { toCarrierShipmentView, toCarrierShipmentViews } from "../shipments/assignmentView.js";
 import { compareMarketplaceShipments, marketplaceFilter, readMarketplaceQuery } from "../shipments/marketplaceQuery.js";
+import { toTrackingDto } from "../gps/trackingView.js";
 import { attachTimeline, shipmentEventUpdate } from "../shipments/shipmentEvents.js";
 
 const forbiddenFields = ["carrierId", "status", "shipperId", "vehicleId", "driverId", "role", "tenantId", "senderId"] as const;
@@ -49,6 +50,24 @@ carrierShipmentRouter.get("/claimed", async (request, response, next) => {
       status: { $in: ["MATCHED", "IN_TRANSIT", "DELIVERY_CONFIRMED"] },
     }).sort({ createdAt: 1, _id: 1 });
     response.status(200).json({ shipments: await toCarrierShipmentViews(shipments) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+carrierShipmentRouter.get("/:id/location", async (request, response, next) => {
+  try {
+    const carrierId = request.authUser?.id;
+    if (!carrierId) throw new HttpError(401, "unauthenticated", "Cần đăng nhập để tiếp tục.");
+    const id = request.params.id;
+    if (typeof id !== "string" || !isValidObjectId(id)) {
+      throw new HttpError(404, "not_found", "Không tìm thấy chuyến này.");
+    }
+    const shipment = await Shipment.findById(id);
+    if (!shipment || shipment.carrierId?.toString() !== carrierId) {
+      throw new HttpError(404, "not_found", "Không tìm thấy chuyến này.");
+    }
+    response.status(200).json({ tracking: toTrackingDto(shipment.status, shipment.latestLocation) });
   } catch (error) {
     next(error);
   }

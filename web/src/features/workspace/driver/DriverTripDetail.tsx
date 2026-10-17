@@ -170,7 +170,7 @@ export function DriverTripDetail() {
                     {shipment.deliveryConfirmedAt ? "Đã xác nhận" : "Chưa xác nhận"}
                   </p>
                   <p className="text-base font-bold text-ink">Việc tiếp theo: {driverActionLabel(shipment.nextAction)}</p>
-                  {shipment.nextAction === "none" ? <p className="text-sm leading-relaxed text-ink">Chuyến đã xác nhận giao hàng. Không còn thao tác xác nhận và không tự chuyển sang hoàn tất.</p> : null}
+                  {shipment.nextAction === "none" ? <p className="text-sm leading-relaxed text-ink">Đã xác nhận giao hàng. Việc này chưa phải thanh toán.</p> : null}
                   {shipment.nextAction !== "none" && confirming !== shipment.nextAction ? (
                     <Button type="button" className="min-h-12 w-full" disabled={pending} onClick={() => setConfirming(shipment.nextAction === "none" ? null : shipment.nextAction)}>
                       {shipment.nextAction === "pickup" ? "Xác nhận đã lấy hàng" : "Xác nhận đã giao hàng"}
@@ -183,8 +183,8 @@ export function DriverTripDetail() {
                       </h3>
                       <p className="mt-2 text-sm leading-relaxed text-ink">
                         {confirming === "pickup"
-                          ? "Chuyến chuyển sang Đang vận chuyển và ghi mốc đã lấy hàng. Thao tác này không phải thanh toán và không lấy từ GPS."
-                          : "Trạng thái thành Đã xác nhận giao hàng và ghi mốc đã giao. Chưa phải đã thanh toán. GPS không tự xác nhận giao."}
+                          ? "Xác nhận rằng bạn đã nhận hàng và bắt đầu vận chuyển."
+                          : "Xác nhận rằng hàng đã được giao đến điểm nhận. Việc này chưa phải thanh toán."}
                       </p>
                       <div className="mt-3 flex flex-col gap-2 sm:flex-row">
                         <Button type="button" className="min-h-11 w-full sm:w-auto" disabled={pending} onClick={() => void confirm()}>
@@ -205,7 +205,7 @@ export function DriverTripDetail() {
               </div>
               <DetailBlock title="Cước niêm yết">
                 <p className="text-2xl font-extrabold text-navy">{money(shipment.listedPriceVnd)}</p>
-                <p className="text-sm text-muted">Giá chủ hàng niêm yết. Xác nhận giao hàng chưa phải thanh toán.</p>
+                <p className="text-sm text-muted">Giá chủ hàng niêm yết.</p>
               </DetailBlock>
             </div>
           </div>

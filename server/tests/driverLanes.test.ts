@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { compareDriverTrips, currentDriverTrip, driverActionLabel, driverCounts, driverLane } from "../../web/src/features/workspace/driver/driverLanes.ts";
+import { compareDriverTrips, currentDriverTrip, driverActionLabel, driverCounts, driverLane, otherActionableTrips } from "../../web/src/features/workspace/driver/driverLanes.ts";
 
 test("driver lanes follow persisted statuses and do not invent completed", () => {
   assert.equal(driverLane("MATCHED"), "pickup");
@@ -23,4 +23,10 @@ test("the current driver trip prefers delivery, then pickup, and ignores deliver
   assert.deepEqual(items.slice().sort(compareDriverTrips).map((item) => item.id), ["wait", "move", "done"]);
   assert.equal(driverActionLabel("pickup"), "Xác nhận lấy hàng");
   assert.equal(driverActionLabel("none"), "Xem chi tiết chuyến");
+  const current = currentDriverTrip(items);
+  assert.deepEqual(
+    otherActionableTrips(items, current).map((item) => item.id),
+    ["wait"],
+  );
+  assert.deepEqual(otherActionableTrips(items.filter((item) => item.id === "move"), currentDriverTrip(items.filter((item) => item.id === "move"))), []);
 });

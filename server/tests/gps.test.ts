@@ -28,6 +28,7 @@ const carrierEmail = "carrier.gps-test@coldi.local";
 const driverEmail = "driver.gps-test@coldi.local";
 const otherDriverEmail = "other-driver.gps-test@coldi.local";
 const adminEmail = "admin.gps-test@coldi.local";
+const otherCarrierEmail = "other-carrier.gps-test@coldi.local";
 const latitude = 10.82345;
 const longitude = 106.62965;
 
@@ -130,7 +131,7 @@ before(async () => {
   await mongoose.connection.dropDatabase();
   const passwordHash = await hashPassword(password);
   const carrier = await User.create({ email: carrierEmail, passwordHash, role: "CARRIER", displayName: "Nhà xe kiểm tra" });
-  const otherCarrier = await User.create({ email: "other-carrier.gps-test@coldi.local", passwordHash, role: "CARRIER", displayName: "Nhà xe khác" });
+  const otherCarrier = await User.create({ email: otherCarrierEmail, passwordHash, role: "CARRIER", displayName: "Nhà xe khác" });
   await User.create([
     { email: shipperEmail, passwordHash, role: "SHIPPER", displayName: "Chủ hàng kiểm tra" },
     { email: otherShipperEmail, passwordHash, role: "SHIPPER", displayName: "Chủ hàng khác" },
@@ -332,5 +333,90 @@ test("pickup and delivery succeed when no GPS sample exists", async () => {
     const stored = await Shipment.findById(trip.id);
     assert.equal(stored?.status, "DELIVERY_CONFIRMED");
     assert.equal(stored?.latestLocation ?? null, null);
+  });
+});
+
+test("shipper owner and assigned carrier can read tracking; every other caller is denied", async () => {
+  await withServer(async (baseUrl) => {
+    const trip = await transit(baseUrl);
+    const otherCarrier = await login(baseUrl, otherCarrierEmail);
+    const otherShipper = await login(baseUrl, otherShipperEmail);
+    const admin = await login(baseUrl, adminEmail);
+    const unclaimed = await publish(baseUrl, trip.shipper);
+    assert.equal(unclaimed.status, 201);
+    const unclaimedId = String((((await unclaimed.json()) as Json).shipment as Json).id);
+
+    const before = await fetch(`${baseUrl}/api/carrier/shipments/${trip.id}/location`, { headers: { cookie: trip.carrier } });
+    assert.equal(before.status, 200);
+    const beforeBody = ((await before.json()) as Json).tracking as Json;
+    assert.equal(beforeBody.phase, "not_started");
+    assert.equal(beforeBody.location, null);
+
+    const noClaim = await fetch(`${baseUrl}/api/carrier/shipments/${unclaimedId}/location`, { headers: { cookie: trip.carrier } });
+    assert.equal(noClaim.status, 404);
+    const otherCarrierRead = await fetch(`${baseUrl}/api/carrier/shipments/${trip.id}/location`, { headers: { cookie: otherCarrier } });
+    assert.equal(otherCarrierRead.status, 404);
+
+    await fetch(`${baseUrl}/api/driver/shipments/${trip.id}/pickup`, {
+      method: "POST",
+      headers: { "content-type": "application/json", origin: "http://127.0.0.1:5173", cookie: trip.driver },
+      body: JSON.stringify({}),
+    });
+    const waiting = await fetch(`${baseUrl}/api/carrier/shipments/${trip.id}/location`, { headers: { cookie: trip.carrier } });
+    const waitingBody = ((await waiting.json()) as Json).tracking as Json;
+    assert.equal(waitingBody.phase, "waiting_for_fix");
+    assert.equal(waitingBody.location, null);
+
+    const uploaded = await locate(baseUrl, trip.driver, trip.id, new Date().toISOString());
+    assert.equal(uploaded.status, 200);
+    const owner = await fetch(`${baseUrl}/api/shipments/${trip.id}/location`, { headers: { cookie: trip.shipper } });
+    const assigned = await fetch(`${baseUrl}/api/carrier/shipments/${trip.id}/location`, { headers: { cookie: trip.carrier } });
+    assert.equal(owner.status, 200);
+    assert.equal(assigned.status, 200);
+    assert.equal((((await owner.json()) as Json).tracking as Json).phase, "current");
+    const assignedTracking = ((await assigned.json()) as Json).tracking as Json;
+    assert.equal(assignedTracking.phase, "current");
+    assert.equal((assignedTracking.location as Json).latitude, latitude);
+
+    await Shipment.updateOne({ _id: trip.id }, { $set: { "latestLocation.receivedAt": new Date(Date.now() - 21 * 60 * 1000) } });
+    const stale = await fetch(`${baseUrl}/api/carrier/shipments/${trip.id}/location`, { headers: { cookie: trip.carrier } });
+    const staleBody = ((await stale.json()) as Json).tracking as Json;
+    assert.equal(staleBody.phase, "stale");
+    assert.equal((staleBody.location as Json).longitude, longitude);
+
+    const denied = [
+      [`/api/shipments/${trip.id}/location`, otherShipper, 403],
+      [`/api/shipments/${trip.id}/location`, trip.carrier, 403],
+      [`/api/shipments/${trip.id}/location`, trip.driver, 403],
+      [`/api/shipments/${trip.id}/location`, admin, 403],
+      [`/api/carrier/shipments/${trip.id}/location`, trip.shipper, 403],
+      [`/api/carrier/shipments/${trip.id}/location`, otherShipper, 403],
+      [`/api/carrier/shipments/${trip.id}/location`, trip.driver, 403],
+      [`/api/carrier/shipments/${trip.id}/location`, admin, 403],
+    ] as const;
+    for (const [path, cookie, status] of denied) {
+      const response = await fetch(`${baseUrl}${path}`, { headers: { cookie } });
+      assert.equal(response.status, status);
+    }
+    const guestShipper = await fetch(`${baseUrl}/api/shipments/${trip.id}/location`);
+    const guestCarrier = await fetch(`${baseUrl}/api/carrier/shipments/${trip.id}/location`);
+    assert.equal(guestShipper.status, 401);
+    assert.equal(guestCarrier.status, 401);
+
+    const board = await fetch(`${baseUrl}/api/carrier/shipments`, { headers: { cookie: trip.carrier } });
+    assert.equal((await board.text()).includes(String(latitude)), false);
+
+    const delivered = await fetch(`${baseUrl}/api/driver/shipments/${trip.id}/delivery`, {
+      method: "POST",
+      headers: { "content-type": "application/json", origin: "http://127.0.0.1:5173", cookie: trip.driver },
+      body: JSON.stringify({}),
+    });
+    assert.equal(delivered.status, 200);
+    const ended = await fetch(`${baseUrl}/api/carrier/shipments/${trip.id}/location`, { headers: { cookie: trip.carrier } });
+    const endedBody = ((await ended.json()) as Json).tracking as Json;
+    assert.equal(endedBody.phase, "ended");
+    assert.equal((endedBody.location as Json).latitude, latitude);
+    const endedShipper = await fetch(`${baseUrl}/api/shipments/${trip.id}/location`, { headers: { cookie: trip.shipper } });
+    assert.equal((((await endedShipper.json()) as Json).tracking as Json).phase, "ended");
   });
 });

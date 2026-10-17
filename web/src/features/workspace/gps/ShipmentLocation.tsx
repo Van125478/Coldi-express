@@ -12,7 +12,15 @@ const ShipmentLiveMap = lazy(() => import("./ShipmentLiveMap").then((module) => 
 const POLL_MS = 90 * 1000;
 const activePhases = new Set(["waiting_for_fix", "current", "stale"]);
 
-export function ShipmentLocation({ shipmentId }: { shipmentId: string }) {
+export function ShipmentLocation({
+  shipmentId,
+  title = "Vị trí GPS",
+  load = getShipmentLocation,
+}: {
+  shipmentId: string;
+  title?: string;
+  load?: (id: string) => Promise<{ tracking: ShipmentTracking }>;
+}) {
   const { logout } = useAuth();
   const [tracking, setTracking] = useState<ShipmentTracking | null>(null);
   const [problem, setProblem] = useState(false);
@@ -32,9 +40,9 @@ export function ShipmentLocation({ shipmentId }: { shipmentId: string }) {
     let timer = 0;
     let watching = false;
 
-    async function load() {
+    async function refresh() {
       try {
-        const body = await getShipmentLocation(shipmentId);
+        const body = await load(shipmentId);
         if (!active) return;
         setTracking(body.tracking);
         setProblem(false);
@@ -51,7 +59,7 @@ export function ShipmentLocation({ shipmentId }: { shipmentId: string }) {
     function schedule() {
       window.clearTimeout(timer);
       if (!watching || document.visibilityState === "hidden") return;
-      timer = window.setTimeout(() => void load(), POLL_MS);
+      timer = window.setTimeout(() => void refresh(), POLL_MS);
     }
 
     function onVisibility() {
@@ -60,17 +68,17 @@ export function ShipmentLocation({ shipmentId }: { shipmentId: string }) {
         window.clearTimeout(timer);
         return;
       }
-      if (watching) void load();
+      if (watching) void refresh();
     }
 
     document.addEventListener("visibilitychange", onVisibility);
-    void load();
+    void refresh();
     return () => {
       active = false;
       window.clearTimeout(timer);
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [shipmentId, logout, attempt]);
+  }, [shipmentId, logout, attempt, load]);
 
   const latitude = tracking?.location?.latitude;
   const longitude = tracking?.location?.longitude;
@@ -86,7 +94,7 @@ export function ShipmentLocation({ shipmentId }: { shipmentId: string }) {
   const stablePosition = useMemo(() => toMapboxPosition(latitude, longitude), [latitude, longitude]);
 
   return (
-    <DetailBlock title="Vị trí GPS">
+    <DetailBlock title={title}>
       {view.kind === "api_error" ? (
         <div className="space-y-3">
           <p role="alert" className="text-sm text-ink">
@@ -99,19 +107,19 @@ export function ShipmentLocation({ shipmentId }: { shipmentId: string }) {
       ) : null}
       {!problem && !tracking ? <p className="text-sm text-muted">Đang tải vị trí.</p> : null}
       {!problem && tracking ? <p className="text-sm font-semibold text-ink">{trackingLabels[tracking.phase]}</p> : null}
-      {view.kind === "waiting" ? <p className="text-sm text-ink">Chưa nhận được vị trí GPS.</p> : null}
-      {!problem && tracking?.phase === "ended" && !tracking.location ? <p className="text-sm text-muted">Không có vị trí nào được ghi trước khi dừng theo dõi.</p> : null}
-      {view.kind === "coordinates" ? (
+      {!problem && tracking?.phase === "ended" && !tracking.location ? <p className="text-sm text-ink">Chưa có vị trí xe được cập nhật.</p> : null}
+      {view.kind === "coordinates" && tracking?.location ? (
         <div className="space-y-3">
           <div className="space-y-2 rounded-2xl border border-line bg-canvas p-4">
-            <p className="text-sm text-ink">{toneCopy[view.tone]}</p>
+            {toneCopy[view.tone] ? <p className="text-sm text-ink">{toneCopy[view.tone]}</p> : null}
             <p className="font-mono text-sm text-navy">
-              {tracking?.location?.latitude.toFixed(5)}, {tracking?.location?.longitude.toFixed(5)}
+              {tracking.location.latitude.toFixed(5)}, {tracking.location.longitude.toFixed(5)}
             </p>
-            <p className="text-sm text-ink">Máy chủ nhận lúc {tracking?.location ? eventTime(tracking.location.receivedAt) : ""}.</p>
-            <p className="text-sm text-muted">Thiết bị quan sát lúc {tracking?.location ? eventTime(tracking.location.observedAt) : ""}.</p>
+            <p className="text-sm text-ink">Cập nhật lúc {eventTime(tracking.location.receivedAt)}.</p>
+            <p className="text-sm text-muted">Thiết bị ghi lúc {eventTime(tracking.location.observedAt)}.</p>
           </div>
-          {view.map === "missing_token" ? <p className="text-sm leading-relaxed text-ink">Chưa có khóa bản đồ Mapbox công khai. Tọa độ và thời điểm vẫn hiện ở trên.</p> : null}
+          {view.map === "missing_token" ? <p className="text-sm leading-relaxed text-ink">Bản đồ chưa được cấu hình. Tọa độ vẫn hiện ở trên.</p> : null}
+          {view.map === "webgl" || view.map === "load_failed" ? <p className="text-sm leading-relaxed text-ink">Bản đồ chưa mở được trên trình duyệt này. Tọa độ vẫn hiện ở trên.</p> : null}
           {view.map === "ready" && !mapOpen ? (
             <button type="button" className="min-h-11 rounded-xl bg-navy px-4 text-sm font-semibold text-white" onClick={() => setMapOpen(true)}>
               {view.tone === "historical" ? "Xem vị trí cuối trên bản đồ" : "Mở bản đồ"}
@@ -119,20 +127,17 @@ export function ShipmentLocation({ shipmentId }: { shipmentId: string }) {
           ) : null}
           {view.map === "ready" && mapOpen && stablePosition && token ? (
             <Suspense fallback={<div className="grid h-72 place-items-center rounded-2xl border border-line sm:h-96"><p className="text-sm text-muted">Đang mở bản đồ.</p></div>}>
-              <ShipmentLiveMap token={token} position={stablePosition} bearingDeg={tracking?.location?.bearingDeg ?? null} />
+              <ShipmentLiveMap token={token} position={stablePosition} bearingDeg={tracking.location.bearingDeg} />
             </Suspense>
           ) : null}
         </div>
       ) : null}
-      <p className="text-sm leading-relaxed text-muted">
-        Đây là vị trí xe do tài xế gửi, không phải bản đồ lộ trình từ điểm lấy đến điểm giao. Địa chỉ hai đầu chưa có tọa độ, nên không vẽ tuyến và không có ETA. GPS không đổi trạng thái đơn, không xác nhận lấy hàng, giao hàng hay thanh toán. Nút mở bản đồ chỉ hiện khi đã có tọa độ hợp lệ và khóa Mapbox công khai. Yêu cầu bản đồ không gửi mã đơn, tên tài xế hay nội dung chat.
-      </p>
     </DetailBlock>
   );
 }
 
 const toneCopy = {
   current: "Vị trí mới cập nhật.",
-  stale: "Vị trí này đã cũ. Không phải vị trí đang trực tiếp.",
-  historical: "Đây là vị trí cuối đã ghi. Chuyến đã ngừng theo dõi trực tiếp.",
+  stale: "Đây chưa phải vị trí đang trực tiếp.",
+  historical: "Đây là vị trí cuối được ghi.",
 } as const;

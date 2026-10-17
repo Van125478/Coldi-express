@@ -29,6 +29,10 @@ export function getShipmentLocation(id: string): Promise<{ tracking: ShipmentTra
   return apiRequest(`/api/shipments/${id}/location`);
 }
 
+export function getCarrierShipmentLocation(id: string): Promise<{ tracking: ShipmentTracking }> {
+  return apiRequest(`/api/carrier/shipments/${id}/location`);
+}
+
 export function listCarrierShipments(search = ""): Promise<{ shipments: CarrierShipment[]; total?: number; shown?: number; truncated?: boolean }> {
   const query = search.length > 0 ? `?${search}` : "";
   return apiRequest(`/api/carrier/shipments${query}`);

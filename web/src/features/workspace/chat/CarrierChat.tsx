@@ -3,7 +3,7 @@ import { ChatThread } from "@/features/workspace/chat/ChatThread";
 import type { ChatConversation } from "@/features/workspace/chat/types";
 import { getCarrierMessages, openCarrierConversation, sendCarrierMessage } from "@/services/shipmentService";
 
-export function CarrierChat({ shipmentId }: { shipmentId: string }) {
+export function CarrierChat({ shipmentId, route }: { shipmentId: string; route?: string }) {
   const [conversation, setConversation] = useState<ChatConversation | null>(null);
   const [openState, setOpenState] = useState<"closed" | "opening" | "ready" | "error">("closed");
 
@@ -56,6 +56,8 @@ export function CarrierChat({ shipmentId }: { shipmentId: string }) {
       title="Nhắn chủ hàng"
       viewer="CARRIER"
       carrierLabel={conversation.carrierLabel}
+      counterpart="Chủ hàng"
+      route={route}
       writable={conversation.writable}
       threadKey={conversation.id}
       load={load}

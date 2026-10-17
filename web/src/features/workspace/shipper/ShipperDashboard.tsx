@@ -1,4 +1,4 @@
-import { ClipboardList, MapPinned, PackagePlus } from "lucide-react";
+import { MapPinned } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { paths } from "@/app/paths";
@@ -48,23 +48,15 @@ export function ShipperDashboard() {
     <section className="space-y-6">
       <PageHeader
         title="Tạo đơn và quản lý vận chuyển"
-        summary="Niêm yết đơn lạnh, theo dõi nhà xe đã nhận và xem vị trí khi tài xế đã bắt đầu chuyến."
+        summary="Theo dõi đơn đang tìm xe, đã có nhà xe nhận và đang giao."
         action={
-          <Link to={paths.shipperCreate} className={primaryLinkClass}>
-            Đăng đơn hàng
-          </Link>
+          state === "ready" && shipments.length === 0 ? undefined : (
+            <Link to={paths.shipperCreate} className={primaryLinkClass}>
+              Đăng đơn hàng
+            </Link>
+          )
         }
       />
-      <nav aria-label="Lối tắt chủ hàng" className="grid grid-cols-2 gap-2 sm:max-w-xl">
-        <Link to={paths.shipperCreate} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-line bg-surface px-3 text-sm font-semibold text-ink shadow-sm hover:border-navy">
-          <PackagePlus className="size-4 shrink-0 text-navy" aria-hidden="true" />
-          Đăng đơn
-        </Link>
-        <Link to={paths.shipperShipments} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-line bg-surface px-3 text-sm font-semibold text-ink shadow-sm hover:border-navy">
-          <ClipboardList className="size-4 shrink-0 text-navy" aria-hidden="true" />
-          Quản lý đơn
-        </Link>
-      </nav>
       {state === "loading" ? <p className="text-sm text-muted">Đang tải đơn của bạn.</p> : null}
       {state === "error" ? (
         <p role="alert" className="text-sm text-ink">
