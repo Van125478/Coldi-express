@@ -101,11 +101,12 @@ State-changing auth requests reject an `Origin` header that does not match `FRON
 
 | Method | Path | Result |
 | --- | --- | --- |
-| `POST` | `/api/auth/login` | Sets the cookie and returns `{ "user": { "id", "email", "role" } }` |
+| `POST` | `/api/auth/login` | Sets the cookie and returns `{ "user": { "id", "email", "role", "accountStatus", "mustChangePassword" } }` |
 | `GET` | `/api/auth/me` | Returns the same user shape, or 401 |
+| `POST` | `/api/auth/change-required-password` | Replaces a temporary password when `mustChangePassword` is true, then issues a new cookie |
 | `POST` | `/api/auth/logout` | Clears the cookie |
 
-Invalid login returns 401 `{ "error": { "code": "invalid_credentials", "message" } }` for both unknown emails and wrong passwords. The role in the database is the only role used. A role sent by the client is ignored.
+Invalid login returns 401 `{ "error": { "code": "invalid_credentials", "message" } }` for both unknown emails and wrong passwords. A correct password on a locked account returns 403 `account_locked` and does not set a cookie. The role in the database is the only role used. A role sent by the client is ignored. A missing `accountStatus` means active. A missing `mustChangePassword` means the password change is not required. The session token carries `sv`. A token without `sv` matches version 0. Lock, password reset, and the required password change increment that version, so the previous cookie no longer passes `requireAuth`.
 
 ### Demo accounts
 
@@ -126,7 +127,7 @@ Passwords stay in the untracked `.env` file. The script does not print them.
 
 ### Known limitations
 
-This authentication setup is for local MVP development. Logout clears the browser cookie, but a previously copied token may remain valid until it expires. Login rate limiting is not implemented. A production deployment needs a separate security review. The React app must currently use `http://127.0.0.1:5173`.
+This authentication setup is for local MVP development. Logout clears the browser cookie. A previously copied token remains valid until it expires unless lock, reset, or the required password change increments `sessionVersion`. Login rate limiting is not implemented. A production deployment needs a separate security review. The React app must currently use `http://127.0.0.1:5173`. Driver account rules are in `docs/core-14/01-driver-account-management.md`.
 
 ## Shipments
 
@@ -144,11 +145,11 @@ A new shipment also stores the pickup and delivery warehouse, contact name, phon
 
 An authenticated CARRIER lists open shipments at `GET /api/carrier/shipments`, oldest first. `POST /api/carrier/shipments/:id/claim` claims one shipment with a conditional MongoDB update. Success sets `MATCHED` and `carrierId` from the session. A second claim receives 409. The visitor label for an unassigned `MATCHED` shipment is “Đã có nhà xe nhận chuyến”. The Master Const status table also says “Đã ghép xe”, and the guest journey says “Đã có xe nhận chuyến”. Those guest pages are unchanged. Claim does not assign a vehicle or driver.
 
-After a successful claim, the winning carrier lists that shipment at `GET /api/carrier/shipments/claimed`. Eligible resources are `GET /api/carrier/fleet/vehicles` and `GET /api/carrier/fleet/drivers`. A vehicle belongs to one carrier. A driver is eligible only when the user role is `DRIVER` and `carrierId` is that carrier. `POST /api/carrier/shipments/:id/assign` checks those records, then updates the shipment with one conditional MongoDB update. The filter requires the session carrier, status `MATCHED`, and no existing `vehicleId` or `driverId`. The canonical status stays `MATCHED`. When both resources are stored, the operating label is “Chờ lấy hàng”. A second assignment receives 409 and does not replace the first pair. Assignment does not confirm pickup or delivery.
+After a successful claim, the winning carrier lists that shipment at `GET /api/carrier/shipments/claimed`. Eligible resources are `GET /api/carrier/fleet/vehicles` and `GET /api/carrier/fleet/drivers`. A vehicle belongs to one carrier. A driver is eligible when the user role is `DRIVER`, `carrierId` is that carrier, the account is active, and a temporary password has already been changed. `POST /api/carrier/shipments/:id/assign` checks ownership first. A missing or foreign vehicle or driver still returns 400. An owned driver who is locked, still on a temporary password, or already held for that shipment returns 409. The shipment update still requires the session carrier, status `MATCHED`, and no existing `vehicleId` or `driverId`. The canonical status stays `MATCHED`. When both resources are stored, the operating label is “Chờ lấy hàng”. A second assignment of the same shipment receives 409 and does not replace the first pair. Assignment does not confirm pickup or delivery.
 
-The vehicle and driver documents are not modified by assignment. Only the shipment document changes, so the write does not use a multi-document transaction. `npm run seed:fleet` prepares one local demo vehicle and links the demo driver to the demo carrier. It refuses production and does not print passwords. Run `npm run seed:demo` first.
+Before that shipment update, the server adds the shipment id to the driver `heldShipmentIds` array with a conditional user update. A failed shipment update removes that id unless the shipment already names this driver. Delivery removes it as well. The same driver may still be named on more than one claimed shipment. Lock and password reset stay blocked while the array is not empty or a `MATCHED` / `IN_TRANSIT` shipment names the driver. MongoDB does not wrap the user update and the shipment update in one transaction. `npm run seed:fleet` prepares one local demo vehicle and links the demo driver to the demo carrier. It refuses production and does not print passwords. Run `npm run seed:demo` first.
 
-Reassignment, vehicle compliance, and a full driver profile are still open questions in the v2.3 decisions document, so they are not implemented. The same vehicle or driver may be named on more than one claimed shipment because exclusivity was not specified.
+The carrier creates a driver with `POST /api/carrier/fleet/drivers`. The response includes the temporary password once. Lock, unlock, and reset are `POST /api/carrier/fleet/drivers/:id/lock`, `/unlock`, and `/reset-password`. See `docs/core-14/01-driver-account-management.md`. Reassignment, vehicle compliance, driver transfer, and document checks are not implemented.
 
 ## Driver milestones
 
@@ -173,6 +174,6 @@ The original timeline commit is `cd5045300ac4c788deba3c08053ed1a439481d95`. On t
 
 ## Boundaries still open
 
-Only one carrier can successfully claim a published shipment. A claim does not assign a vehicle or driver. Phone or chat contact does not reserve a shipment. GPS stores one latest sample and does not confirm pickup or delivery. The shipper page can open a Mapbox GL JS map of that sample when a public `pk.` token is configured. Live tiles were not verified in this change. Chat retention and whether a losing carrier should keep reading an old thread are not settled. Fleet editing does not create driver accounts or verify vehicle compliance. Audit rows are written after a successful business update and can be missing if the process stops before the insert. There is no organization tenant. The open load board scans at most 500 shipments and returns at most 100. Delivery does not set `COMPLETED` and does not record a payment.
+Only one carrier can successfully claim a published shipment. A claim does not assign a vehicle or driver. Phone or chat contact does not reserve a shipment. GPS stores one latest sample and does not confirm pickup or delivery. The shipper page can open a Mapbox GL JS map of that sample when a public `pk.` token is configured. Live tiles were not verified in this change. Chat retention and whether a losing carrier should keep reading an old thread are not settled. Fleet editing creates and locks carrier-owned driver accounts as described in Core 14, and does not verify vehicle compliance. Audit rows are written after a successful business update and can be missing if the process stops before the insert. There is no organization tenant. The open load board scans at most 500 shipments and returns at most 100. Delivery does not set `COMPLETED` and does not record a payment.
 
 Responses stay independent of MongoDB document shape. Weight, volume, package count, and the pickup and delivery windows are stored as entered. No approved rule converts units, calculates a price, or rejects a date in the past.

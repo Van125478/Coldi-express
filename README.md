@@ -30,7 +30,7 @@ Lúc tạo nhánh, `git ls-remote` thấy GitHub `main` tại `a2a2c3846c04614f3
 
 Mẫu báo lỗi: [docs/core-08/05-mau-bao-loi.md](docs/core-08/05-mau-bao-loi.md).
 
-Core 08 mô tả máy local và luồng đã nghiệm thu trước GPS, chat, đội xe và sàn lọc. Trạng thái các phần mới nằm ở `docs/core-09/` đến `docs/core-13/` và `docs/mvp-review/`. `docs/COLDI_DEMO_GUIDE.md` là bản mô tả giao diện cũ. Không dùng file đó để cài đặt.
+Core 08 mô tả máy local và luồng đã nghiệm thu trước GPS, chat, đội xe và sàn lọc. Trạng thái các phần mới nằm ở `docs/core-09/` đến `docs/core-14/` và `docs/mvp-review/`. Quyết định vai trò v2.4 nằm ở `docs/Coldi_Documentation_v2.4_Roles_Clarified/`. `docs/COLDI_DEMO_GUIDE.md` là bản mô tả giao diện cũ. Không dùng file đó để cài đặt.
 
 ## Trạng thái trên nhánh tích hợp
 
@@ -40,7 +40,7 @@ Core 08 mô tả máy local và luồng đã nghiệm thu trước GPS, chat, đ
 | Timeline năm sự kiện | Đã có | Chưa bấm lại | Event `ASSIGNED` mới giữ tên xe và tên tài xế lúc gán. Event cũ không có snapshot vẫn đọc tên hiện tại, không phải bản lịch sử đã chứng minh |
 | GPS vị trí mới nhất và bản đồ Mapbox | Đã có mã. Chưa bấm tile thật | Chưa | Mapbox GL JS 3.33.0 khi có token `pk.` và chủ hàng mở bản đồ. Gần kho luôn không áp dụng. Không có ETA hay lộ trình |
 | Chat riêng theo đơn và nhà xe | Đã có | Chưa | Chưa chốt thời gian lưu tin. Nhà xe thua vẫn đọc thread cũ là quy tắc tạm |
-| Đội xe: thêm, sửa, xem xe; sửa tên tài xế đã gắn | Đã có | Chưa | Chưa có tạo tài khoản tài xế. Chưa có kiểm định xe |
+| Đội xe: thêm, sửa, xem xe; nhà xe tạo, khóa, mở khóa và đặt lại mật khẩu tài xế | Đã có mã và test API | Chưa | Chính sách D-23 ở `docs/core-14/`. Mật khẩu tạm chỉ hiện một lần. Chưa bấm trình duyệt. Chưa có kiểm định xe |
 | Audit sau ghi thành công | Đã có | Không có màn hình | Process chết giữa ghi đơn và ghi log có thể mất audit. Không có tenant tổ chức |
 | Sàn: tìm, lọc, sắp xếp, so sánh, xác nhận Claim | Đã có | Chưa | Danh sách quét tối đa 500 đơn và trả tối đa 100 dòng |
 | Thanh toán, tenant | Chưa làm | — | Còn chờ quyết định ở `docs/mvp-review/04-open-decisions.md`. Bản đồ MVP ghi ở `docs/mvp-review/09-mapbox-live-map.md` |
