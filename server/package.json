@@ -12,7 +12,7 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
     "lint": "oxlint src tests",
-    "test": "tsx --test --test-concurrency=1 tests/health.test.ts tests/auth.test.ts tests/shipment.test.ts tests/claim.test.ts tests/assignment.test.ts tests/driver.test.ts tests/timeline.test.ts tests/gps.test.ts tests/chat.test.ts tests/fleet.test.ts tests/security.test.ts tests/marketplace.test.ts tests/marketplaceForm.test.ts tests/mapboxMap.test.ts tests/integration.test.ts",
+    "test": "tsx --test --test-concurrency=1 tests/health.test.ts tests/auth.test.ts tests/shipment.test.ts tests/claim.test.ts tests/assignment.test.ts tests/driver.test.ts tests/timeline.test.ts tests/gps.test.ts tests/chat.test.ts tests/fleet.test.ts tests/security.test.ts tests/marketplace.test.ts tests/marketplaceForm.test.ts tests/mapboxMap.test.ts tests/driverAccount.test.ts tests/driverAccountForm.test.ts tests/integration.test.ts",
     "seed:demo": "tsx src/scripts/seedDemoUsers.ts",
     "seed:fleet": "tsx src/scripts/seedDemoFleet.ts"
   },
