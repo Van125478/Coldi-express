@@ -1,7 +1,7 @@
 import { HttpError } from "../middlewares/errorHandler.js";
 import { temperatureGroups, type TemperatureGroup } from "../models/shipment.js";
 
-const forbiddenFields = ["shipperId", "status", "carrierId", "vehicleId", "driverId", "role"] as const;
+const forbiddenFields = ["shipperId", "status", "carrierId", "vehicleId", "driverId", "role", "tenantId", "senderId"] as const;
 
 export type PublishInput = {
   cargoDescription: string;

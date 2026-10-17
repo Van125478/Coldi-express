@@ -7,9 +7,11 @@ import { requireAuth } from "./middlewares/requireAuth.js";
 import { requireRole } from "./middlewares/requireRole.js";
 import { authRouter } from "./routes/auth.routes.js";
 import { carrierFleetRouter } from "./routes/carrierFleet.routes.js";
+import { carrierConversationRouter } from "./routes/carrierConversation.routes.js";
 import { carrierShipmentRouter } from "./routes/carrierShipment.routes.js";
 import { driverShipmentRouter } from "./routes/driverShipment.routes.js";
 import { healthRouter } from "./routes/health.routes.js";
+import { shipmentChatRouter } from "./routes/shipmentChat.routes.js";
 import { shipmentRouter } from "./routes/shipment.routes.js";
 
 export function createApp() {
@@ -32,7 +34,9 @@ export function createApp() {
   app.use("/api/health", healthRouter);
   app.use("/api/auth", authRouter);
   app.use("/api/shipments", shipmentRouter);
+  app.use("/api/shipments", shipmentChatRouter);
   app.use("/api/carrier/shipments", carrierShipmentRouter);
+  app.use("/api/carrier/conversations", carrierConversationRouter);
   app.use("/api/carrier/fleet", carrierFleetRouter);
   app.use("/api/driver/shipments", driverShipmentRouter);
   if (env.NODE_ENV === "test") {

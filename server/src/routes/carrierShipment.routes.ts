@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { readCorrelationId, recordSuccessfulAudit } from "../audit/recordAudit.js";
 import { isValidObjectId } from "mongoose";
 import { HttpError } from "../middlewares/errorHandler.js";
 import { requireAuth } from "../middlewares/requireAuth.js";
@@ -9,18 +10,29 @@ import { User } from "../models/user.js";
 import { Vehicle } from "../models/vehicle.js";
 import { readAssignInput } from "../shipments/assignInput.js";
 import { toCarrierShipmentView, toCarrierShipmentViews } from "../shipments/assignmentView.js";
+import { compareMarketplaceShipments, marketplaceFilter, readMarketplaceQuery } from "../shipments/marketplaceQuery.js";
 import { attachTimeline, shipmentEventUpdate } from "../shipments/shipmentEvents.js";
 
-const forbiddenFields = ["carrierId", "status", "shipperId", "vehicleId", "driverId", "role"] as const;
+const forbiddenFields = ["carrierId", "status", "shipperId", "vehicleId", "driverId", "role", "tenantId", "senderId"] as const;
 
 export const carrierShipmentRouter = Router();
 
 carrierShipmentRouter.use(requireAuth, requireRole("CARRIER"));
 
-carrierShipmentRouter.get("/", async (_request, response, next) => {
+carrierShipmentRouter.get("/", async (request, response, next) => {
   try {
-    const shipments = await Shipment.find({ status: "PUBLISHED" }).sort({ createdAt: 1, _id: 1 });
-    response.status(200).json({ shipments: await toCarrierShipmentViews(shipments) });
+    const parsed = readMarketplaceQuery(request.query as Record<string, unknown>);
+    const filter = marketplaceFilter(parsed);
+    const total = await Shipment.countDocuments(filter);
+    const matched = await Shipment.find(filter).limit(500);
+    matched.sort(compareMarketplaceShipments(parsed.sort));
+    const page = matched.slice(0, 100);
+    response.status(200).json({
+      shipments: await toCarrierShipmentViews(page),
+      total,
+      shown: page.length,
+      truncated: total > matched.length,
+    });
   } catch (error) {
     next(error);
   }
@@ -102,6 +114,17 @@ carrierShipmentRouter.post("/:id/claim", requireTrustedOrigin, async (request, r
       throw new HttpError(409, "conflict", "Đơn này đã có nhà xe nhận. Chuyến không còn mở.");
     }
 
+    await recordSuccessfulAudit({
+      action: "SHIPMENT_CLAIMED",
+      actorId: carrierId,
+      actorRole: "CARRIER",
+      resourceType: "shipment",
+      resourceId: shipment._id.toString(),
+      statusBefore: "PUBLISHED",
+      statusAfter: "MATCHED",
+      relatedCarrierId: carrierId,
+      correlationId: readCorrelationId(request.headers["x-request-id"]),
+    });
     response.status(200).json({ shipment: await attachTimeline(shipment, await toCarrierShipmentView(shipment), "carrier") });
   } catch (error) {
     next(error);
@@ -164,6 +187,17 @@ carrierShipmentRouter.post("/:id/assign", requireTrustedOrigin, async (request, 
       throw new HttpError(409, "conflict", "Chuyến chưa sẵn sàng để phân công.");
     }
 
+    await recordSuccessfulAudit({
+      action: "SHIPMENT_ASSIGNED",
+      actorId: carrierId,
+      actorRole: "CARRIER",
+      resourceType: "shipment",
+      resourceId: shipment._id.toString(),
+      statusBefore: "MATCHED",
+      statusAfter: "MATCHED",
+      relatedCarrierId: carrierId,
+      correlationId: readCorrelationId(request.headers["x-request-id"]),
+    });
     response.status(200).json({ shipment: await attachTimeline(shipment, await toCarrierShipmentView(shipment), "carrier") });
   } catch (error) {
     next(error);

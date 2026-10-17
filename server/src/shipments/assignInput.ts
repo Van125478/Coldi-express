@@ -1,7 +1,7 @@
 import { isValidObjectId } from "mongoose";
 import { HttpError } from "../middlewares/errorHandler.js";
 
-const forbiddenFields = ["carrierId", "status", "shipperId", "role", "vehicleLabel", "driverName"] as const;
+const forbiddenFields = ["carrierId", "status", "shipperId", "role", "vehicleLabel", "driverName", "tenantId", "senderId"] as const;
 
 export type AssignInput = {
   vehicleId: string;

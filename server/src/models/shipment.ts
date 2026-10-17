@@ -43,6 +43,19 @@ const shipmentEventSchema = new Schema(
   { _id: true },
 );
 
+const latestLocationSchema = new Schema(
+  {
+    latitude: { type: Number, required: true },
+    longitude: { type: Number, required: true },
+    speedKmh: { type: Number },
+    bearingDeg: { type: Number },
+    observedAt: { type: Date, required: true },
+    receivedAt: { type: Date, required: true },
+    driverId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+  },
+  { _id: false },
+);
+
 const shipmentSchema = new Schema(
   {
     shipperId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
@@ -78,8 +91,11 @@ const shipmentSchema = new Schema(
     deliveryConfirmedAt: { type: Date },
     deliveryConfirmedBy: { type: Schema.Types.ObjectId, ref: "User" },
     events: { type: [shipmentEventSchema], required: false },
+    latestLocation: { type: latestLocationSchema, required: false },
   },
   { timestamps: true },
 );
+
+shipmentSchema.index({ status: 1, createdAt: -1 });
 
 export const Shipment = model("Shipment", shipmentSchema);

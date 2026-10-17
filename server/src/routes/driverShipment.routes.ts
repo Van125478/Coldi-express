@@ -1,15 +1,18 @@
 import { Router } from "express";
+import { readCorrelationId, recordSuccessfulAudit } from "../audit/recordAudit.js";
 import { isValidObjectId } from "mongoose";
 import { HttpError } from "../middlewares/errorHandler.js";
 import { requireAuth } from "../middlewares/requireAuth.js";
 import { requireTrustedOrigin } from "../middlewares/requireOrigin.js";
 import { requireRole } from "../middlewares/requireRole.js";
+import { readLocationSample } from "../gps/locationInput.js";
+import { locationUpdate, toTrackingDto } from "../gps/trackingView.js";
 import { Shipment } from "../models/shipment.js";
 import { toCarrierShipmentViews } from "../shipments/assignmentView.js";
 import { attachTimeline, shipmentEventUpdate } from "../shipments/shipmentEvents.js";
 import type { CarrierShipmentDto, ShipmentRecord } from "../shipments/shipmentDto.js";
 
-const forbiddenFields = ["driverId", "carrierId", "status", "shipperId", "vehicleId", "role"] as const;
+const forbiddenFields = ["driverId", "carrierId", "status", "shipperId", "vehicleId", "role", "tenantId", "senderId"] as const;
 const visibleStatuses = ["MATCHED", "IN_TRANSIT", "DELIVERY_CONFIRMED"] as const;
 
 export type DriverShipmentDto = CarrierShipmentDto & {
@@ -37,6 +40,46 @@ driverShipmentRouter.get("/:id", async (request, response, next) => {
     if (!driverId) throw new HttpError(401, "unauthenticated", "Cần đăng nhập để tiếp tục.");
     const shipment = await findAssigned(driverId, routeId(request.params.id));
     response.status(200).json({ shipment: await presentOne(shipment) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+driverShipmentRouter.get("/:id/location", async (request, response, next) => {
+  try {
+    const driverId = request.authUser?.id;
+    if (!driverId) throw new HttpError(401, "unauthenticated", "Cần đăng nhập để tiếp tục.");
+    const shipment = await findAssigned(driverId, routeId(request.params.id));
+    response.status(200).json({ tracking: toTrackingDto(shipment.status, shipment.latestLocation) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+driverShipmentRouter.post("/:id/location", requireTrustedOrigin, async (request, response, next) => {
+  try {
+    const driverId = request.authUser?.id;
+    if (!driverId) throw new HttpError(401, "unauthenticated", "Cần đăng nhập để tiếp tục.");
+    const id = routeId(request.params.id);
+    const sample = readLocationSample(request.body);
+    const receivedAt = new Date();
+    const updated = await Shipment.findOneAndUpdate(
+      { _id: id, driverId, status: "IN_TRANSIT" },
+      locationUpdate(driverId, sample, receivedAt),
+      { returnDocument: "after", updatePipeline: true },
+    );
+    if (!updated) {
+      const current = await Shipment.findById(id);
+      if (!current || current.driverId?.toString() !== driverId) {
+        throw new HttpError(404, "not_found", "Không tìm thấy chuyến này.");
+      }
+      throw new HttpError(409, "conflict", "Chuyến không còn nhận vị trí GPS.");
+    }
+    const accepted = updated.latestLocation?.receivedAt?.getTime() === receivedAt.getTime();
+    if (!accepted) {
+      throw new HttpError(409, "conflict", "Vị trí gửi đến không mới hơn vị trí đã lưu.");
+    }
+    response.status(200).json({ tracking: toTrackingDto(updated.status, updated.latestLocation) });
   } catch (error) {
     next(error);
   }
@@ -73,6 +116,19 @@ driverShipmentRouter.post("/:id/pickup", requireTrustedOrigin, async (request, r
     const shipment = updated ?? (await currentForDriver(driverId, id));
     if (!shipment.pickupConfirmedAt) {
       throw new HttpError(409, "conflict", "Chuyến chưa sẵn sàng để xác nhận lấy hàng.");
+    }
+    if (updated) {
+      await recordSuccessfulAudit({
+        action: "SHIPMENT_PICKUP_CONFIRMED",
+        actorId: driverId,
+        actorRole: "DRIVER",
+        resourceType: "shipment",
+        resourceId: shipment._id.toString(),
+        statusBefore: "MATCHED",
+        statusAfter: "IN_TRANSIT",
+        ...(shipment.carrierId ? { relatedCarrierId: shipment.carrierId.toString() } : {}),
+        correlationId: readCorrelationId(request.headers["x-request-id"]),
+      });
     }
     response.status(200).json({ shipment: await presentOne(shipment) });
   } catch (error) {
@@ -114,6 +170,19 @@ driverShipmentRouter.post("/:id/delivery", requireTrustedOrigin, async (request,
     }
     if (shipment.status !== "DELIVERY_CONFIRMED" || shipment.deliveryConfirmedAt == null) {
       throw new HttpError(409, "conflict", "Chuyến chưa sẵn sàng để xác nhận giao hàng.");
+    }
+    if (updated) {
+      await recordSuccessfulAudit({
+        action: "SHIPMENT_DELIVERY_CONFIRMED",
+        actorId: driverId,
+        actorRole: "DRIVER",
+        resourceType: "shipment",
+        resourceId: shipment._id.toString(),
+        statusBefore: "IN_TRANSIT",
+        statusAfter: "DELIVERY_CONFIRMED",
+        ...(shipment.carrierId ? { relatedCarrierId: shipment.carrierId.toString() } : {}),
+        correlationId: readCorrelationId(request.headers["x-request-id"]),
+      });
     }
     response.status(200).json({ shipment: await presentOne(shipment) });
   } catch (error) {
