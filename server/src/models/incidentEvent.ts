@@ -5,8 +5,15 @@ const incidentEventSchema = new Schema(
   {
     incidentId: { type: Schema.Types.ObjectId, ref: "Incident", required: true, index: true },
     action: { type: String, required: true, enum: incidentActions },
-    actorId: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    actorRole: { type: String, required: true, enum: ["SHIPPER", "CARRIER", "DRIVER", "ADMIN"] },
+    actorId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+      required: function (this: { actorRole?: string }) {
+        return this.actorRole !== "SYSTEM";
+      },
+    },
+    actorRole: { type: String, required: true, enum: ["SHIPPER", "CARRIER", "DRIVER", "ADMIN", "SYSTEM"] },
     occurredAt: { type: Date, required: true },
     statusBefore: { type: String, required: true, enum: incidentStatuses },
     statusAfter: { type: String, required: true, enum: incidentStatuses },

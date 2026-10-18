@@ -1,6 +1,6 @@
 import type { UserRole } from "../models/user.js";
-import type { IncidentStatus } from "./policy.js";
-import { reportableShipmentStatuses } from "./policy.js";
+import type { IncidentStatus, IncidentType, ReopenStatus } from "./policy.js";
+import { closableIncidentTypes, reportableShipmentStatuses } from "./policy.js";
 
 export type Actor = { id: string; role: UserRole };
 
@@ -17,6 +17,9 @@ export type IncidentAccess = {
   reporterRole: "SHIPPER" | "CARRIER" | "DRIVER";
   handlerId: string | null;
   status: IncidentStatus;
+  incidentType?: IncidentType;
+  reopenStatus?: ReopenStatus;
+  reopenCarrierDeadlineAt?: Date | null;
 };
 
 export type CaseScope = "none" | "participant" | "own_report" | "handler";
@@ -60,15 +63,68 @@ export function canObject(actor: Actor, incident: IncidentAccess, shipment: Ship
   return incident.reporterId === actor.id && actor.role !== "CARRIER";
 }
 
+export function isClosable(incident: IncidentAccess): boolean {
+  return incident.incidentType !== undefined && closableIncidentTypes.includes(incident.incidentType);
+}
+
+/** Only the carrier currently assigned to the shipment closes a resolved vehicle incident. */
+export function canClose(actor: Actor, incident: IncidentAccess, shipment: ShipmentAccess): boolean {
+  return isClosable(incident) && incident.status === "RESOLVED" && isCarrierHandler(actor, shipment);
+}
+
+export function canRequestReopen(actor: Actor, incident: IncidentAccess, shipment: ShipmentAccess): boolean {
+  return (
+    isClosable(incident) &&
+    incident.status === "CLOSED" &&
+    (incident.reopenStatus ?? "NONE") === "NONE" &&
+    actor.role === "SHIPPER" &&
+    actor.id === shipment.shipperId
+  );
+}
+
+export function carrierWindowOpen(incident: IncidentAccess, now: Date): boolean {
+  const deadline = incident.reopenCarrierDeadlineAt;
+  return deadline instanceof Date && now.getTime() < deadline.getTime();
+}
+
+export function canRespondReopen(actor: Actor, incident: IncidentAccess, shipment: ShipmentAccess, now: Date): boolean {
+  return (
+    isClosable(incident) &&
+    incident.status === "CLOSED" &&
+    incident.reopenStatus === "PENDING_CARRIER" &&
+    carrierWindowOpen(incident, now) &&
+    isCarrierHandler(actor, shipment)
+  );
+}
+
+/**
+ * Admin adjudication uses the existing assignment rule: the admin whose id is handlerId.
+ * There is no approved routing that sets handlerId, so an unassigned admin cannot decide.
+ */
+export function canAdjudicateReopen(actor: Actor, incident: IncidentAccess): boolean {
+  return (
+    isClosable(incident) &&
+    incident.status === "CLOSED" &&
+    incident.reopenStatus === "AWAITING_ADMIN" &&
+    actor.role === "ADMIN" &&
+    incident.handlerId !== null &&
+    incident.handlerId === actor.id
+  );
+}
+
 export type Capabilities = {
   acknowledge: boolean;
   start: boolean;
   resolve: boolean;
   object: boolean;
   comment: boolean;
+  close: boolean;
+  requestReopen: boolean;
+  respondReopen: boolean;
+  adjudicateReopen: boolean;
 };
 
-export function capabilities(actor: Actor, incident: IncidentAccess, shipment: ShipmentAccess): Capabilities {
+export function capabilities(actor: Actor, incident: IncidentAccess, shipment: ShipmentAccess, now = new Date()): Capabilities {
   const scope = caseScope(actor, incident, shipment);
   const handler = isCarrierHandler(actor, shipment) && scope === "handler";
   return {
@@ -77,6 +133,10 @@ export function capabilities(actor: Actor, incident: IncidentAccess, shipment: S
     resolve: handler && incident.status === "IN_PROGRESS",
     object: canObject(actor, incident, shipment),
     comment: canComment(actor, scope, incident.status),
+    close: handler && canClose(actor, incident, shipment),
+    requestReopen: canRequestReopen(actor, incident, shipment),
+    respondReopen: handler && canRespondReopen(actor, incident, shipment, now),
+    adjudicateReopen: canAdjudicateReopen(actor, incident),
   };
 }
 

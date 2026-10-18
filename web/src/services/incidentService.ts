@@ -7,6 +7,26 @@ export type IncidentCapabilities = {
   resolve: boolean;
   object: boolean;
   comment: boolean;
+  close: boolean;
+  requestReopen: boolean;
+  respondReopen: boolean;
+  adjudicateReopen: boolean;
+};
+
+export type IncidentReopenRecord = {
+  status: "NONE" | "PENDING_CARRIER" | "APPROVED_BY_CARRIER" | "AWAITING_ADMIN" | "APPROVED_BY_ADMIN" | "REJECTED_BY_ADMIN";
+  statusLabel: string;
+  reason: string | null;
+  requestedAt: string | null;
+  carrierDeadlineAt: string | null;
+  carrierRespondedAt: string | null;
+  carrierNote: string | null;
+  escalatedAt: string | null;
+  escalationCause: "CARRIER_REJECTED" | "CARRIER_TIMEOUT" | null;
+  escalationCauseLabel: string | null;
+  adminAssigned: boolean;
+  adminDecidedAt: string | null;
+  adminReason: string | null;
 };
 
 export type IncidentRecord = {
@@ -32,6 +52,9 @@ export type IncidentRecord = {
   resolvedAt: string | null;
   objectionReason: string | null;
   objectedAt: string | null;
+  closedAt: string | null;
+  closeReason: string | null;
+  reopen: IncidentReopenRecord;
   capabilities: IncidentCapabilities;
   createdAt: string;
   updatedAt: string;
@@ -104,6 +127,34 @@ export function objectIncident(id: string, expectedVersion: number, idempotencyK
 
 export function commentIncident(id: string, expectedVersion: number, idempotencyKey: string, body: string): Promise<{ incident: IncidentRecord }> {
   return apiRequest(`/api/incidents/${id}/comments`, { method: "POST", body: JSON.stringify({ expectedVersion, idempotencyKey, body }) });
+}
+
+export function closeIncident(id: string, expectedVersion: number, idempotencyKey: string, closeReason: string): Promise<{ incident: IncidentRecord }> {
+  return apiRequest(`/api/incidents/${id}/close`, { method: "POST", body: JSON.stringify({ expectedVersion, idempotencyKey, closeReason }) });
+}
+
+export function requestIncidentReopen(id: string, expectedVersion: number, idempotencyKey: string, reason: string): Promise<{ incident: IncidentRecord }> {
+  return apiRequest(`/api/incidents/${id}/reopen-request`, { method: "POST", body: JSON.stringify({ expectedVersion, idempotencyKey, reason }) });
+}
+
+export function respondIncidentReopen(
+  id: string,
+  expectedVersion: number,
+  idempotencyKey: string,
+  decision: "APPROVE" | "REJECT",
+  note?: string,
+): Promise<{ incident: IncidentRecord }> {
+  return apiRequest(`/api/incidents/${id}/reopen-response`, { method: "POST", body: JSON.stringify({ expectedVersion, idempotencyKey, decision, ...(note ? { note } : {}) }) });
+}
+
+export function decideIncidentReopen(
+  id: string,
+  expectedVersion: number,
+  idempotencyKey: string,
+  decision: "APPROVE" | "REJECT",
+  reason: string,
+): Promise<{ incident: IncidentRecord }> {
+  return apiRequest(`/api/incidents/${id}/reopen-decision`, { method: "POST", body: JSON.stringify({ expectedVersion, idempotencyKey, decision, reason }) });
 }
 
 export function listIncidentNotifications(): Promise<{ notifications: IncidentNotificationRecord[] }> {

@@ -42,9 +42,53 @@ export const incidentActions = [
   "COMMENT",
   "RESOLVED",
   "OBJECTED",
+  "CLOSED",
+  "REOPEN_REQUESTED",
+  "REOPEN_APPROVED",
+  "REOPEN_REJECTED_BY_CARRIER",
+  "REOPEN_ESCALATED_TO_ADMIN",
+  "ADMIN_REOPEN_APPROVED",
+  "ADMIN_REOPEN_REJECTED",
 ] as const;
 
 export type IncidentAction = (typeof incidentActions)[number];
+
+/** Only VEHICLE_ISSUE has an approved close and reopen policy. Other types keep the close route denied. */
+export const closableIncidentTypes: readonly IncidentType[] = ["VEHICLE_ISSUE"];
+
+/**
+ * Reopen request state, separate from the primary status.
+ * PENDING_CARRIER keeps the incident CLOSED until a carrier or the assigned admin approves.
+ */
+export const reopenStatuses = [
+  "NONE",
+  "PENDING_CARRIER",
+  "APPROVED_BY_CARRIER",
+  "AWAITING_ADMIN",
+  "APPROVED_BY_ADMIN",
+  "REJECTED_BY_ADMIN",
+] as const;
+
+export type ReopenStatus = (typeof reopenStatuses)[number];
+
+export const reopenStatusLabels: Record<ReopenStatus, string> = {
+  NONE: "Chưa có yêu cầu mở lại",
+  PENDING_CARRIER: "Chờ nhà xe phản hồi yêu cầu mở lại",
+  APPROVED_BY_CARRIER: "Nhà xe đã đồng ý mở lại",
+  AWAITING_ADMIN: "Đã chuyển quản trị COLDI xem xét",
+  APPROVED_BY_ADMIN: "Quản trị COLDI đã đồng ý mở lại",
+  REJECTED_BY_ADMIN: "Quản trị COLDI đã từ chối mở lại",
+};
+
+export const reopenEscalationCauses = ["CARRIER_REJECTED", "CARRIER_TIMEOUT"] as const;
+
+export type ReopenEscalationCause = (typeof reopenEscalationCauses)[number];
+
+/** Approved: a carrier that does not answer within 48 hours is referred to COLDI Admin. */
+export const reopenCarrierWindowMs = 48 * 60 * 60 * 1000;
+
+/** The status an approved reopen returns to. Handling resumes; the previous resolution stays in history. */
+export const reopenedIncidentStatus: IncidentStatus = "IN_PROGRESS";
 
 export const reminderKinds = [
   "ACK_PENDING",
@@ -74,6 +118,11 @@ export const incidentLimits = {
   resolutionMax: 2000,
   objectionMin: 10,
   objectionMax: 2000,
+  closeReasonMin: 10,
+  closeReasonMax: 2000,
+  reopenReasonMin: 10,
+  reopenReasonMax: 2000,
+  reopenResponseMax: 2000,
 } as const;
 
 export const idempotencyPattern = /^[A-Za-z0-9._:-]{8,80}$/;

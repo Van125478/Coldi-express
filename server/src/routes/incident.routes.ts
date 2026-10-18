@@ -7,7 +7,11 @@ import type { Actor } from "../incidents/access.js";
 import {
   acknowledgeIncident,
   addIncidentComment,
+  adminDecideReopen,
+  carrierRespondReopen,
+  closeIncident,
   correlationFrom,
+  requestIncidentReopen,
   createIncident,
   getAuthorizedIncident,
   listAuthorizedIncidents,
@@ -78,8 +82,72 @@ incidentRouter.post("/", requireTrustedOrigin, async (request, response, next) =
   }
 });
 
-incidentRouter.post("/:id/close", requireTrustedOrigin, (_request, _response, next) => {
-  next(new HttpError(403, "incident_close_denied", "Đóng sự cố chưa được phép vì chính sách INC-CLOSE-01 còn mở."));
+incidentRouter.post("/:id/close", requireTrustedOrigin, async (request, response, next) => {
+  try {
+    const result = await closeIncident({
+      actor: actor(request.authUser),
+      incidentId: routeId(request.params.id),
+      expectedVersion: versionOf(request.body),
+      idempotencyKey: keyOf(request),
+      correlationId: correlationFrom(request.headers["x-request-id"]),
+      note: bodyRecord(request.body).closeReason,
+    });
+    response.status(200).json({ incident: result });
+  } catch (error) {
+    next(error);
+  }
+});
+
+incidentRouter.post("/:id/reopen-request", requireTrustedOrigin, async (request, response, next) => {
+  try {
+    const result = await requestIncidentReopen({
+      actor: actor(request.authUser),
+      incidentId: routeId(request.params.id),
+      expectedVersion: versionOf(request.body),
+      idempotencyKey: keyOf(request),
+      correlationId: correlationFrom(request.headers["x-request-id"]),
+      note: bodyRecord(request.body).reason,
+    });
+    response.status(200).json({ incident: result });
+  } catch (error) {
+    next(error);
+  }
+});
+
+incidentRouter.post("/:id/reopen-response", requireTrustedOrigin, async (request, response, next) => {
+  try {
+    const body = bodyRecord(request.body);
+    const result = await carrierRespondReopen({
+      actor: actor(request.authUser),
+      incidentId: routeId(request.params.id),
+      expectedVersion: versionOf(request.body),
+      idempotencyKey: keyOf(request),
+      correlationId: correlationFrom(request.headers["x-request-id"]),
+      approve: decisionOf(body.decision),
+      note: body.note,
+    });
+    response.status(200).json({ incident: result });
+  } catch (error) {
+    next(error);
+  }
+});
+
+incidentRouter.post("/:id/reopen-decision", requireTrustedOrigin, async (request, response, next) => {
+  try {
+    const body = bodyRecord(request.body);
+    const result = await adminDecideReopen({
+      actor: actor(request.authUser),
+      incidentId: routeId(request.params.id),
+      expectedVersion: versionOf(request.body),
+      idempotencyKey: keyOf(request),
+      correlationId: correlationFrom(request.headers["x-request-id"]),
+      approve: decisionOf(body.decision),
+      note: body.reason,
+    });
+    response.status(200).json({ incident: result });
+  } catch (error) {
+    next(error);
+  }
 });
 
 incidentRouter.post("/:id/escalate", requireTrustedOrigin, (_request, _response, next) => {
@@ -192,6 +260,12 @@ function keyOf(request: { body: unknown; headers: { [key: string]: unknown } }):
     throw new HttpError(400, "invalid_request", "Thiếu mã idempotency hợp lệ.", { idempotencyKey: "Thiếu mã idempotency hợp lệ." });
   }
   return value;
+}
+
+function decisionOf(value: unknown): boolean {
+  if (value === "APPROVE") return true;
+  if (value === "REJECT") return false;
+  throw new HttpError(400, "invalid_request", "Hãy chọn đồng ý hoặc từ chối.", { decision: "Hãy chọn đồng ý hoặc từ chối." });
 }
 
 function requiredNote(body: unknown, field: string, min: number, max: number, label: string): string {

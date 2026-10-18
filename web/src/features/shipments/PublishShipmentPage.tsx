@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import type { PublishedShipment, PublishShipmentInput, TemperatureGroup } from "@/models/publishedShipment";
 import { ApiError } from "@/services/apiClient";
 import { deleteCargoImage, uploadCargoImage } from "@/services/cargoImageClient";
+import { ImagePickerControl } from "@/shared/components/media/ImagePickerControl";
 import { shipmentFieldErrors, shipmentStepErrors, shipmentStepFields, type ShipmentFieldName } from "@/features/shipments/shipmentFieldRules";
 import { publishShipment } from "@/services/shipmentService";
 
@@ -510,36 +511,32 @@ export function PublishShipmentPage({ email }: { email: string }) {
               <Input id="listed-price" inputMode="numeric" value={form.listedPriceVnd} onChange={(event) => update("listedPriceVnd", event.target.value.replace(/\D/g, ""))} aria-invalid={errors.listedPriceVnd !== undefined} />
             </Field>
             <div className={`space-y-3 rounded-2xl border p-4 ${errors.cargoImages ? "border-danger" : "border-line"}`}>
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <label htmlFor="cargo-images" className="text-sm font-semibold text-ink">
-                    Ảnh hàng hóa <span className="text-danger">*</span>
-                  </label>
-                  <p id="cargo-images-hint" className="mt-1 text-sm text-muted">Đã chọn {images.length}/5. Giới hạn kỹ thuật tạm thời: JPG, PNG hoặc WebP, tối đa 2 MB mỗi ảnh.</p>
-                </div>
-                <input
-                  id="cargo-images"
-                  aria-invalid={errors.cargoImages !== undefined}
-                  aria-describedby={errors.cargoImages ? "cargo-images-error" : "cargo-images-hint"}
-                  className="block max-w-full text-sm"
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  multiple
-                  disabled={pending || uploading || images.length >= 5}
-                  onChange={(event) => {
-                    void addImages(event.target.files);
-                    event.target.value = "";
-                  }}
-                />
-              </div>
+              <p className="text-sm font-semibold text-ink">
+                Ảnh hàng hóa <span className="text-danger">*</span>
+              </p>
+              <ImagePickerControl
+                id="cargo-images"
+                buttonLabel="Chọn ảnh hàng hóa"
+                hintId="cargo-images-hint"
+                hint={`Đã chọn ${images.length}/5. Giới hạn kỹ thuật tạm thời: JPG, PNG hoặc WebP, tối đa 2 MB mỗi ảnh.`}
+                disabled={pending || uploading || images.length >= 5}
+                describedBy={errors.cargoImages ? "cargo-images-error" : "cargo-images-hint"}
+                invalid={errors.cargoImages !== undefined}
+                onFiles={(files) => void addImages(files)}
+              />
               {uploading ? <p className="text-sm text-muted">Đang tải ảnh lên.</p> : null}
               {errors.cargoImages ? <p id="cargo-images-error" className="text-sm text-ink">{errors.cargoImages}</p> : null}
               {images.length > 0 ? (
                 <ul className="grid grid-cols-2 gap-3 sm:grid-cols-5">
                   {images.map((image) => (
                     <li key={image.id} className="space-y-2">
-                      <img src={image.previewUrl} alt={image.name} className="h-24 w-full rounded-xl border border-line object-cover" />
-                      <button type="button" className="text-sm font-semibold text-navy underline-offset-4 hover:underline" onClick={() => void removeImage(image.id)}>
+                      <img src={image.previewUrl} alt={image.name} className="h-32 w-full rounded-xl border border-line object-contain sm:h-36" />
+                      <button
+                        type="button"
+                        className="text-sm font-semibold text-navy underline-offset-4 hover:underline"
+                        aria-label={`Xóa ảnh ${image.name}`}
+                        onClick={() => void removeImage(image.id)}
+                      >
                         Xóa ảnh
                       </button>
                     </li>
