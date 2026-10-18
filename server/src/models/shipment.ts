@@ -58,6 +58,39 @@ const latestLocationSchema = new Schema(
   { _id: false },
 );
 
+const commissionSideSchema = new Schema(
+  {
+    payerSide: { type: String, required: true, enum: ["SHIPPER", "CARRIER"] },
+    payerAccountId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    planCode: { type: String, required: true },
+    planVersionId: { type: Schema.Types.ObjectId, ref: "PlanVersion", required: true },
+    contractTermsId: { type: Schema.Types.ObjectId, ref: "ContractTerms" },
+    baseFreightVnd: { type: Number, required: true },
+    rateBps: { type: Number, required: true },
+    calculatedFeeVnd: { type: Number, required: true },
+    policyVersion: { type: String, required: true },
+    source: { type: String, required: true, enum: ["SIMULATION"] },
+    environmentId: { type: String, required: true },
+    simulation: { type: Boolean, required: true, validate: (value: boolean) => value === true },
+    lockedAt: { type: Date, required: true },
+  },
+  { _id: false },
+);
+
+const commissionSchema = new Schema(
+  {
+    shipper: { type: commissionSideSchema, required: false },
+    carrier: { type: commissionSideSchema, required: false },
+    shipperStatus: { type: String, enum: ["ABSENT", "ESTIMATED", "ACCRUED", "VOID", "ON_HOLD"] },
+    carrierStatus: { type: String, enum: ["ABSENT", "ESTIMATED", "ACCRUED", "VOID", "ON_HOLD"] },
+    outbox: {
+      status: { type: String, enum: ["PENDING", "APPLIED", "ERROR"] },
+      appliedAt: { type: Date },
+    },
+  },
+  { _id: false },
+);
+
 const shipmentSchema = new Schema(
   {
     shipperId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
@@ -94,6 +127,7 @@ const shipmentSchema = new Schema(
     deliveryConfirmedBy: { type: Schema.Types.ObjectId, ref: "User" },
     events: { type: [shipmentEventSchema], required: false },
     latestLocation: { type: latestLocationSchema, required: false },
+    commission: { type: commissionSchema, required: false },
   },
   { timestamps: true },
 );

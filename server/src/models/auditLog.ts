@@ -7,6 +7,7 @@ export const auditActions = [
   "SHIPMENT_ASSIGNED",
   "SHIPMENT_PICKUP_CONFIRMED",
   "SHIPMENT_DELIVERY_CONFIRMED",
+  "COMMISSION_ACCRUED",
   "VEHICLE_CREATED",
   "VEHICLE_UPDATED",
   "VEHICLE_ARCHIVED",
@@ -24,6 +25,7 @@ export const oneShotAuditActions = [
   "SHIPMENT_ASSIGNED",
   "SHIPMENT_PICKUP_CONFIRMED",
   "SHIPMENT_DELIVERY_CONFIRMED",
+  "COMMISSION_ACCRUED",
 ] as const;
 
 export type AuditAction = (typeof auditActions)[number];

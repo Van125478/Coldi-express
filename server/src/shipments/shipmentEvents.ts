@@ -79,7 +79,7 @@ const blankActor = { toString: () => "" };
 const partialNote =
   "Đơn này được tạo trước khi có lịch sử sự kiện. Chỉ hiện mốc đã lưu thời điểm. Thời điểm nhận chuyến và phân công không được suy diễn.";
 
-export function shipmentEventUpdate(fields: Record<string, unknown>, event: NewShipmentEvent) {
+export function shipmentEventUpdate(fields: Record<string, unknown>, event: NewShipmentEvent): Array<Record<string, unknown>> {
   const entry: Record<string, unknown> = {
     _id: new Types.ObjectId(),
     type: event.type,

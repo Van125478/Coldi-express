@@ -11,6 +11,8 @@ export type AppEnv = {
   APP_RUNTIME_MODE: RuntimeMode;
   PACKAGE_DEMO_SELF_ACTIVATION_ENABLED: boolean;
   demoSelfActivationAllowed: boolean;
+  commissionSimulationAllowed: boolean;
+  commissionEnvironmentId: string;
 };
 
 const environments = new Set<NodeEnvironment>(["development", "test", "production"]);
@@ -74,6 +76,18 @@ export function getEnv(): AppEnv {
   if (runtimeError) {
     throw new Error(runtimeError);
   }
+  const commissionFlag = readCommissionFlag();
+  const commissionDeploymentId = process.env.COMMISSION_SIMULATION_DEPLOYMENT_ID?.trim() ?? "";
+  const commissionAuthorizedDeploymentId = process.env.COMMISSION_SIMULATION_AUTHORIZED_DEPLOYMENT_ID?.trim() ?? "";
+  const commissionError = commissionRuntimeError({
+    nodeEnv: nodeEnv as NodeEnvironment,
+    runtimeMode,
+    commissionFlag,
+    deploymentId: commissionDeploymentId,
+    authorizedDeploymentId: commissionAuthorizedDeploymentId,
+    databaseName,
+  });
+  if (commissionError) throw new Error(commissionError);
 
   return {
     PORT: port,
@@ -91,6 +105,15 @@ export function getEnv(): AppEnv {
       authorizedDeploymentId,
       databaseName,
     }),
+    commissionSimulationAllowed: commissionSimulationAllowed({
+      nodeEnv: nodeEnv as NodeEnvironment,
+      runtimeMode,
+      commissionFlag,
+      deploymentId: commissionDeploymentId,
+      authorizedDeploymentId: commissionAuthorizedDeploymentId,
+      databaseName,
+    }),
+    commissionEnvironmentId: commissionDeploymentId,
   };
 }
 
@@ -141,6 +164,44 @@ function readRuntimeMode(nodeEnv: NodeEnvironment): RuntimeMode {
     throw new Error("APP_RUNTIME_MODE must be development, qa, demo, or production.");
   }
   return raw as RuntimeMode;
+}
+
+export type CommissionRuntimeInput = {
+  nodeEnv: NodeEnvironment;
+  runtimeMode: RuntimeMode;
+  commissionFlag: boolean;
+  deploymentId: string;
+  authorizedDeploymentId: string;
+  databaseName: string;
+};
+
+export function commissionRuntimeError(input: CommissionRuntimeInput): string | null {
+  const production = input.nodeEnv === "production" || input.runtimeMode === "production";
+  if (production && input.commissionFlag) {
+    return "Production cannot enable commission simulation. Refusing to start.";
+  }
+  if (!input.commissionFlag) return null;
+  if (input.runtimeMode !== "qa" && input.runtimeMode !== "demo") {
+    return "Commission simulation requires APP_RUNTIME_MODE=qa or demo.";
+  }
+  if (input.deploymentId.length < 8 || input.authorizedDeploymentId.length < 8 || input.deploymentId !== input.authorizedDeploymentId) {
+    return "Commission simulation requires matching COMMISSION_SIMULATION_DEPLOYMENT_ID values.";
+  }
+  if (forbiddenDatabaseNames.has(input.databaseName) || !/(test|qa|demo)/i.test(input.databaseName)) {
+    return "Commission simulation requires a disposable database whose name contains test, qa, or demo.";
+  }
+  return null;
+}
+
+export function commissionSimulationAllowed(input: CommissionRuntimeInput): boolean {
+  return commissionRuntimeError(input) === null && input.commissionFlag && (input.runtimeMode === "qa" || input.runtimeMode === "demo");
+}
+
+function readCommissionFlag(): boolean {
+  const raw = process.env.COMMISSION_SIMULATION_ENABLED?.trim().toLowerCase() ?? "";
+  if (raw === "" || raw === "false" || raw === "0") return false;
+  if (raw === "true" || raw === "1") return true;
+  throw new Error("COMMISSION_SIMULATION_ENABLED must be true or false.");
 }
 
 function readDemoFlag(): boolean {

@@ -35,6 +35,7 @@ import { ShipperDashboard } from "@/features/workspace/shipper/ShipperDashboard"
 import { ShipperShipmentDetail } from "@/features/workspace/shipper/ShipperShipmentDetail";
 import { ShipperShipments } from "@/features/workspace/shipper/ShipperShipments";
 import { AccountPlanPage } from "@/features/packages/AccountPlanPage";
+import { CommissionHistoryPage } from "@/features/commission/CommissionHistoryPage";
 import { PackageCatalogPage } from "@/features/packages/PackageCatalogPage";
 
 export const router = createBrowserRouter([
@@ -51,6 +52,7 @@ export const router = createBrowserRouter([
           { path: "/shipper/tao-don", element: <CreateShipmentPage /> },
           { path: "/shipper/don-hang", element: <ShipperShipments /> },
           { path: "/shipper/don-hang/:id", element: <ShipperShipmentDetail /> },
+          { path: "/shipper/hoa-hong", element: <CommissionHistoryPage /> },
           { path: "/shipper/goi", element: <AccountPlanPage /> },
         ],
       },
@@ -66,6 +68,7 @@ export const router = createBrowserRouter([
           { path: "/carrier/tim-chuyen", element: <CarrierLoadBoard /> },
           { path: "/carrier/chuyen-cua-toi", element: <ClaimedShipments /> },
           { path: "/carrier/chuyen/:id", element: <CarrierTripDetail /> },
+          { path: "/carrier/hoa-hong", element: <CommissionHistoryPage /> },
           { path: "/carrier/doi-xe", element: <CarrierVehicles /> },
           { path: "/carrier/doi-xe/xe/moi", element: <CarrierVehicleForm mode="create" /> },
           { path: "/carrier/doi-xe/xe/:id", element: <CarrierVehicleDetail /> },

@@ -2,6 +2,8 @@ import { Router } from "express";
 import { readCorrelationId, recordSuccessfulAudit } from "../audit/recordAudit.js";
 import { isValidObjectId } from "mongoose";
 import { HttpError } from "../middlewares/errorHandler.js";
+import { accrueDeliveredShipment } from "../commission/record.js";
+import { getEnv } from "../config/env.js";
 import { releaseDriverHold } from "../fleet/driverAccount.js";
 import { releaseVehicleReservation } from "../packages/vehicleLease.js";
 import { requireAuth } from "../middlewares/requireAuth.js";
@@ -15,7 +17,7 @@ import { toCarrierShipmentViews } from "../shipments/assignmentView.js";
 import { attachTimeline, shipmentEventUpdate } from "../shipments/shipmentEvents.js";
 import type { CarrierShipmentDto, ShipmentRecord } from "../shipments/shipmentDto.js";
 
-const forbiddenFields = ["driverId", "carrierId", "status", "shipperId", "vehicleId", "role", "tenantId", "senderId"] as const;
+const forbiddenFields = ["driverId", "carrierId", "status", "shipperId", "vehicleId", "role", "tenantId", "senderId", "rateBps", "calculatedFeeVnd", "planVersionId", "payerAccountId", "commission", "paymentCollected", "listedPriceVnd"] as const;
 const visibleStatuses = ["MATCHED", "IN_TRANSIT", "DELIVERY_CONFIRMED"] as const;
 
 export type DriverShipmentDto = CarrierShipmentDto & {
@@ -146,6 +148,35 @@ driverShipmentRouter.post("/:id/delivery", requireTrustedOrigin, async (request,
     if (!driverId) throw new HttpError(401, "unauthenticated", "Cần đăng nhập để tiếp tục.");
     const id = routeId(request.params.id);
     const confirmedAt = new Date();
+    const deliveryUpdate = shipmentEventUpdate(
+      { status: "DELIVERY_CONFIRMED", deliveryConfirmedAt: confirmedAt, deliveryConfirmedBy: driverId },
+      {
+        type: "DELIVERY_CONFIRMED",
+        occurredAt: confirmedAt,
+        actorId: driverId,
+        actorRole: "DRIVER",
+        statusBefore: "IN_TRANSIT",
+        statusAfter: "DELIVERY_CONFIRMED",
+      },
+    );
+    if (getEnv().commissionSimulationAllowed) {
+      deliveryUpdate.push({
+        $set: {
+          "commission.outbox.status": {
+            $cond: [
+              {
+                $or: [
+                  { $eq: [{ $type: "$commission.shipper" }, "object"] },
+                  { $eq: [{ $type: "$commission.carrier" }, "object"] },
+                ],
+              },
+              "PENDING",
+              "$$REMOVE",
+            ],
+          },
+        },
+      });
+    }
     const updated = await Shipment.findOneAndUpdate(
       {
         _id: id,
@@ -154,17 +185,7 @@ driverShipmentRouter.post("/:id/delivery", requireTrustedOrigin, async (request,
         pickupConfirmedAt: { $ne: null },
         $or: [{ deliveryConfirmedAt: { $exists: false } }, { deliveryConfirmedAt: null }],
       },
-      shipmentEventUpdate(
-        { status: "DELIVERY_CONFIRMED", deliveryConfirmedAt: confirmedAt, deliveryConfirmedBy: driverId },
-        {
-          type: "DELIVERY_CONFIRMED",
-          occurredAt: confirmedAt,
-          actorId: driverId,
-          actorRole: "DRIVER",
-          statusBefore: "IN_TRANSIT",
-          statusAfter: "DELIVERY_CONFIRMED",
-        },
-      ),
+      deliveryUpdate,
       { returnDocument: "after", updatePipeline: true },
     );
     const shipment = updated ?? (await currentForDriver(driverId, id));
@@ -178,6 +199,7 @@ driverShipmentRouter.post("/:id/delivery", requireTrustedOrigin, async (request,
     if (shipment.vehicleId && shipment.carrierId) {
       await releaseVehicleReservation(shipment.carrierId.toString(), shipment.vehicleId.toString(), id);
     }
+    if (getEnv().commissionSimulationAllowed) await accrueDeliveredShipment(id);
     if (updated) {
       await recordSuccessfulAudit({
         action: "SHIPMENT_DELIVERY_CONFIRMED",

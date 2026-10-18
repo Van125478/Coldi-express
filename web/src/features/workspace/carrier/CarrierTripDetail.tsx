@@ -7,6 +7,7 @@ import { ClaimConfirm } from "@/features/shipments/ClaimConfirm";
 import { lostSession } from "@/features/workspace/sessionLoss";
 import { assignedDriverLine, cargoMeasures, stopFacts } from "@/features/workspace/carrier/carrierCopy";
 import { money, primaryLinkClass, progressNote, shipmentTone, windowText } from "@/features/workspace/format";
+import { CommissionPanel } from "@/features/commission/CommissionPanel";
 import { CarrierChat } from "@/features/workspace/chat/CarrierChat";
 import { ShipmentLocation } from "@/features/workspace/gps/ShipmentLocation";
 import { ShipmentTimeline } from "@/features/workspace/ShipmentTimeline";
@@ -165,6 +166,7 @@ export function CarrierTripDetail() {
               <DetailBlock title="Cước niêm yết">
                 <p className="text-3xl font-extrabold tracking-tight text-navy">{money(shipment.listedPriceVnd)}</p>
               </DetailBlock>
+              {open ? null : <CommissionPanel shipmentId={shipment.id} />}
               <DetailBlock title={open ? "Nhận chuyến" : "Phân công"}>
                 {open ? (
                   <>
