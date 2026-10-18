@@ -53,17 +53,25 @@ export function AuthenticatedImageGallery({
 
   return (
     <>
-      <ul className={compact ? "flex gap-2" : "grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4"} aria-label={label}>
+      <ul className={compact ? "block" : "grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4"} aria-label={label}>
         {images.map((image, index) => {
           const src = urls[image.id];
           const alt = `${altPrefix} ${index + 1}`;
           if (compact) {
+            if (index > 0) return null;
             return (
               <li key={image.id}>
                 {src ? (
-                  <img src={src} alt={alt} className="aspect-[4/3] h-20 w-28 rounded-lg border border-line object-cover" />
+                  <button
+                    type="button"
+                    className="block w-full overflow-hidden rounded-xl border border-line bg-canvas text-left hover:border-navy focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-navy"
+                    onClick={() => setOpenIndex(0)}
+                  >
+                    <img src={src} alt={alt} className="aspect-[16/10] w-full object-cover" />
+                    {images.length > 1 ? <span className="block px-3 py-2 text-sm font-semibold text-navy">Xem {images.length} ảnh</span> : <span className="sr-only">Xem lớn</span>}
+                  </button>
                 ) : (
-                  <div className="aspect-[4/3] h-20 w-28 rounded-lg border border-line bg-canvas" />
+                  <div className="aspect-[16/10] w-full rounded-xl border border-line bg-canvas" />
                 )}
               </li>
             );

@@ -5,7 +5,7 @@ import { GuestFAQ } from "@/features/guest/home/GuestFAQ";
 import { JourneyMilestones } from "@/features/guest/home/JourneyMilestones";
 import { OperatingPrinciples } from "@/features/guest/home/OperatingPrinciples";
 import { PilotFocus } from "@/features/guest/home/PilotFocus";
-import { WorldOilPriceWidget } from "@/features/market/WorldOilPriceWidget";
+import { FuelMarketPanel } from "@/features/market/FuelMarketPanel";
 import { CinematicJourney } from "@/features/transition-lab/PhaseOnePreview";
 
 export function CinematicLanding() {
@@ -17,7 +17,7 @@ export function CinematicLanding() {
       <JourneyMilestones />
       <OperatingPrinciples />
       <PilotFocus />
-      <WorldOilPriceWidget variant="landing" />
+      <FuelMarketPanel variant="landing" />
       <GuestFAQ />
       <FinalCTA />
     </>

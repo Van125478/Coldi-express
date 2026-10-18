@@ -27,7 +27,7 @@ export function MarketShipmentCard({
   return (
     <article className={`flex h-full flex-col overflow-hidden rounded-2xl border bg-surface ${selected ? "border-navy ring-2 ring-navy" : "border-line"}`}>
       {images.length > 0 ? (
-        <div className="border-b border-line bg-canvas px-4 py-3">
+        <div className="border-b border-line bg-canvas">
           <CargoImageGallery images={images} compact />
         </div>
       ) : (

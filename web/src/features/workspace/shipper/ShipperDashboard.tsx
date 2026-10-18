@@ -7,7 +7,7 @@ import { lostSession } from "@/features/workspace/sessionLoss";
 import { primaryLinkClass } from "@/features/workspace/format";
 import { followedShipment, shipperBucket } from "@/features/workspace/shipper/shipperGroups";
 import { ShipperShipmentCard } from "@/features/workspace/shipper/ShipperShipmentCard";
-import { WorldOilPriceWidget } from "@/features/market/WorldOilPriceWidget";
+import { FuelMarketPanel } from "@/features/market/FuelMarketPanel";
 import { EmptyPanel, PageHeader } from "@/features/workspace/ui";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import type { PublishedShipment } from "@/models/publishedShipment";
@@ -58,6 +58,7 @@ export function ShipperDashboard() {
           )
         }
       />
+      <FuelMarketPanel variant="compact" />
       {state === "loading" ? <p className="text-sm text-muted">Đang tải đơn của bạn.</p> : null}
       {state === "error" ? (
         <p role="alert" className="text-sm text-ink">
@@ -156,7 +157,6 @@ export function ShipperDashboard() {
           </ul>
         </section>
       ) : null}
-      <WorldOilPriceWidget variant="compact" />
     </section>
   );
 }

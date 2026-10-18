@@ -40,6 +40,7 @@ import { ReportIncidentPage } from "@/features/incidents/ReportIncidentPage";
 import { AccountPlanPage } from "@/features/packages/AccountPlanPage";
 import { CommissionHistoryPage } from "@/features/commission/CommissionHistoryPage";
 import { PackageCatalogPage } from "@/features/packages/PackageCatalogPage";
+import { FuelMarketPage } from "@/features/market/FuelMarketPage";
 
 export const router = createBrowserRouter([
   { path: "/motion-lab", element: <MotionLabPage /> },
@@ -85,6 +86,7 @@ export const router = createBrowserRouter([
           { path: "/carrier/doi-xe/tai-xe", element: <CarrierDrivers /> },
           { path: "/carrier/doi-xe/tai-xe/:id", element: <CarrierDriverProfile /> },
           { path: "/carrier/goi", element: <AccountPlanPage /> },
+          { path: "/carrier/thi-truong-nhien-lieu", element: <FuelMarketPage /> },
         ],
       },
     ],
@@ -105,6 +107,7 @@ export const router = createBrowserRouter([
               { path: "/driver/su-co", element: <IncidentListPage /> },
               { path: "/driver/su-co/moi", element: <ReportIncidentPage /> },
               { path: "/driver/su-co/:id", element: <IncidentDetailPage /> },
+              { path: "/driver/thi-truong-nhien-lieu", element: <FuelMarketPage /> },
             ],
           },
         ],
