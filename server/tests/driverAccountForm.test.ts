@@ -78,7 +78,15 @@ test("vehicle form and server collect every blank field, then clear a corrected 
 test("shipment step validation stays on the current step and requires one to five images", () => {
   const stepOne = shipmentStepErrors(emptyShipment, 1, 0);
   assert.equal(stepOne.cargoDescription, undefined);
+  assert.equal(stepOne.pickupTimeFrom, "Chọn giờ bắt đầu bốc hàng.");
+  assert.equal(stepOne.pickupTimeTo, "Chọn giờ kết thúc bốc hàng.");
   assert.equal(typeof stepOne.pickupCompany, "string");
+  const reversed = shipmentStepErrors({ ...emptyShipment, pickupTimeFrom: "18:00", pickupTimeTo: "08:00" }, 1, 0);
+  assert.equal(reversed.pickupTimeFrom, undefined);
+  assert.equal(reversed.pickupTimeTo, "Giờ kết thúc bốc hàng phải muộn hơn giờ bắt đầu.");
+  const stepTwo = shipmentStepErrors(emptyShipment, 2, 0);
+  assert.equal(stepTwo.pickupCompany, undefined);
+  assert.equal(stepTwo.deliveryTimeFrom, "Chọn giờ bắt đầu nhận hàng.");
   const stepThree = shipmentStepErrors({ ...emptyShipment, cargoDescription: "Hàng", temperatureGroup: "FROZEN", cargoWeightTon: "1", cargoVolumeM3: "2", packageCount: "3", vehicleRequirement: "Xe lạnh", listedPriceVnd: "1000" }, 3, 0);
   assert.equal(stepThree.cargoImages, "Thêm ít nhất 1 ảnh hàng hóa.");
   assert.equal(shipmentStepErrors(emptyShipment, 3, 6).cargoImages, "Chỉ được tối đa 5 ảnh hàng hóa.");

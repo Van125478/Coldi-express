@@ -103,6 +103,12 @@ const fieldMeta: Record<FieldName, { id: string; label: string }> = {
 };
 
 const stepFields = shipmentStepFields;
+const timePartners: Partial<Record<keyof FormState, (keyof FormState)[]>> = {
+  pickupTimeFrom: ["pickupTimeFrom", "pickupTimeTo"],
+  pickupTimeTo: ["pickupTimeFrom", "pickupTimeTo"],
+  deliveryTimeFrom: ["deliveryTimeFrom", "deliveryTimeTo"],
+  deliveryTimeTo: ["deliveryTimeFrom", "deliveryTimeTo"],
+};
 
 function money(amount: number): string {
   return `${new Intl.NumberFormat("vi-VN").format(amount)} đ`;
@@ -204,9 +210,9 @@ export function PublishShipmentPage({ email }: { email: string }) {
   const [pending, setPending] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [published, setPublished] = useState<PublishedShipment | null>(null);
-  const [summary, setSummary] = useState<FieldName[]>([]);
   const [images, setImages] = useState<CargoDraft[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [focusRequest, setFocusRequest] = useState<FieldName | null>(null);
   const imagesRef = useRef<CargoDraft[]>([]);
 
   useEffect(() => {
@@ -220,20 +226,28 @@ export function PublishShipmentPage({ email }: { email: string }) {
   }, []);
 
   useEffect(() => {
-    const first = summary[0];
-    if (!first) return;
-    document.getElementById(fieldMeta[first].id)?.focus();
-  }, [summary, step]);
+    if (!focusRequest) return;
+    document.getElementById(fieldMeta[focusRequest].id)?.focus();
+  }, [focusRequest, step]);
+
+  function focusFirst(names: FieldName[]) {
+    const first = names[0];
+    if (first) setFocusRequest(first);
+  }
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((current) => {
       const next = { ...current, [key]: value };
       setErrors((existing) => {
-        if (existing[key] == null) return existing;
+        const related = timePartners[key] ?? [key];
+        if (!related.some((name) => existing[name] != null)) return existing;
         const refreshed = shipmentFieldErrors(next, images.length);
-        if (refreshed[key]) return { ...existing, [key]: refreshed[key] };
         const copy = { ...existing };
-        delete copy[key];
+        for (const name of related) {
+          const message = refreshed[name];
+          if (message) copy[name] = message;
+          else delete copy[name];
+        }
         return copy;
       });
       return next;
@@ -245,10 +259,10 @@ export function PublishShipmentPage({ email }: { email: string }) {
     setErrors(stepErrors);
     const names = Object.keys(stepErrors) as FieldName[];
     if (names.length > 0) {
-      setSummary(names);
+      focusFirst(names);
       return;
     }
-    setSummary([]);
+    setErrors({});
     setStep((current) => (current === 3 ? 3 : ((current + 1) as Step)));
   }
 
@@ -258,7 +272,7 @@ export function PublishShipmentPage({ email }: { email: string }) {
     const room = 5 - images.length;
     if (room <= 0 || selected.length > room) {
       setErrors((current) => ({ ...current, cargoImages: "Chỉ được tối đa 5 ảnh hàng hóa." }));
-      setSummary(["cargoImages"]);
+      focusFirst(["cargoImages"]);
       if (room <= 0) return;
     }
     setUploading(true);
@@ -269,7 +283,7 @@ export function PublishShipmentPage({ email }: { email: string }) {
         if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size < 1 || file.size > 2_000_000) {
           rejected = true;
           setErrors((current) => ({ ...current, cargoImages: "Ảnh hàng hóa dùng JPG, PNG hoặc WebP, mỗi ảnh không quá 2 MB." }));
-          setSummary(["cargoImages"]);
+          focusFirst(["cargoImages"]);
           continue;
         }
         const uploaded = await uploadCargoImage(file);
@@ -288,7 +302,7 @@ export function PublishShipmentPage({ email }: { email: string }) {
         ...current,
         cargoImages: caught instanceof ApiError ? caught.message : "Không tải được ảnh. Thông tin đã nhập vẫn được giữ.",
       }));
-      setSummary(["cargoImages"]);
+      focusFirst(["cargoImages"]);
     } finally {
       setUploading(false);
     }
@@ -316,11 +330,10 @@ export function PublishShipmentPage({ email }: { email: string }) {
     setErrors(stepErrors);
     const names = Object.keys(stepErrors) as FieldName[];
     if (names.length > 0) {
-      setSummary(names);
       if (stepErrors.deliveryDate && !names.some((name) => stepFields[3].includes(name) && name !== "deliveryDate")) setStep(2);
+      focusFirst(names);
       return;
     }
-    setSummary([]);
     setPending(true);
     setFormError(null);
     try {
@@ -334,12 +347,12 @@ export function PublishShipmentPage({ email }: { email: string }) {
       if (caught instanceof ApiError && caught.fields) {
         const serverErrors = caught.fields as Partial<Record<FieldName, string>>;
         setErrors(serverErrors);
-        setSummary(Object.keys(serverErrors) as FieldName[]);
         const names = Object.keys(serverErrors);
         const earlier = names.some((name) => stepFields[1].includes(name as FieldName));
         const middle = names.some((name) => stepFields[2].includes(name as FieldName));
         if (earlier) setStep(1);
         else if (middle) setStep(2);
+        focusFirst(names as FieldName[]);
       } else {
         setFormError(caught instanceof ApiError ? caught.message : "Không đăng được đơn. Hãy thử lại.");
       }
@@ -373,32 +386,6 @@ export function PublishShipmentPage({ email }: { email: string }) {
       </ol>
 
       <form className="mt-6 space-y-6 rounded-2xl border border-line bg-surface p-5 sm:p-6" onSubmit={(event) => void handleSubmit(event)} noValidate>
-        {summary.length > 0 ? (
-          <div role="alert" aria-labelledby="form-error-title" className="rounded-xl border border-warning-line bg-warning-bg p-4 outline-none">
-            <h2 id="form-error-title" className="text-sm font-bold text-ink">
-              Còn thông tin chưa hợp lệ
-            </h2>
-            <ul className="mt-2 space-y-1 text-sm">
-              {summary.map((name) => (
-                <li key={name}>
-                  <a
-                    className="font-semibold text-navy underline-offset-4 hover:underline"
-                    href={`#${fieldMeta[name].id}`}
-                    onClick={(event) => {
-                      const control = document.getElementById(fieldMeta[name].id);
-                      if (!(control instanceof HTMLElement)) return;
-                      event.preventDefault();
-                      control.focus();
-                    }}
-                  >
-                    {fieldMeta[name].label}
-                  </a>
-                  <span className="text-ink"> — {errors[name]}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
         {step === 1 ? (
           <fieldset className="space-y-4" disabled={pending}>
             <legend className="text-lg font-bold text-ink">Địa chỉ kho gửi và lấy hàng</legend>
@@ -576,7 +563,12 @@ export function PublishShipmentPage({ email }: { email: string }) {
 
         <div className="flex flex-col gap-3 sm:flex-row">
           {step > 1 ? (
-            <Button type="button" variant="outline" disabled={pending} onClick={() => setStep((current) => (current === 1 ? 1 : ((current - 1) as Step)))}>
+            <Button type="button" variant="outline" disabled={pending} onClick={() => setStep((current) => {
+              const previous = (current === 1 ? 1 : current - 1) as Step;
+              const allowed = new Set(stepFields[previous]);
+              setErrors((existing) => Object.fromEntries(Object.entries(existing).filter(([name]) => allowed.has(name as FieldName))) as Partial<Record<FieldName, string>>);
+              return previous;
+            })}>
               Quay lại
             </Button>
           ) : null}
@@ -664,9 +656,10 @@ function Field({
 }) {
   const errorId = `${id}-error`;
   const control = isValidElement(children)
-    ? cloneElement(children as ReactElement<{ "aria-describedby"?: string; "aria-invalid"?: boolean }>, {
+    ? cloneElement(children as ReactElement<{ "aria-describedby"?: string; "aria-invalid"?: boolean; className?: string }>, {
         "aria-describedby": error ? errorId : undefined,
         "aria-invalid": error ? true : undefined,
+        className: error ? `${(children.props as { className?: string }).className ?? ""} border-danger`.trim() : (children.props as { className?: string }).className,
       })
     : children;
   return (

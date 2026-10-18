@@ -40,9 +40,7 @@ export function shipmentFieldErrors(form: ShipmentFieldValues, cargoImageCount =
   if (!phoneOk(form.pickupPhone)) errors.pickupPhone = "Nhập số điện thoại lấy hàng.";
   if (!optionalEmail(form.pickupEmail)) errors.pickupEmail = "Email nhận thông báo chưa hợp lệ.";
   if (form.pickupDate === "") errors.pickupDate = "Chọn ngày lấy hàng.";
-  if (form.pickupTimeFrom === "" || form.pickupTimeTo === "" || form.pickupTimeFrom >= form.pickupTimeTo) {
-    errors.pickupTimeTo = "Khung giờ bốc hàng phải có giờ bắt đầu sớm hơn giờ kết thúc.";
-  }
+  assignTimeWindow(errors, form.pickupTimeFrom, form.pickupTimeTo, "pickupTimeFrom", "pickupTimeTo", "bốc hàng");
   if (form.deliveryCompany.trim().length === 0) errors.deliveryCompany = "Nhập tên công ty hoặc kho nhận.";
   if (form.deliveryLocation.trim().length === 0) errors.deliveryLocation = "Nhập địa chỉ giao hàng.";
   if (form.deliveryContactName.trim().length === 0) errors.deliveryContactName = "Nhập người nhận hàng.";
@@ -52,9 +50,7 @@ export function shipmentFieldErrors(form: ShipmentFieldValues, cargoImageCount =
   if (form.pickupDate !== "" && form.deliveryDate !== "" && form.deliveryDate < form.pickupDate) {
     errors.deliveryDate = "Ngày giao muộn nhất không được trước ngày lấy hàng.";
   }
-  if (form.deliveryTimeFrom === "" || form.deliveryTimeTo === "" || form.deliveryTimeFrom >= form.deliveryTimeTo) {
-    errors.deliveryTimeTo = "Khung giờ nhận hàng phải có giờ bắt đầu sớm hơn giờ kết thúc.";
-  }
+  assignTimeWindow(errors, form.deliveryTimeFrom, form.deliveryTimeTo, "deliveryTimeFrom", "deliveryTimeTo", "nhận hàng");
   if (form.cargoDescription.trim().length === 0) errors.cargoDescription = "Nhập mô tả hàng hóa.";
   if (form.temperatureGroup === "") errors.temperatureGroup = "Chọn nhóm nhiệt.";
   if (!measureOk(form.cargoWeightTon)) errors.cargoWeightTon = "Nhập trọng lượng bằng tấn, lớn hơn 0.";
@@ -75,6 +71,23 @@ export function shipmentStepErrors(form: ShipmentFieldValues, step: 1 | 2 | 3, c
   return Object.fromEntries(Object.entries(shipmentFieldErrors(form, cargoImageCount)).filter(([name]) => names.has(name as ShipmentFieldName))) as Partial<
     Record<ShipmentFieldName, string>
   >;
+}
+
+function assignTimeWindow(
+  errors: Partial<Record<ShipmentFieldName, string>>,
+  from: string,
+  to: string,
+  fromKey: ShipmentFieldName,
+  toKey: ShipmentFieldName,
+  action: string,
+) {
+  const fromOk = /^([01]\d|2[0-3]):[0-5]\d$/.test(from);
+  const toOk = /^([01]\d|2[0-3]):[0-5]\d$/.test(to);
+  if (from.trim() === "") errors[fromKey] = `Chọn giờ bắt đầu ${action}.`;
+  else if (!fromOk) errors[fromKey] = `Giờ bắt đầu ${action} chưa hợp lệ.`;
+  if (to.trim() === "") errors[toKey] = `Chọn giờ kết thúc ${action}.`;
+  else if (!toOk) errors[toKey] = `Giờ kết thúc ${action} chưa hợp lệ.`;
+  if (fromOk && toOk && from >= to) errors[toKey] = `Giờ kết thúc ${action} phải muộn hơn giờ bắt đầu.`;
 }
 
 function digits(value: string): string {
