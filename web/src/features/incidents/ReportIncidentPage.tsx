@@ -12,6 +12,7 @@ import type { BusinessRole } from "@/models/session";
 import { ApiError } from "@/services/apiClient";
 import { deleteIncidentEvidence, uploadIncidentEvidence } from "@/services/incidentEvidenceClient";
 import { createIncident } from "@/services/incidentService";
+import { ImagePickerControl } from "@/shared/components/media/ImagePickerControl";
 import { getCarrierShipment, getDriverShipment, getMyShipment } from "@/services/shipmentService";
 
 type Errors = Partial<Record<"incidentType" | "title" | "description" | "occurredAt", string>>;
@@ -80,22 +81,27 @@ export function ReportIncidentPage() {
     });
   }
 
-  async function addEvidence(file: File) {
-    if (evidence.length >= 5) {
+  async function addEvidence(list: FileList | null) {
+    if (!list) return;
+    const selected = Array.from(list);
+    const room = 5 - evidence.length;
+    if (room <= 0 || selected.length > room) {
       setEvidenceError("Chỉ được tối đa 5 ảnh chứng cứ.");
-      return;
+      if (room <= 0) return;
     }
-    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size === 0 || file.size > 2_000_000) {
-      setEvidenceError("Ảnh chứng cứ dùng JPG, PNG hoặc WebP, mỗi ảnh không quá 2 MB.");
-      return;
-    }
-    try {
-      const uploaded = await uploadIncidentEvidence(file);
-      setEvidence((current) => [...current, { id: uploaded.id, preview: URL.createObjectURL(file) }]);
-      setEvidenceError("");
-    } catch (error: unknown) {
-      if (lostSession(error, logout)) return;
-      setEvidenceError(error instanceof ApiError ? error.message : "Không tải được ảnh chứng cứ.");
+    for (const file of selected.slice(0, Math.max(room, 0))) {
+      if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size === 0 || file.size > 2_000_000) {
+        setEvidenceError("Ảnh chứng cứ dùng JPG, PNG hoặc WebP, mỗi ảnh không quá 2 MB.");
+        continue;
+      }
+      try {
+        const uploaded = await uploadIncidentEvidence(file);
+        setEvidence((current) => [...current, { id: uploaded.id, preview: URL.createObjectURL(file) }]);
+        setEvidenceError("");
+      } catch (error: unknown) {
+        if (lostSession(error, logout)) return;
+        setEvidenceError(error instanceof ApiError ? error.message : "Không tải được ảnh chứng cứ.");
+      }
     }
   }
 
@@ -235,26 +241,31 @@ export function ReportIncidentPage() {
               }}
             />
           </Field>
-          <div className="space-y-2">
-            <p className="text-sm leading-relaxed text-muted">{evidenceNote}</p>
-            <input
+          <div className="space-y-3 rounded-2xl border border-line p-4">
+            <p className="text-sm font-semibold text-ink">Ảnh chứng cứ</p>
+            <ImagePickerControl
               id="incident-evidence"
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              className="block text-sm text-ink"
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                event.target.value = "";
-                if (file) void addEvidence(file);
-              }}
+              buttonLabel="Chọn ảnh chứng cứ"
+              optionalNote="Không bắt buộc"
+              hintId="incident-evidence-hint"
+              hint={`${evidenceNote} Đã chọn ${evidence.length}/5.`}
+              disabled={pending || evidence.length >= 5}
+              describedBy={evidenceError ? "incident-evidence-error" : "incident-evidence-hint"}
+              invalid={Boolean(evidenceError)}
+              onFiles={(files) => void addEvidence(files)}
             />
-            {evidenceError ? <p className="text-sm text-ink">{evidenceError}</p> : null}
+            {evidenceError ? <p id="incident-evidence-error" className="text-sm text-ink">{evidenceError}</p> : null}
             {evidence.length > 0 ? (
-              <ul className="flex flex-wrap gap-2" aria-label="Ảnh chứng cứ đã chọn">
+              <ul className="grid grid-cols-2 gap-3 sm:grid-cols-5" aria-label="Ảnh chứng cứ đã chọn">
                 {evidence.map((item, index) => (
-                  <li key={item.id} className="space-y-1">
-                    <img src={item.preview} alt={`Ảnh chứng cứ ${index + 1}`} className="h-20 w-28 rounded-lg border border-line object-cover" />
-                    <button type="button" className="text-sm font-semibold text-navy underline-offset-4 hover:underline" onClick={() => void removeEvidence(item.id)}>
+                  <li key={item.id} className="space-y-2">
+                    <img src={item.preview} alt={`Ảnh chứng cứ ${index + 1}`} className="h-32 w-full rounded-xl border border-line object-contain" />
+                    <button
+                      type="button"
+                      className="text-sm font-semibold text-navy underline-offset-4 hover:underline"
+                      aria-label={`Bỏ ảnh ${index + 1}`}
+                      onClick={() => void removeEvidence(item.id)}
+                    >
                       Bỏ ảnh
                     </button>
                   </li>
