@@ -1,4 +1,4 @@
-import type { BusinessRole } from "@/models/session";
+import type { BusinessRole } from "../models/session";
 
 export const paths = {
   home: "/",

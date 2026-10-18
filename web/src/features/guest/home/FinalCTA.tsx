@@ -1,5 +1,7 @@
 import { Link } from "react-router-dom";
 import { paths } from "@/app/paths";
+import { useAuth } from "@/features/auth/useAuth";
+import { publicPackageNav } from "@/features/packages/packageNavigation";
 
 const choices = [
   { label: "Tôi là chủ hàng", to: paths.shipperSolution },
@@ -7,6 +9,9 @@ const choices = [
 ] as const;
 
 export function FinalCTA() {
+  const { snapshot } = useAuth();
+  const packageNav = publicPackageNav(snapshot.status === "authenticated" ? snapshot.user.role : null);
+
   return (
     <section className="bg-[#172554] text-white" aria-labelledby="final-cta-title">
       <div className="guest-frame py-12 sm:py-16">
@@ -26,6 +31,14 @@ export function FinalCTA() {
               {choice.label}
             </Link>
           ))}
+          {packageNav ? (
+            <Link
+              to={packageNav.href}
+              className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/40 px-5 text-sm font-semibold text-white outline-none hover:bg-white/10 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white sm:px-6"
+            >
+              Xem gói dịch vụ
+            </Link>
+          ) : null}
         </div>
       </div>
     </section>
