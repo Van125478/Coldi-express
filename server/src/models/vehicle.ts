@@ -1,6 +1,10 @@
 import { Schema, model } from "mongoose";
 import { temperatureGroups } from "./shipment.js";
 
+export const vehicleStatuses = ["ACTIVE", "ARCHIVED"] as const;
+
+export type VehicleStatus = (typeof vehicleStatuses)[number];
+
 export const vehicleKinds = ["REEFER_TRUCK", "REEFER_CONTAINER", "REEFER_VAN"] as const;
 
 export type VehicleKind = (typeof vehicleKinds)[number];
@@ -19,6 +23,10 @@ const vehicleSchema = new Schema(
     vehicleKind: { type: String, enum: vehicleKinds },
     temperatureGroup: { type: String, enum: temperatureGroups },
     capacityTon: { type: Number },
+    status: { type: String, enum: vehicleStatuses, default: "ACTIVE" },
+    statusChangedAt: { type: Date },
+    archivedAt: { type: Date },
+    restoredAt: { type: Date },
   },
   { timestamps: true },
 );

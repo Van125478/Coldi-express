@@ -2,6 +2,8 @@ import { Router } from "express";
 import { readCorrelationId, recordSuccessfulAudit } from "../audit/recordAudit.js";
 import { isValidObjectId } from "mongoose";
 import { claimDriverForAssignment, releaseDriverHold } from "../fleet/driverAccount.js";
+import { assertCarrierMayClaim } from "../packages/entitlements.js";
+import { activeVehicleFilter } from "../packages/vehicleStatus.js";
 import { HttpError } from "../middlewares/errorHandler.js";
 import { requireAuth } from "../middlewares/requireAuth.js";
 import { requireOperationalSession } from "../middlewares/requireOperational.js";
@@ -110,6 +112,7 @@ carrierShipmentRouter.post("/:id/claim", requireTrustedOrigin, async (request, r
     }
 
     const occurredAt = new Date();
+    await assertCarrierMayClaim(carrierId, occurredAt);
     const shipment = await Shipment.findOneAndUpdate(
       {
         _id: id,
@@ -162,16 +165,26 @@ carrierShipmentRouter.post("/:id/assign", requireTrustedOrigin, async (request, 
       throw new HttpError(404, "not_found", "Không tìm thấy đơn.");
     }
 
-    const [vehicle, driver] = await Promise.all([
-      Vehicle.findOne({ _id: input.vehicleId, carrierId }).select("label"),
+    const [vehicle, archivedVehicle, driver] = await Promise.all([
+      Vehicle.findOne({ _id: input.vehicleId, carrierId, ...activeVehicleFilter() }).select("label status"),
+      Vehicle.findOne({ _id: input.vehicleId, carrierId, status: "ARCHIVED" }).select("_id"),
       User.findOne({ _id: input.driverId, role: "DRIVER", carrierId }).select("displayName"),
     ]);
+    if (archivedVehicle) {
+      throw new HttpError(409, "vehicle_archived", "Xe đã lưu trữ không được phân công cho chuyến mới.");
+    }
     if (!vehicle || !driver) {
       throw new HttpError(400, "invalid_request", "Xe hoặc tài xế không thuộc nhà xe này.");
     }
     const claim = await claimDriverForAssignment(input.driverId, carrierId, id);
     if (claim !== "claimed") {
       throw new HttpError(409, "conflict", "Tài xế chưa thể nhận chuyến.");
+    }
+
+    const stillActive = await Vehicle.findOne({ _id: input.vehicleId, carrierId, ...activeVehicleFilter() }).select("_id");
+    if (!stillActive) {
+      await releaseDriverHold(input.driverId, id);
+      throw new HttpError(409, "vehicle_archived", "Xe đã lưu trữ không được phân công cho chuyến mới.");
     }
 
     const occurredAt = new Date();

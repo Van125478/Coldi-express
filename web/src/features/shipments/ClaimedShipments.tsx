@@ -261,7 +261,7 @@ function renderTrip(shipment: CarrierShipment) {
                           }
                         >
                           <option value="">Chọn xe</option>
-                          {vehicles.map((vehicle) => (
+                          {vehicles.filter((vehicle) => vehicle.status !== "ARCHIVED").map((vehicle) => (
                             <option key={vehicle.id} value={vehicle.id}>
                               {vehicle.plate ? `${vehicle.label} · ${vehicle.plate}` : vehicle.label}
                             </option>

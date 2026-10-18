@@ -12,6 +12,7 @@ import { carrierShipmentRouter } from "./routes/carrierShipment.routes.js";
 import { driverShipmentRouter } from "./routes/driverShipment.routes.js";
 import { healthRouter } from "./routes/health.routes.js";
 import { shipmentChatRouter } from "./routes/shipmentChat.routes.js";
+import { packageRouter } from "./routes/package.routes.js";
 import { shipmentRouter } from "./routes/shipment.routes.js";
 
 export function createApp() {
@@ -32,6 +33,7 @@ export function createApp() {
   );
   app.use(express.json({ limit: "1mb" }));
   app.use("/api/health", healthRouter);
+  app.use("/api/packages", packageRouter);
   app.use("/api/auth", authRouter);
   app.use("/api/shipments", shipmentRouter);
   app.use("/api/shipments", shipmentChatRouter);
