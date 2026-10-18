@@ -13,6 +13,10 @@ process.env.PORT ??= "4000";
 process.env.FRONTEND_ORIGIN ??= "http://127.0.0.1:5173";
 process.env.NODE_ENV = "test";
 process.env.AUTH_SECRET ??= "test-secret-that-is-at-least-32-characters";
+process.env.APP_RUNTIME_MODE = "qa";
+process.env.PACKAGE_DEMO_SELF_ACTIVATION_ENABLED = "true";
+process.env.PACKAGE_DEMO_DEPLOYMENT_ID = "qa-gps-test01";
+process.env.PACKAGE_DEMO_AUTHORIZED_DEPLOYMENT_ID = "qa-gps-test01";
 
 const sourceUri = process.env.MONGODB_URI ?? "mongodb://127.0.0.1:27017/coldi";
 const testUri = new URL(sourceUri);
@@ -99,15 +103,16 @@ async function transit(baseUrl: string) {
   assert.equal(created.status, 201);
   const shipment = ((await created.json()) as Json).shipment as Json;
   const id = String(shipment.id);
-  const vehicle = await Vehicle.findOne({ label: "Xe đông lạnh kiểm tra" });
-  const driverUser = await User.findOne({ email: driverEmail });
-  assert.ok(vehicle && driverUser);
   const claimed = await fetch(`${baseUrl}/api/carrier/shipments/${id}/claim`, {
     method: "POST",
     headers: { "content-type": "application/json", origin: "http://127.0.0.1:5173", cookie: carrier },
     body: JSON.stringify({}),
   });
   assert.equal(claimed.status, 200);
+  const carrierUser = await User.findOne({ email: carrierEmail });
+  const driverUser = await User.findOne({ email: driverEmail });
+  assert.ok(carrierUser && driverUser);
+  const vehicle = await Vehicle.create({ carrierId: carrierUser._id, label: `Xe GPS ${Date.now()}-${Math.random().toString(16).slice(2)}` });
   const assigned = await fetch(`${baseUrl}/api/carrier/shipments/${id}/assign`, {
     method: "POST",
     headers: { "content-type": "application/json", origin: "http://127.0.0.1:5173", cookie: carrier },
@@ -140,6 +145,8 @@ before(async () => {
     { email: adminEmail, passwordHash, role: "ADMIN", displayName: "Quản trị kiểm tra" },
   ]);
   await Vehicle.create({ carrierId: carrier._id, label: "Xe đông lạnh kiểm tra" });
+  const { activateDemoPlan } = await import("../src/packages/activation.js");
+  await activateDemoPlan(carrier._id.toString(), "carrier-pro-monthly", "gps-vehicle-cap-01");
 });
 
 after(async () => {

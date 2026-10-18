@@ -273,10 +273,11 @@ test("concurrent lock and assignment cannot leave a locked driver on an active t
     const carrierUser = await User.findOne({ email: carrierEmail });
     const carrier = (await login(baseUrl, carrierEmail)).cookie;
     const shipper = (await login(baseUrl, shipperEmail)).cookie;
-    const vehicle = await Vehicle.findOne({ label: "Xe tài khoản" });
-    assert.ok(carrierUser && vehicle);
+    assert.ok(carrierUser);
     const passwordHash = (await User.findOne({ email: driverEmail }))?.passwordHash;
     assert.ok(passwordHash);
+    const shipmentIds: string[] = [];
+    for (let index = 0; index < 8; index += 1) shipmentIds.push(await publishAndClaim(baseUrl, shipper, carrier));
     for (let index = 0; index < 8; index += 1) {
       const driver = await User.create({
         email: `race-${index}.driver-account@coldi.local`,
@@ -287,7 +288,9 @@ test("concurrent lock and assignment cannot leave a locked driver on an active t
         accountStatus: "ACTIVE",
         mustChangePassword: false,
       });
-      const shipmentId = await publishAndClaim(baseUrl, shipper, carrier);
+      const vehicle = await Vehicle.create({ carrierId: carrierUser._id, label: `Xe đua tài khoản ${index}` });
+      const shipmentId = shipmentIds[index];
+      assert.ok(shipmentId);
       const [lockResult, assignResult] = await Promise.all([
         send(baseUrl, `/api/carrier/fleet/drivers/${driver._id.toString()}/lock`, carrier, "POST", {}),
         send(baseUrl, `/api/carrier/shipments/${shipmentId}/assign`, carrier, "POST", { vehicleId: vehicle._id.toString(), driverId: driver._id.toString() }),

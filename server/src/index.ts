@@ -4,6 +4,7 @@ import { createApp } from "./app.js";
 import { connectDatabase, disconnectDatabase } from "./config/database.js";
 import { getEnv } from "./config/env.js";
 import { reconcileAllFleetCapacities } from "./packages/fleetCapacity.js";
+import { reconcileVehicleLeases } from "./packages/vehicleLease.js";
 
 const env = getEnv();
 const app = createApp();
@@ -17,6 +18,11 @@ if (!connected) {
     await reconcileAllFleetCapacities();
   } catch (error) {
     console.error("Fleet capacity reconcile did not finish.", error);
+  }
+  try {
+    await reconcileVehicleLeases();
+  } catch (error) {
+    console.error("Vehicle lease reconcile did not finish.", error);
   }
 }
 

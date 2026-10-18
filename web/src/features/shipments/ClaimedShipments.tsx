@@ -71,7 +71,11 @@ export function ClaimedShipments() {
     } catch (caught) {
       if (caught instanceof ApiError && caught.status === 409) {
         setNoticeTone("conflict");
-        setNotice("Chuyến này đã được phân công. Không ghi đè phân công hiện có.");
+        setNotice(
+          caught.code === "vehicle_busy"
+            ? caught.message
+            : "Chuyến này đã được phân công. Không ghi đè phân công hiện có.",
+        );
         setAssignTarget(null);
         await load();
       } else {
@@ -84,6 +88,7 @@ export function ClaimedShipments() {
   }
 
   const location = useLocation();
+  const activeVehicles = vehicles.filter((vehicle) => vehicle.status !== "ARCHIVED");
   const resourcesReady = vehicles.length > 0 && drivers.length > 0;
   const targetShipment = shipments.find((item) => item.id === assignTarget) ?? null;
   const targetChoice = targetShipment ? choice(targetShipment.id) : null;
@@ -245,6 +250,9 @@ function renderTrip(shipment: CarrierShipment) {
                     {resourcesReady ? null : (
                       <p className="mb-3 text-sm text-ink">Nhà xe chưa có xe hoặc tài xế để phân công.</p>
                     )}
+                    {activeVehicles.length > 0 && activeVehicles.every((vehicle) => vehicle.availableForAssignment === false) ? (
+                      <p className="mb-3 text-sm text-ink">Các xe đang gắn chuyến chưa hoàn thành. Hãy đợi chuyến kết thúc trước khi phân công thêm.</p>
+                    ) : null}
                     <div className="grid items-end gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
                       <div className="space-y-2">
                         <Label htmlFor={`${shipment.id}-vehicle`}>Xe</Label>
@@ -261,9 +269,9 @@ function renderTrip(shipment: CarrierShipment) {
                           }
                         >
                           <option value="">Chọn xe</option>
-                          {vehicles.filter((vehicle) => vehicle.status !== "ARCHIVED").map((vehicle) => (
-                            <option key={vehicle.id} value={vehicle.id}>
-                              {vehicle.plate ? `${vehicle.label} · ${vehicle.plate}` : vehicle.label}
+                          {activeVehicles.map((vehicle) => (
+                            <option key={vehicle.id} value={vehicle.id} disabled={vehicle.availableForAssignment === false}>
+                              {vehicleOptionLabel(vehicle)}
                             </option>
                           ))}
                         </select>
@@ -290,7 +298,11 @@ function renderTrip(shipment: CarrierShipment) {
                           ))}
                         </select>
                       </div>
-                      <Button type="submit" className="h-12 w-full px-4 lg:w-auto" disabled={pendingId !== null || !resourcesReady || selected.vehicleId === "" || selected.driverId === ""}>
+                      <Button
+                        type="submit"
+                        className="h-12 w-full px-4 lg:w-auto"
+                        disabled={pendingId !== null || !resourcesReady || selected.vehicleId === "" || selected.driverId === "" || !vehicleIsAvailable(vehicles.find((vehicle) => vehicle.id === selected.vehicleId))}
+                      >
                         {pendingId === shipment.id ? "Đang phân công" : "Phân công xe và tài xế"}
                       </Button>
                     </div>
@@ -299,4 +311,13 @@ function renderTrip(shipment: CarrierShipment) {
               </li>
     );
   }
+}
+
+function vehicleIsAvailable(vehicle: CarrierVehicle | undefined): boolean {
+  return vehicle != null && vehicle.status !== "ARCHIVED" && vehicle.availableForAssignment !== false;
+}
+
+function vehicleOptionLabel(vehicle: CarrierVehicle): string {
+  const name = vehicle.plate ? `${vehicle.label} · ${vehicle.plate}` : vehicle.label;
+  return vehicle.availableForAssignment === false ? `${name} · Đang gắn chuyến` : name;
 }

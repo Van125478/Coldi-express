@@ -82,6 +82,7 @@ carrierFleetRouter.patch("/vehicles/:id", requireTrustedOrigin, async (request, 
     const input = readVehicleInput(request.body);
     const updated = await Vehicle.findOneAndUpdate({ _id: routeId(request.params.id), carrierId }, input, { returnDocument: "after" });
     if (!updated) throw new HttpError(404, "not_found", "Không tìm thấy xe này.");
+    const blocked = await unfinishedVehicleIds(carrierId, [updated._id.toString()]);
     await recordSuccessfulAudit({
       action: "VEHICLE_UPDATED",
       actorId: carrierId,
@@ -92,7 +93,9 @@ carrierFleetRouter.patch("/vehicles/:id", requireTrustedOrigin, async (request, 
       fields: Object.keys(input),
       correlationId: readCorrelationId(request.headers["x-request-id"]),
     });
-    response.status(200).json({ vehicle: toVehicleDto(updated, false) });
+    response.status(200).json({
+      vehicle: toVehicleDto(updated, blocked.has(updated._id.toString()) || (updated.leasedShipmentIds?.length ?? 0) > 0),
+    });
   } catch (error) {
     next(error);
   }
@@ -330,5 +333,6 @@ function toVehicleDto(
     statusLabel: status === "ARCHIVED" ? "Đã lưu trữ" : "Đang hoạt động",
     canArchive: status !== "ARCHIVED" && !archiveBlocked,
     archiveBlockReason: status === "ARCHIVED" ? null : archiveBlocked ? "Xe đang gắn với chuyến chưa kết thúc." : null,
+    availableForAssignment: status !== "ARCHIVED" && !archiveBlocked,
   };
 }

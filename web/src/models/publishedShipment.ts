@@ -77,6 +77,7 @@ export type CarrierVehicle = {
   statusLabel?: string;
   canArchive?: boolean;
   archiveBlockReason?: string | null;
+  availableForAssignment?: boolean;
 };
 
 export type CarrierDriver = {

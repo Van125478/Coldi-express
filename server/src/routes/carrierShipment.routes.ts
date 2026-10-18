@@ -3,8 +3,8 @@ import { readCorrelationId, recordSuccessfulAudit } from "../audit/recordAudit.j
 import { isValidObjectId } from "mongoose";
 import { claimDriverForAssignment, releaseDriverHold } from "../fleet/driverAccount.js";
 import { assertCarrierMayClaim } from "../packages/entitlements.js";
-import { releaseVehicleReservation, reserveVehicleForShipment } from "../packages/vehicleLease.js";
-import { activeVehicleFilter } from "../packages/vehicleStatus.js";
+import { releaseVehicleReservation, reserveVehicleForShipment, vehicleBusyMessage } from "../packages/vehicleLease.js";
+import { activeVehicleFilter, unfinishedShipmentStatuses } from "../packages/vehicleStatus.js";
 import { HttpError } from "../middlewares/errorHandler.js";
 import { requireAuth } from "../middlewares/requireAuth.js";
 import { requireOperationalSession } from "../middlewares/requireOperational.js";
@@ -186,10 +186,23 @@ carrierShipmentRouter.post("/:id/assign", requireTrustedOrigin, async (request, 
     if (existingShipment.status !== "MATCHED") {
       throw new HttpError(409, "conflict", "Chuyến chưa sẵn sàng để phân công.");
     }
+    const alreadyOnTrip = await Shipment.exists({
+      _id: { $ne: id },
+      vehicleId: input.vehicleId,
+      status: { $in: [...unfinishedShipmentStatuses] },
+    });
+    if (alreadyOnTrip) {
+      throw new HttpError(409, "vehicle_busy", vehicleBusyMessage);
+    }
 
     const reserved = await reserveVehicleForShipment(carrierId, input.vehicleId, id);
     if (!reserved) {
-      throw new HttpError(409, "vehicle_archived", "Xe đã lưu trữ không được phân công cho chuyến mới.");
+      const current = await Vehicle.findOne({ _id: input.vehicleId, carrierId }).select("status");
+      if (current?.status === "ARCHIVED") {
+        throw new HttpError(409, "vehicle_archived", "Xe đã lưu trữ không được phân công cho chuyến mới.");
+      }
+      if (!current) throw new HttpError(400, "invalid_request", "Xe hoặc tài xế không thuộc nhà xe này.");
+      throw new HttpError(409, "vehicle_busy", vehicleBusyMessage);
     }
 
     const claim = await claimDriverForAssignment(input.driverId, carrierId, id);

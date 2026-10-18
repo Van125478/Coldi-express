@@ -271,8 +271,12 @@ test("concurrent assignments keep one vehicle and driver pair", async () => {
     const id = String(created.id);
     const carrierCookie = await login(baseUrl, carrierEmail);
     assert.equal((await claim(baseUrl, carrierCookie, id)).status, 200);
-    const firstVehicle = await Vehicle.findOne({ label: "Xe đông lạnh một" });
-    const secondVehicle = await Vehicle.findOne({ label: "Xe đông lạnh hai" });
+    const carrierUser = await User.findOne({ email: carrierEmail });
+    assert.ok(carrierUser);
+    const [firstVehicle, secondVehicle] = await Vehicle.create([
+      { carrierId: carrierUser._id, label: "Xe đua phân công một" },
+      { carrierId: carrierUser._id, label: "Xe đua phân công hai" },
+    ]);
     const firstDriver = await User.findOne({ email: driverEmail });
     const secondDriver = await User.findOne({ email: secondDriverEmail });
     assert.ok(firstVehicle && secondVehicle && firstDriver && secondDriver);

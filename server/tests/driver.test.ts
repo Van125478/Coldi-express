@@ -96,6 +96,21 @@ function post(baseUrl: string, cookie: string, path: string) {
   });
 }
 
+async function vehicleForNewTrip() {
+  const carrier = await User.findOne({ email: carrierEmail });
+  assert.ok(carrier);
+  const vehicles = await Vehicle.find({ carrierId: carrier._id });
+  for (const vehicle of vehicles) {
+    if ((vehicle.leasedShipmentIds?.length ?? 0) > 0) continue;
+    const unfinished = await Shipment.exists({
+      vehicleId: vehicle._id,
+      status: { $in: ["DRAFT", "MATCHED", "PICKUP_CONFIRMED", "IN_TRANSIT", "INCIDENT"] },
+    });
+    if (!unfinished) return vehicle;
+  }
+  return Vehicle.create({ carrierId: carrier._id, label: `Xe đông lạnh ${Date.now()}` });
+}
+
 before(async () => {
   await mongoose.connect(process.env.MONGODB_URI ?? "");
   if (mongoose.connection.name !== "coldi_driver_test") throw new Error(`Refusing to use database ${mongoose.connection.name}.`);
@@ -125,7 +140,7 @@ test("an assigned driver sees only their trip and other roles cannot use driver 
     const id = String(created.id);
     const claim = await post(baseUrl, carrierCookie, `/api/carrier/shipments/${id}/claim`);
     assert.equal(claim.status, 200);
-    const vehicle = await Vehicle.findOne({ label: "Xe đông lạnh demo" });
+    const vehicle = await vehicleForNewTrip();
     const driver = await User.findOne({ email: driverEmail });
     assert.ok(vehicle && driver);
     const assigned = await fetch(`${baseUrl}/api/carrier/shipments/${id}/assign`, {
@@ -171,7 +186,7 @@ test("pickup and delivery follow the assigned driver lifecycle without duplicati
     const early = await post(baseUrl, driverCookie, `/api/driver/shipments/${id}/pickup`);
     assert.equal(early.status, 404);
 
-    const vehicle = await Vehicle.findOne({ label: "Xe đông lạnh demo" });
+    const vehicle = await vehicleForNewTrip();
     const driver = await User.findOne({ email: driverEmail });
     assert.ok(vehicle && driver);
     assert.equal(
@@ -250,7 +265,7 @@ test("concurrent pickup requests keep one milestone and do not move backward", a
     const created = await publish(baseUrl, shipperCookie, "Đơn kiểm tra lấy đồng thời");
     const id = String(created.id);
     assert.equal((await post(baseUrl, carrierCookie, `/api/carrier/shipments/${id}/claim`)).status, 200);
-    const vehicle = await Vehicle.findOne({ label: "Xe đông lạnh demo" });
+    const vehicle = await vehicleForNewTrip();
     const driver = await User.findOne({ email: driverEmail });
     assert.ok(vehicle && driver);
     assert.equal(
@@ -302,7 +317,7 @@ test("unauthorized roles, forged fields, and a stale request cannot change the m
     const hidden = await fetch(`${baseUrl}/api/driver/shipments/${id}`, { headers: { cookie: driverCookie } });
     assert.equal(hidden.status, 404);
 
-    const vehicle = await Vehicle.findOne({ label: "Xe đông lạnh demo" });
+    const vehicle = await vehicleForNewTrip();
     const driver = await User.findOne({ email: driverEmail });
     const other = await User.findOne({ email: otherDriverEmail });
     assert.ok(vehicle && driver && other);
