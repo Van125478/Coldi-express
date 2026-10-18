@@ -50,7 +50,7 @@ type OilCard = {
 };
 type OilBody = { disclaimer: string; benchmarks: OilCard[] };
 
-function spot(series: string, rows: Array<{ period: string; value: unknown; units?: unknown }>, frequency = "daily") {
+function spot(series: string, rows: Array<{ period: string; value: unknown; units?: unknown; productName?: unknown }>, frequency = "daily") {
   return {
     response: {
       frequency,
@@ -59,7 +59,9 @@ function spot(series: string, rows: Array<{ period: string; value: unknown; unit
         series,
         value: row.value,
         units: row.units ?? "$/BBL",
-        "product-name": series === "RWTC" ? "Cushing, OK WTI Spot Price FOB (Dollars per Barrel)" : "Europe Brent Spot Price FOB (Dollars per Barrel)",
+        "product-name":
+          row.productName ??
+          (series === "RWTC" ? "Cushing, OK WTI Spot Price FOB (Dollars per Barrel)" : "Europe Brent Spot Price FOB (Dollars per Barrel)"),
       })),
     },
   };
@@ -197,6 +199,15 @@ test("EIA parser rejects malformed, wrong-unit, and non-string prices", () => {
   const numeric = parseEiaPayload(spot("RBRTE", [{ period: "2026-10-16", value: 80.5 }]), "RBRTE");
   assert.equal(numeric.ok, true);
   if (numeric.ok) assert.equal(numeric.rows.length, 0);
+  const liveBrent = parseEiaPayload(spot("RBRTE", [{ period: "2026-10-14", value: "80.50", productName: "UK Brent Crude Oil" }]), "RBRTE");
+  assert.equal(liveBrent.ok, true);
+  if (liveBrent.ok) assert.equal(liveBrent.rows[0]?.priceUsdPerBarrel, "80.5");
+  const liveWti = parseEiaPayload(spot("RWTC", [{ period: "2026-10-14", value: "70.25", productName: "WTI Crude Oil" }]), "RWTC");
+  assert.equal(liveWti.ok, true);
+  if (liveWti.ok) assert.equal(liveWti.rows[0]?.priceUsdPerBarrel, "70.25");
+  const diesel = parseEiaPayload(spot("RBRTE", [{ period: "2026-10-14", value: "3.50", productName: "No. 2 Diesel" }]), "RBRTE");
+  assert.equal(diesel.ok, true);
+  if (diesel.ok) assert.equal(diesel.rejected[0]?.code, "INVALID_UNIT");
   const wrongUnit = parseEiaPayload(spot("RBRTE", [{ period: "2026-10-16", value: "80", units: "cents" }]), "RBRTE");
   assert.equal(wrongUnit.ok, true);
   if (wrongUnit.ok) assert.equal(wrongUnit.rejected[0]?.code, "INVALID_UNIT");

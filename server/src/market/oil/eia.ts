@@ -23,6 +23,14 @@ export type EiaFetchResult = EiaParseResult | { ok: false; code: EiaFetchFailure
 
 type FetchLike = (input: string, init?: { signal?: AbortSignal }) => Promise<Response>;
 
+function isCrudeBarrelProduct(productName: string, seriesId: string): boolean {
+  if (/barrel/i.test(productName)) return true;
+  if (!/crude oil/i.test(productName)) return false;
+  if (seriesId === "RBRTE") return /brent/i.test(productName);
+  if (seriesId === "RWTC") return /\bwti\b/i.test(productName);
+  return false;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -52,7 +60,7 @@ function parseRow(item: unknown, seriesId: string): { kind: "skip" } | { kind: "
   if (typeof item.value !== "string") return { kind: "rejected", rejected: { code: "SCHEMA", period } };
   if (item.units !== OIL_ACCEPTED_UNITS) return { kind: "rejected", rejected: { code: "INVALID_UNIT", period } };
   const productName = item["product-name"];
-  if (typeof productName === "string" && !/barrel/i.test(productName)) {
+  if (typeof productName === "string" && !isCrudeBarrelProduct(productName, seriesId)) {
     return { kind: "rejected", rejected: { code: "INVALID_UNIT", period } };
   }
   const price = canonicalPositiveDecimal(item.value);

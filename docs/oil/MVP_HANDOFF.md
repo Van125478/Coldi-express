@@ -28,7 +28,7 @@ Route: `https://api.eia.gov/v2/petroleum/pri/spt/data/`
 | BRENT | `RBRTE` | `frequency=daily`, `data[]=value`, `facets[series][]=RBRTE`, sort `period` descending, `offset=0`, `length=5` |
 | WTI | `RWTC` | Same shape, series `RWTC` |
 
-Accepted unit token: `$/BBL` only. A row whose `product-name` is present and does not mention barrel is rejected. `value` must be a string. A numeric JSON value is treated as a schema mismatch, not coerced. `period` must be a real `YYYY-MM-DD`. `response.frequency` must be `daily`.
+Accepted unit token: `$/BBL` only. A `product-name` must mention barrel, or be the EIA crude name for that series (`UK Brent Crude Oil` for RBRTE, `WTI Crude Oil` for RWTC). Diesel and other product names are rejected. `value` must be a string. A numeric JSON value is treated as a schema mismatch, not coerced. `period` must be a real `YYYY-MM-DD`. `response.frequency` must be `daily`.
 
 `publishedAt` stays null. The spot row does not carry a verified publication timestamp, and `fetchedAt` is not copied into it.
 
