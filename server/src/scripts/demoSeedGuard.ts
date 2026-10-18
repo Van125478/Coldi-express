@@ -16,7 +16,7 @@ export function demoSeedDecision(
 }
 
 export function userIndexMigrationAllowed(databaseName: string, nodeEnv: string, confirm: string, allowProduction: string): boolean {
-  if (databaseName.length === 0 || confirm !== databaseName) return false;
+  if (databaseName.length === 0 || confirm !== databaseName || blockedDatabases.has(databaseName)) return false;
   if (nodeEnv === "production") return allowProduction === "yes";
   return true;
 }

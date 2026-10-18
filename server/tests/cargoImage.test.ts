@@ -4,10 +4,12 @@ import { once } from "node:events";
 import test, { before, after } from "node:test";
 import mongoose from "mongoose";
 import { hashPassword } from "../src/auth/password.js";
+import { HttpError } from "../src/middlewares/errorHandler.js";
 import { CargoImage } from "../src/models/cargoImage.js";
 import { CommissionLedgerEvent } from "../src/models/commissionLedger.js";
 import { Shipment } from "../src/models/shipment.js";
 import { User } from "../src/models/user.js";
+import { cargoStorageRoot } from "../src/shipments/cargoImages.js";
 import { TINY_PNG } from "./support/cargoImage.js";
 
 process.env.PORT ??= "4000";
@@ -276,21 +278,28 @@ test("only the owner, marketplace, claimed carrier, and assigned driver can read
 });
 
 test("production without a configured directory refuses uploads, and orphan cleanup keeps attached images", async () => {
-  await withServer(async (baseUrl) => {
-    const shipper = await login(baseUrl, shipperEmail);
-    const previousEnv = process.env.NODE_ENV;
-    const previousDir = process.env.CARGO_IMAGE_DIR;
+  const previousEnv = process.env.NODE_ENV;
+  const previousDir = process.env.CARGO_IMAGE_DIR;
+  try {
     process.env.NODE_ENV = "production";
     delete process.env.CARGO_IMAGE_DIR;
-    try {
-      assert.equal((await upload(baseUrl, shipper, "image/png", TINY_PNG)).status, 503);
-      process.env.CARGO_IMAGE_DIR = "relative-cargo";
-      assert.equal((await upload(baseUrl, shipper, "image/png", TINY_PNG)).status, 503);
-    } finally {
-      process.env.NODE_ENV = previousEnv;
-      if (previousDir === undefined) delete process.env.CARGO_IMAGE_DIR;
-      else process.env.CARGO_IMAGE_DIR = previousDir;
-    }
+    assert.throws(
+      () => cargoStorageRoot(),
+      (error: unknown) => error instanceof HttpError && error.status === 503 && error.code === "cargo_storage_unavailable",
+    );
+    process.env.CARGO_IMAGE_DIR = "relative-cargo";
+    assert.throws(
+      () => cargoStorageRoot(),
+      (error: unknown) => error instanceof HttpError && error.status === 503 && error.code === "cargo_storage_unavailable",
+    );
+  } finally {
+    process.env.NODE_ENV = previousEnv;
+    if (previousDir === undefined) delete process.env.CARGO_IMAGE_DIR;
+    else process.env.CARGO_IMAGE_DIR = previousDir;
+  }
+
+  await withServer(async (baseUrl) => {
+    const shipper = await login(baseUrl, shipperEmail);
     const imageId = await uploadId(baseUrl, shipper);
     const created = await publish(baseUrl, shipper, { cargoImageIds: [imageId] });
     assert.equal(created.status, 201);

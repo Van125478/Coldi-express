@@ -17,6 +17,8 @@ test("user identity index migration requires the exact database name and does no
   assert.equal(userIndexMigrationAllowed("coldi_demo_local", "development", "coldi", ""), false);
   assert.equal(userIndexMigrationAllowed("coldi_demo_local", "development", "coldi_demo_local", ""), true);
   assert.equal(userIndexMigrationAllowed("coldi", "production", "coldi", ""), false);
-  assert.equal(userIndexMigrationAllowed("coldi", "production", "coldi", "yes"), true);
+  assert.equal(userIndexMigrationAllowed("coldi", "production", "coldi", "yes"), false);
+  assert.equal(userIndexMigrationAllowed("coldi_identity_migration_test", "production", "coldi_identity_migration_test", ""), false);
+  assert.equal(userIndexMigrationAllowed("coldi_identity_migration_test", "production", "coldi_identity_migration_test", "yes"), true);
   assert.equal(userIndexMigrationAllowed("", "development", "", ""), false);
 });

@@ -2,8 +2,8 @@ import "dotenv/config";
 import mongoose from "mongoose";
 import { connectDatabase, disconnectDatabase } from "../config/database.js";
 import { getEnv } from "../config/env.js";
-import { User } from "../models/user.js";
 import { userIndexMigrationAllowed } from "./demoSeedGuard.js";
+import { migrateUserIdentityIndexes } from "./userIndexMigration.js";
 
 const env = getEnv();
 const databaseName = decodeURIComponent(new URL(env.MONGODB_URI.replace(/^mongodb(\+srv)?:\/\//, "https://")).pathname.replace(/^\//, "").split("/")[0] ?? "");
@@ -30,8 +30,12 @@ if (mongoose.connection.name !== databaseName) {
 }
 
 try {
-  await User.syncIndexes();
+  await migrateUserIdentityIndexes();
   console.log(`Synchronized sparse unique email and username indexes on ${databaseName}. No user documents or password hashes were modified.`);
+} catch (error) {
+  const message = error instanceof Error ? error.message : "User index migration failed.";
+  console.error(message);
+  process.exitCode = 1;
 } finally {
   await disconnectDatabase();
 }
