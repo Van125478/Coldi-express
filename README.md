@@ -2,14 +2,15 @@
 
 COLDI là website vận tải lạnh cho doanh nghiệp. Chủ hàng đăng đơn. Nhà xe tự nhận chuyến rồi phân công xe và tài xế. Tài xế được phân công xác nhận lấy hàng, sau đó xác nhận giao hàng. Xác nhận giao không phải thanh toán.
 
-Bản này là **WIP / Team Testing**. Không phải bản production. MVP theo phương án B chưa hoàn thành.
+**Tài liệu sản phẩm hiện hành là v2.6.** Code trên nhánh này là **WIP / Team Testing**. Đây không phải bản phát hành ứng dụng v2.6 và không phải bản production. MVP chưa hoàn thành.
 
 ## Người mới đọc theo thứ tự này
 
 1. [Cài đặt và chạy máy](docs/team-testing/TEAM_TESTING_GUIDE.md) — Git, Node.js, MongoDB, file cấu hình, mở website.
 2. [Cách dùng từng vai trò](docs/team-testing/USER_GUIDE_BEGINNERS.md) — chủ hàng, nhà xe, tài xế, chat, GPS, kịch bản thử từ đầu đến cuối.
 3. [Khi gặp lỗi](docs/team-testing/TROUBLESHOOTING.md) — triệu chứng, cách kiểm tra, cách xử lý an toàn.
-4. [Trạng thái MVP 18/10/2026](docs/mvp-review/MVP_STATUS_2026-10-18.md) — phần nào đã có mã, phần nào chưa nghiệm thu, phần nào chưa làm.
+4. [Tài liệu sản phẩm v2.6](docs/v2.6/README.md) — phạm vi đặc tả hiện hành. Giá gói và công thức hoa hồng trong bộ này là đề xuất cho tới khi được duyệt.
+5. [Trạng thái MVP 18/10/2026](docs/mvp-review/MVP_STATUS_2026-10-18.md) — ảnh chụp phần nào đã có mã tại baseline trước bộ v2.6. Không thay phạm vi v2.6.
 
 Chi tiết API nằm ở [server/README.md](server/README.md). Biến môi trường kỹ thuật của đợt Core 08 nằm ở [docs/core-08/01-thiet-lap.md](docs/core-08/01-thiet-lap.md). File Core 08 là hồ sơ kỹ thuật, không thay hướng dẫn cài đặt ở trên.
 
@@ -41,11 +42,27 @@ Cần Node.js `>= 20.19.0`. Vite 8 trong `web/` cần `^20.19.0` hoặc `>= 22.1
 
 Khách mở trang công khai không phải một vai nghiệp vụ. Không có nút đổi vai trong một phiên đăng nhập.
 
+## Tài liệu sản phẩm v2.6
+
+CURRENT v2.6 PRODUCT SCOPE. Bộ này là đặc tả, không phải bằng chứng code đã có các module mới. Bản đồ cả thư mục tài liệu: [docs/README.md](docs/README.md).
+
+- [Mục lục v2.6](docs/v2.6/README.md)
+- [Phạm vi MVP](docs/v2.6/product/01_MVP_SCOPE_v2.6.md)
+- [Bảng giá gói](docs/v2.6/product/02_PRICING_PACKAGES_v2.6.md)
+- [Hoa hồng hai phía](docs/v2.6/product/03_COMMISSION_POLICY_v2.6.md)
+- [Luồng gói](docs/v2.6/product/04_PACKAGE_WORKFLOWS_v2.6.md)
+- [Giá dầu thô thế giới](docs/v2.6/product/05_WORLD_OIL_PRICE_v2.6.md)
+- [Báo cáo sự cố](docs/v2.6/product/06_INCIDENT_REPORTING_v2.6.md)
+- [Quyết định còn mở](docs/v2.6/product/07_OPEN_DECISIONS_v2.6.md)
+- [Kế hoạch nghiệm thu](docs/v2.6/qa/02_ACCEPTANCE_PLAN_v2.6.md)
+- [Backlog triển khai](docs/v2.6/qa/03_MVP_IMPLEMENTATION_BACKLOG_v2.6.md)
+- Cài đặt người mới: [TEAM_TESTING_GUIDE](docs/team-testing/TEAM_TESTING_GUIDE.md)
+
 ## Có mã, chưa phải đã xong MVP
 
-Đã có mã logistics: đăng, nhận, phân công, lấy, giao, chat, GPS, đội xe, tài khoản tài xế. Bố cục trang chủ tài xế đã được chấp nhận. Các màn còn lại chưa được chấp nhận hình ảnh. Chuỗi bấm từ đăng đơn đến giao hàng chưa được ghi là PASS. Tile Mapbox chưa được chứng minh.
+CURRENT IMPLEMENTED CODE trên baseline `7d07e941ace1d3490996c53a6bed36478a6d4836`: đăng đơn, sàn, nhận chuyến, phân công, lấy hàng, giao hàng, chat, GPS, đội xe, tài khoản tài xế. Bố cục trang chủ tài xế đã được chấp nhận. Các màn còn lại chưa được chấp nhận hình ảnh. Chuỗi bấm từ đăng đơn đến giao hàng chưa được ghi là PASS. Tile Mapbox chưa được chứng minh.
 
-Phương án B đã chốt: MVP cuối cùng còn bắt buộc Package Management, quyền gói và hạn mức trên backend. Phần đó chưa triển khai. Thanh toán online nằm sau MVP. Không có tên gói, giá gói hay hạn mức trong bản này.
+Đặc tả v2.6 yêu cầu thêm quản lý gói, thông tin gói, quyền lợi, hạn mức, hoa hồng hai phía ở mức định hướng, cập nhật giá dầu thô thế giới và báo cáo sự cố. Các module đó chưa có trong code. Thanh toán online nằm sau MVP. Giá, tỷ lệ, hạn mức và luồng chi tiết trong v2.6 là PROPOSED hoặc OPEN cho tới khi Product Owner duyệt.
 
 FE-05B chưa bắt đầu.
 
@@ -54,3 +71,5 @@ FE-05B chưa bắt đầu.
 Đừng checkout `feature/cinematic-scroll`. Đừng checkout `integration/coldi-v2.3-mvp` để thử bản nhóm, trừ khi bạn đang review pull request trước khi merge.
 
 Một tài liệu cũ từng nói `main` chỉ có commit khởi tạo `44e4791134690c72a261d91c60388994668fcdcb`. Câu đó đúng vào ngày viết, không còn là hướng dẫn. `docs/mvp-review/` trước file trạng thái 18/10/2026 là ảnh chụp lịch sử. `docs/COLDI_DEMO_GUIDE.md` mô tả giao diện cũ, không dùng để cài đặt.
+
+HISTORICAL DOCUMENT: `docs/Coldi_Documentation_v2.4_Roles_Clarified/`, `docs/product/` và các hồ sơ Core 08 đến Core 14. Phạm vi sản phẩm hiện hành là `docs/v2.6/`. Không sửa các báo cáo kiểm thử cũ cho khớp v2.6.
