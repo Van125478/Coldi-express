@@ -5,7 +5,7 @@ import test, { before, after, mock } from "node:test";
 import mongoose from "mongoose";
 import { hashPassword } from "../src/auth/password.js";
 import { grantAuthorizedDemoContract, repairPlanAudits } from "../src/packages/activation.js";
-import { reconcileFleetCapacity, releaseActiveVehicleReservation, reserveActiveVehicleSlot } from "../src/packages/fleetCapacity.js";
+import { commitActiveVehicleSlot, reconcileFleetCapacity, releaseActiveVehicleReservation, reserveActiveVehicleSlot, settleReservedVehicle } from "../src/packages/fleetCapacity.js";
 import { AccountSubscription, DemoContractGrant, FleetCapacity, PlanAuditEvent, PlanVersion, ContractTerms } from "../src/models/package.js";
 import { Shipment } from "../src/models/shipment.js";
 import { User } from "../src/models/user.js";
@@ -541,6 +541,80 @@ test("fleet capacity reconcile frees an expired hold and keeps a fresh one", asy
   const released = await FleetCapacity.findOne({ carrierId });
   assert.equal(released?.holds?.length, 0);
   assert.equal(released?.activeCount, 0);
+});
+
+test("an expired reservation still keeps the vehicle when the cap has room", async () => {
+  await resetDisposable();
+  const token = await reserveActiveVehicleSlot(carrierId, 2);
+  await FleetCapacity.updateOne({ carrierId, "holds.token": token }, { $set: { "holds.$.createdAt": new Date(Date.now() - 60_000) } });
+  await reconcileFleetCapacity(carrierId);
+  await Vehicle.create({ carrierId, label: "Xe chậm", plate: "51C-711.01", status: "ACTIVE" });
+  assert.equal(await commitActiveVehicleSlot(carrierId, token, 2), true);
+  assert.equal(await Vehicle.countDocuments({ carrierId, status: "ACTIVE" }), 1);
+  const counter = await FleetCapacity.findOne({ carrierId });
+  assert.equal(counter?.activeCount, 1);
+  assert.equal(counter?.holds?.length ?? 0, 0);
+});
+
+test("an in-flight create cannot exceed the cap after its reservation expires", async () => {
+  await resetDisposable();
+  await withServer(async (baseUrl) => {
+    const carrier = await login(baseUrl, carrierEmail);
+    assert.equal((await createVehicle(baseUrl, carrier, "51C-710.01")).status, 201);
+    const original = Vehicle.create.bind(Vehicle);
+    let opened = false;
+    const created = mock.method(Vehicle, "create", async (doc: unknown) => {
+      if (!opened) {
+        opened = true;
+        await FleetCapacity.updateOne({ carrierId }, { $set: { "holds.$[].createdAt": new Date(Date.now() - 60_000) } });
+        const rival = await createVehicle(baseUrl, carrier, "51C-710.02");
+        assert.equal(rival.status, 201);
+      }
+      return original(doc);
+    });
+    try {
+      const slow = await createVehicle(baseUrl, carrier, "51C-710.03");
+      assert.equal(slow.status, 409);
+      const failure = (await slow.json()) as Json;
+      assert.equal((failure.error as Json).code, "plan_limit_exceeded");
+    } finally {
+      created.mock.restore();
+    }
+    assert.equal(await Vehicle.countDocuments({ carrierId, status: { $ne: "ARCHIVED" } }), 2);
+    assert.equal(await Vehicle.exists({ carrierId, plate: "51C-710.03" }), null);
+    assert.notEqual(await Vehicle.exists({ carrierId, plate: "51C-710.02" }), null);
+    const counter = await FleetCapacity.findOne({ carrierId });
+    assert.equal(counter?.activeCount, 2);
+    assert.equal(counter?.holds?.length ?? 0, 0);
+  });
+});
+
+test("an expired restore is returned to the archive when another vehicle took the cap", async () => {
+  await resetDisposable();
+  await withServer(async (baseUrl) => {
+    const carrier = await login(baseUrl, carrierEmail);
+    const created = await createVehicle(baseUrl, carrier, "51C-712.01");
+    assert.equal(created.status, 201);
+    const vehicleId = String((((await created.json()) as Json).vehicle as Json).id);
+    assert.equal((await fetch(`${baseUrl}/api/carrier/fleet/vehicles/${vehicleId}/archive`, {
+      method: "POST",
+      headers: headers(carrier, true),
+      body: JSON.stringify({}),
+    })).status, 200);
+    assert.equal((await createVehicle(baseUrl, carrier, "51C-712.02")).status, 201);
+    const token = await reserveActiveVehicleSlot(carrierId, 2);
+    await FleetCapacity.updateOne({ carrierId, "holds.token": token }, { $set: { "holds.$.createdAt": new Date(Date.now() - 60_000) } });
+    assert.equal((await createVehicle(baseUrl, carrier, "51C-712.03")).status, 201);
+    await Vehicle.updateOne({ _id: vehicleId }, { status: "ACTIVE" });
+    await assert.rejects(
+      () => settleReservedVehicle(carrierId, token, 2, vehicleId, "archive"),
+      (error: unknown) => error instanceof Error && "code" in error && error.code === "plan_limit_exceeded",
+    );
+    assert.equal((await Vehicle.findById(vehicleId))?.status, "ARCHIVED");
+    assert.equal(await Vehicle.countDocuments({ carrierId, status: "ACTIVE" }), 2);
+    const counter = await FleetCapacity.findOne({ carrierId });
+    assert.equal(counter?.activeCount, 2);
+  });
 });
 
 test("archive and assign cannot leave an archived vehicle on an open trip", async () => {

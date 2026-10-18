@@ -12,7 +12,7 @@ import { Shipment, type TemperatureGroup } from "../models/shipment.js";
 import { User } from "../models/user.js";
 import { Vehicle, type VehicleKind, type VehicleStatus } from "../models/vehicle.js";
 import { resolveAccountEntitlements } from "../packages/entitlements.js";
-import { commitActiveVehicleSlot, releaseActiveVehicleReservation, releaseCommittedVehicleSlot, reserveActiveVehicleSlot } from "../packages/fleetCapacity.js";
+import { releaseActiveVehicleReservation, releaseCommittedVehicleSlot, reserveActiveVehicleSlot, settleReservedVehicle } from "../packages/fleetCapacity.js";
 import { activeVehicleFilter, unfinishedShipmentStatuses } from "../packages/vehicleStatus.js";
 
 export const carrierFleetRouter = Router();
@@ -48,7 +48,7 @@ carrierFleetRouter.post("/vehicles", requireTrustedOrigin, async (request, respo
       await releaseActiveVehicleReservation(carrierId, reservation);
       throw error;
     }
-    await commitActiveVehicleSlot(carrierId, reservation);
+    await settleReservedVehicle(carrierId, reservation, entitlements.vehicleCap, vehicle.id, "delete");
     await recordSuccessfulAudit({
       action: "VEHICLE_CREATED",
       actorId: carrierId,
@@ -166,7 +166,7 @@ carrierFleetRouter.post("/vehicles/:id/restore", requireTrustedOrigin, async (re
       await releaseActiveVehicleReservation(carrierId, reservation);
       throw new HttpError(404, "not_found", "Không tìm thấy xe đã lưu trữ để khôi phục.");
     }
-    await commitActiveVehicleSlot(carrierId, reservation);
+    await settleReservedVehicle(carrierId, reservation, entitlements.vehicleCap, updated.id, "archive");
     await recordSuccessfulAudit({
       action: "VEHICLE_RESTORED",
       actorId: carrierId,

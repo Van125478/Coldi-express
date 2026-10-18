@@ -13,6 +13,8 @@ const holdTtlMs = 30_000;
  * activeCount is the committed ACTIVE vehicles. A hold is an in-flight reservation.
  * Usage is activeCount plus holds that are still inside the TTL.
  * Reconcile drops only expired holds, then rewrites activeCount when no hold remains.
+ * A create that is still running after its hold expires must not keep the vehicle
+ * when that would leave more ACTIVE vehicles than the cap.
  */
 export async function reserveActiveVehicleSlot(carrierId: string, cap: number): Promise<string> {
   await reconcileFleetCapacity(carrierId);
@@ -47,12 +49,47 @@ export async function reserveActiveVehicleSlot(carrierId: string, cap: number): 
   throw new HttpError(409, "plan_limit_exceeded", "Không giữ được suất xe. Hãy thử lại.");
 }
 
-export async function commitActiveVehicleSlot(carrierId: string, token: string): Promise<void> {
+export async function commitActiveVehicleSlot(carrierId: string, token: string, cap: number): Promise<boolean> {
   const committed = await FleetCapacity.findOneAndUpdate(
     { carrierId, "holds.token": token },
     { $pull: { holds: { token } }, $inc: { activeCount: 1 } },
   );
-  if (!committed) await reconcileFleetCapacity(carrierId);
+  if (committed) return true;
+
+  await reconcileFleetCapacity(carrierId);
+  const actual = await Vehicle.countDocuments({ carrierId, ...activeVehicleFilter() });
+  const repaired = await FleetCapacity.findOneAndUpdate(
+    {
+      carrierId,
+      $expr: {
+        $lte: [{ $add: [actual, { $size: { $ifNull: ["$holds", []] } }] }, cap],
+      },
+    },
+    { $set: { activeCount: actual } },
+  );
+  return repaired !== null;
+}
+
+export async function settleReservedVehicle(
+  carrierId: string,
+  token: string,
+  cap: number,
+  vehicleId: string,
+  onReject: "delete" | "archive",
+): Promise<void> {
+  const kept = await commitActiveVehicleSlot(carrierId, token, cap);
+  if (kept) return;
+  if (onReject === "delete") {
+    await Vehicle.deleteOne({ _id: vehicleId, carrierId });
+  } else {
+    const archivedAt = new Date();
+    await Vehicle.updateOne(
+      { _id: vehicleId, carrierId, status: "ACTIVE" },
+      { status: "ARCHIVED", archivedAt, statusChangedAt: archivedAt },
+    );
+  }
+  await reconcileFleetCapacity(carrierId);
+  throw new HttpError(409, "plan_limit_exceeded", limitMessage);
 }
 
 export async function releaseActiveVehicleReservation(carrierId: string, token: string): Promise<void> {
