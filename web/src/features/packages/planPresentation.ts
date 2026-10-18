@@ -37,6 +37,64 @@ export function isProPlan(plan: Pick<CatalogPlan, "code">): boolean {
   return plan.code.includes("-pro-");
 }
 
+const tierOrder = ["free", "pro", "business", "enterprise"] as const;
+
+export type VisualTierId = (typeof tierOrder)[number];
+
+export type VisualTier = {
+  id: VisualTierId;
+  title: string;
+  plans: CatalogPlan[];
+};
+
+export function visualTierId(code: string): VisualTierId | null {
+  if (code.endsWith("-free")) return "free";
+  if (code.includes("-pro-")) return "pro";
+  if (code.endsWith("-business")) return "business";
+  if (code.endsWith("-enterprise")) return "enterprise";
+  return null;
+}
+
+export function visualTiers(plans: readonly CatalogPlan[]): VisualTier[] {
+  const grouped = new Map<VisualTierId, CatalogPlan[]>();
+  for (const plan of plans) {
+    const id = visualTierId(plan.code);
+    if (!id) continue;
+    const list = grouped.get(id) ?? [];
+    list.push(plan);
+    grouped.set(id, list);
+  }
+  return tierOrder.flatMap((id) => {
+    const list = grouped.get(id);
+    if (!list || list.length === 0) return [];
+    const ordered = [...list].sort((left, right) => billingRank(left) - billingRank(right) || left.code.localeCompare(right.code));
+    return [{ id, title: id === "pro" ? "Pro" : planTitle(ordered[0]), plans: ordered }];
+  });
+}
+
+function billingRank(plan: Pick<CatalogPlan, "billingCycle">): number {
+  if (plan.billingCycle === "MONTH") return 0;
+  if (plan.billingCycle === "YEAR") return 1;
+  return 2;
+}
+
+export function billingChoiceLabel(plan: Pick<CatalogPlan, "billingCycle">): string {
+  if (plan.billingCycle === "YEAR") return "Theo năm";
+  if (plan.billingCycle === "MONTH") return "Theo tháng";
+  return "Không theo chu kỳ";
+}
+
+export function annualComparisonNote(plan: Pick<CatalogPlan, "priceVnd" | "billingCycle">): string | null {
+  if (plan.billingCycle !== "YEAR" || plan.priceVnd == null) return null;
+  const perMonth = Math.round(plan.priceVnd / 12);
+  return `Khoảng ${formatVnd(perMonth)}/tháng chỉ để đối chiếu. Số niêm yết là ${formatVnd(plan.priceVnd)} mỗi năm.`;
+}
+
+export function tierExplanation(audience: PlanAudience): string {
+  const fleet = audience === "CARRIER" ? " Với nhà xe, bậc cao hơn có trần xe ACTIVE lớn hơn." : "";
+  return `Pro theo tháng và Pro theo năm là hai cách trả tiền của cùng một bậc, không phải hai hạng gói. Hoa hồng của hai cách trả này khác nhau. Bậc cao hơn có thể có hoa hồng thấp hơn.${fleet}`;
+}
+
 export function priceBlock(plan: Pick<CatalogPlan, "priceVnd" | "billingCycle" | "quoteRequired" | "listPriceLabel">): {
   amount: string;
   cycle: string;
@@ -58,6 +116,11 @@ export function vehicleCapText(plan: Pick<CatalogPlan, "audience" | "vehicleCap"
   if (plan.audience === "SHIPPER") return null;
   if (plan.vehicleCap == null) return "Trần xe theo hợp đồng";
   return `${plan.vehicleCap} xe ACTIVE`;
+}
+
+export function operatingVehicleText(activeVehicleCount: number, vehicleCap: number | null): string {
+  if (vehicleCap == null) return `${activeVehicleCount} xe đang hoạt động · trần theo hợp đồng`;
+  return `${activeVehicleCount}/${vehicleCap} xe đang hoạt động`;
 }
 
 export function activeVehicleText(activeVehicleCount: number, vehicleCap: number | null): string {

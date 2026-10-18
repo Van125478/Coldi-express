@@ -98,7 +98,7 @@ export function updateCarrierDriverName(id: string, displayName: string): Promis
   return apiRequest(`/api/carrier/fleet/drivers/${id}`, { method: "PATCH", body: JSON.stringify({ displayName }) });
 }
 
-export function createCarrierDriver(input: { displayName: string; email: string }): Promise<{ driver: CarrierDriver; temporaryPassword: string }> {
+export function createCarrierDriver(input: { displayName: string; username: string; password: string; confirmPassword: string }): Promise<{ driver: CarrierDriver }> {
   return apiRequest("/api/carrier/fleet/drivers", { method: "POST", body: JSON.stringify(input) });
 }
 
@@ -110,8 +110,12 @@ export function unlockCarrierDriver(id: string): Promise<{ driver: CarrierDriver
   return apiRequest(`/api/carrier/fleet/drivers/${id}/unlock`, { method: "POST", body: JSON.stringify({}) });
 }
 
-export function resetCarrierDriverPassword(id: string): Promise<{ driver: CarrierDriver; temporaryPassword: string }> {
-  return apiRequest(`/api/carrier/fleet/drivers/${id}/reset-password`, { method: "POST", body: JSON.stringify({}) });
+export function resetCarrierDriverPassword(id: string, input: { password: string; confirmPassword: string }): Promise<{ driver: CarrierDriver }> {
+  return apiRequest(`/api/carrier/fleet/drivers/${id}/reset-password`, { method: "POST", body: JSON.stringify(input) });
+}
+
+export function openShipperConversation(shipmentId: string): Promise<{ conversation: { id: string; carrierLabel: string; writable: boolean } }> {
+  return apiRequest(`/api/shipments/${shipmentId}/conversations`, { method: "POST", body: JSON.stringify({}) });
 }
 
 export function listDriverShipments(): Promise<{ shipments: DriverShipment[] }> {

@@ -25,8 +25,8 @@ export type IncidentRecord = {
   statusLabel: string;
   escalationStatus: "NONE" | "REQUESTED" | "ACTIVE" | "FINISHED" | "DECLINED";
   priority: null;
-  attachments: [];
-  evidence: { upload: "blocked"; reason: string };
+  attachments: { id: string }[];
+  evidence: { upload: "optional"; maxCount: 5; reason: string };
   version: number;
   resolutionSummary: string | null;
   resolvedAt: string | null;
@@ -67,6 +67,7 @@ export type IncidentDraft = {
   title: string;
   description: string;
   occurredAt?: string;
+  evidenceIds?: string[];
   idempotencyKey: string;
 };
 

@@ -43,6 +43,7 @@ type ShipmentSchedule = {
   temperatureLabel: string;
   vehicleRequirement: string;
   listedPriceVnd: number;
+  cargoImages?: { id: string }[];
   status: string;
   statusLabel: string;
   carrierId: string | null;
@@ -83,7 +84,8 @@ export type CarrierVehicle = {
 export type CarrierDriver = {
   id: string;
   displayName: string | null;
-  email?: string;
+  username?: string | null;
+  email?: string | null;
   accountStatus?: "ACTIVE" | "LOCKED";
   mustChangePassword?: boolean;
 };
@@ -120,4 +122,5 @@ export type PublishShipmentInput = {
   temperatureGroup: TemperatureGroup;
   vehicleRequirement: string;
   listedPriceVnd: number;
+  cargoImageIds: string[];
 };

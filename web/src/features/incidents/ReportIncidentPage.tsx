@@ -10,12 +10,13 @@ import { PageHeader } from "@/features/workspace/ui";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import type { BusinessRole } from "@/models/session";
 import { ApiError } from "@/services/apiClient";
+import { deleteIncidentEvidence, uploadIncidentEvidence } from "@/services/incidentEvidenceClient";
 import { createIncident } from "@/services/incidentService";
 import { getCarrierShipment, getDriverShipment, getMyShipment } from "@/services/shipmentService";
 
 type Errors = Partial<Record<"incidentType" | "title" | "description" | "occurredAt", string>>;
 
-const evidenceNote = "Ảnh chứng cứ chưa mở vì chưa có kho riêng và bước kiểm tra nội dung. Báo cáo bằng chữ vẫn được ghi nhận.";
+const evidenceNote = "Ảnh chứng cứ là tùy chọn, tối đa 5 ảnh JPG, PNG hoặc WebP. Báo cáo không có ảnh vẫn được ghi nhận.";
 
 export function ReportIncidentPage() {
   usePageTitle("Báo sự cố");
@@ -32,6 +33,8 @@ export function ReportIncidentPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [occurredAt, setOccurredAt] = useState("");
+  const [evidence, setEvidence] = useState<{ id: string; preview: string }[]>([]);
+  const [evidenceError, setEvidenceError] = useState("");
   const [errors, setErrors] = useState<Errors>({});
   const [formError, setFormError] = useState("");
   const [pending, setPending] = useState(false);
@@ -77,6 +80,40 @@ export function ReportIncidentPage() {
     });
   }
 
+  async function addEvidence(file: File) {
+    if (evidence.length >= 5) {
+      setEvidenceError("Chỉ được tối đa 5 ảnh chứng cứ.");
+      return;
+    }
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size === 0 || file.size > 2_000_000) {
+      setEvidenceError("Ảnh chứng cứ dùng JPG, PNG hoặc WebP, mỗi ảnh không quá 2 MB.");
+      return;
+    }
+    try {
+      const uploaded = await uploadIncidentEvidence(file);
+      setEvidence((current) => [...current, { id: uploaded.id, preview: URL.createObjectURL(file) }]);
+      setEvidenceError("");
+    } catch (error: unknown) {
+      if (lostSession(error, logout)) return;
+      setEvidenceError(error instanceof ApiError ? error.message : "Không tải được ảnh chứng cứ.");
+    }
+  }
+
+  async function removeEvidence(id: string) {
+    try {
+      await deleteIncidentEvidence(id);
+      setEvidence((current) => {
+        const item = current.find((entry) => entry.id === id);
+        if (item) URL.revokeObjectURL(item.preview);
+        return current.filter((entry) => entry.id !== id);
+      });
+      setEvidenceError("");
+    } catch (error: unknown) {
+      if (lostSession(error, logout)) return;
+      setEvidenceError(error instanceof ApiError ? error.message : "Không bỏ được ảnh chứng cứ.");
+    }
+  }
+
   async function submit() {
     const next: Errors = {};
     if (!incidentTypes.includes(incidentType as IncidentType)) next.incidentType = "Chọn một loại sự cố trong danh sách.";
@@ -98,6 +135,7 @@ export function ReportIncidentPage() {
         title: title.trim(),
         description: description.trim(),
         ...(occurredAt ? { occurredAt: new Date(occurredAt).toISOString() } : {}),
+        ...(evidence.length > 0 ? { evidenceIds: evidence.map((item) => item.id) } : {}),
         idempotencyKey: idempotencyKey.current,
       });
       navigate(incidentDetailPath(role, created.incident.id));
@@ -197,7 +235,33 @@ export function ReportIncidentPage() {
               }}
             />
           </Field>
-          <p className="text-sm leading-relaxed text-muted">{evidenceNote}</p>
+          <div className="space-y-2">
+            <p className="text-sm leading-relaxed text-muted">{evidenceNote}</p>
+            <input
+              id="incident-evidence"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="block text-sm text-ink"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                event.target.value = "";
+                if (file) void addEvidence(file);
+              }}
+            />
+            {evidenceError ? <p className="text-sm text-ink">{evidenceError}</p> : null}
+            {evidence.length > 0 ? (
+              <ul className="flex flex-wrap gap-2" aria-label="Ảnh chứng cứ đã chọn">
+                {evidence.map((item, index) => (
+                  <li key={item.id} className="space-y-1">
+                    <img src={item.preview} alt={`Ảnh chứng cứ ${index + 1}`} className="h-20 w-28 rounded-lg border border-line object-cover" />
+                    <button type="button" className="text-sm font-semibold text-navy underline-offset-4 hover:underline" onClick={() => void removeEvidence(item.id)}>
+                      Bỏ ảnh
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
           {formError ? (
             <p role="alert" className="text-sm text-ink">
               {formError}

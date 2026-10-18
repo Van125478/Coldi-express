@@ -5,6 +5,7 @@ import test, { after, before, mock } from "node:test";
 import { Types } from "mongoose";
 import mongoose from "mongoose";
 import { hashPassword } from "../src/auth/password.js";
+import { withRequiredCargoImage } from "./support/cargoImage.js";
 import { Shipment } from "../src/models/shipment.js";
 import { User } from "../src/models/user.js";
 import { Vehicle } from "../src/models/vehicle.js";
@@ -488,7 +489,7 @@ async function claimShipment(baseUrl: string, shipper: string, carrier: string, 
   const published = await fetch(`${baseUrl}/api/shipments`, {
     method: "POST",
     headers: headers(shipper, true),
-    body: JSON.stringify({
+    body: JSON.stringify(await withRequiredCargoImage(baseUrl, shipper, {
       cargoDescription,
       pickupLocation: "Cái Bè, Tiền Giang",
       deliveryLocation: "Thủ Đức, TP. Hồ Chí Minh",
@@ -510,7 +511,7 @@ async function claimShipment(baseUrl: string, shipper: string, carrier: string, 
       cargoWeightTon: 2,
       cargoVolumeM3: 8,
       packageCount: 10,
-    }),
+    })),
   });
   assert.equal(published.status, 201);
   const id = String(((await published.json()) as { shipment: Json }).shipment.id);

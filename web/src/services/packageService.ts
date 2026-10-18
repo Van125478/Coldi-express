@@ -65,3 +65,7 @@ export function activateDemoPlan(input: { planCode: string; idempotencyKey: stri
 export function scheduleDowngrade(idempotencyKey: string): Promise<{ paymentCollected: false; label: string; entitlements: Entitlements }> {
   return apiRequest("/api/packages/my-plan/schedule-downgrade", { method: "POST", body: JSON.stringify({ idempotencyKey }) });
 }
+
+export function endDemoPlan(idempotencyKey: string): Promise<{ paymentCollected: false; label: string; entitlements: Entitlements }> {
+  return apiRequest("/api/packages/my-plan/demo-end", { method: "POST", body: JSON.stringify({ idempotencyKey }) });
+}

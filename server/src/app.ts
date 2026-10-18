@@ -15,6 +15,8 @@ import { incidentRouter } from "./routes/incident.routes.js";
 import { shipmentChatRouter } from "./routes/shipmentChat.routes.js";
 import { packageRouter } from "./routes/package.routes.js";
 import { commissionRouter } from "./routes/commission.routes.js";
+import { cargoImageRouter } from "./routes/cargoImage.routes.js";
+import { incidentEvidenceRouter } from "./routes/incidentEvidence.routes.js";
 import { oilPriceRouter } from "./routes/oilPrice.routes.js";
 import { shipmentRouter } from "./routes/shipment.routes.js";
 
@@ -38,6 +40,8 @@ export function createApp() {
   app.use("/api/health", healthRouter);
   app.use("/api/packages", packageRouter);
   app.use("/api/auth", authRouter);
+  app.use("/api/cargo-images", cargoImageRouter);
+  app.use("/api/incident-evidence", incidentEvidenceRouter);
   app.use("/api/shipments", shipmentRouter);
   app.use("/api/commission", commissionRouter);
   app.use("/api/shipments", shipmentChatRouter);

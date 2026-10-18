@@ -8,6 +8,7 @@ import { IncidentNotification } from "../models/incidentNotification.js";
 import { Shipment } from "../models/shipment.js";
 import type { Actor, ShipmentAccess } from "./access.js";
 import { canComment, canObject, caseScope, createDecision, isCarrierHandler, recipientIds } from "./access.js";
+import { attachIncidentEvidence } from "./evidence.js";
 import { initialEscalationStatus, initialIncidentStatus, primaryTransition, type PrimaryAction } from "./lifecycle.js";
 import type { EscalationStatus, IncidentAction, IncidentStatus, IncidentType } from "./policy.js";
 import { appliedKeyLimit, incidentStatuses, pageDefault } from "./policy.js";
@@ -39,6 +40,7 @@ export type StoredIncident = {
   objectedBy?: Id | null;
   idempotencyKey: string;
   appliedKeys?: string[];
+  attachments?: string[];
   pendingEvents?: {
     idempotencyKey: string;
     action: IncidentAction;
@@ -94,6 +96,7 @@ export async function createIncident(
     description: string;
     occurredAt: Date | null;
     idempotencyKey: string;
+    evidenceIds?: string[];
   },
   correlationId: string,
 ): Promise<{ incident: IncidentView; created: boolean }> {
@@ -139,6 +142,16 @@ export async function createIncident(
       appliedKeys: [],
     });
     stored = created.toObject() as StoredIncident;
+    const evidenceIds = draft.evidenceIds ?? [];
+    if (evidenceIds.length > 0) {
+      try {
+        stored.attachments = await attachIncidentEvidence(actor.id, created._id, evidenceIds);
+        await Incident.updateOne({ _id: created._id }, { $set: { attachments: stored.attachments } });
+      } catch (attachError) {
+        await Incident.deleteOne({ _id: created._id });
+        throw attachError;
+      }
+    }
   } catch (error) {
     if (!isDuplicate(error)) throw error;
     const winner = await Incident.findOne({ reporterId: actor.id, idempotencyKey: draft.idempotencyKey }).lean<StoredIncident | null>();

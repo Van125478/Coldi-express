@@ -1,3 +1,4 @@
+import { withRequiredCargoImage } from "./support/cargoImage.js";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { once } from "node:events";
@@ -7,6 +8,7 @@ import { hashPassword } from "../src/auth/password.js";
 import { grantAuthorizedDemoContract, repairPlanAudits } from "../src/packages/activation.js";
 import { commitActiveVehicleSlot, reconcileFleetCapacity, releaseActiveVehicleReservation, reserveActiveVehicleSlot, settleReservedVehicle } from "../src/packages/fleetCapacity.js";
 import { AccountSubscription, DemoContractGrant, FleetCapacity, PlanAuditEvent, PlanVersion, ContractTerms } from "../src/models/package.js";
+import { CommissionLedgerEvent } from "../src/models/commissionLedger.js";
 import { Shipment } from "../src/models/shipment.js";
 import { User } from "../src/models/user.js";
 import { Vehicle } from "../src/models/vehicle.js";
@@ -86,7 +88,7 @@ async function publish(baseUrl: string, cookie: string) {
   const response = await fetch(`${baseUrl}/api/shipments`, {
     method: "POST",
     headers: headers(cookie, true),
-    body: JSON.stringify({
+    body: JSON.stringify(await withRequiredCargoImage(baseUrl, cookie, {
       cargoDescription: "Hàng kiểm tra gói",
       pickupLocation: "Cái Bè, Tiền Giang",
       deliveryLocation: "Thủ Đức, TP. Hồ Chí Minh",
@@ -108,7 +110,7 @@ async function publish(baseUrl: string, cookie: string) {
       cargoWeightTon: 2,
       cargoVolumeM3: 8,
       packageCount: 10,
-    }),
+    })),
   });
   assert.equal(response.status, 201);
   return ((await response.json()) as Json).shipment as Json;
@@ -155,7 +157,7 @@ after(async () => {
   await mongoose.disconnect();
 });
 
-test("catalog publishes fixed prices and leaves contract tiers as quotes", async () => {
+test("catalog publishes approved Free, Pro, Business and Enterprise prices", async () => {
   await withServer(async (baseUrl) => {
     const response = await fetch(`${baseUrl}/api/packages/catalog`);
     assert.equal(response.status, 200);
@@ -169,13 +171,22 @@ test("catalog publishes fixed prices and leaves contract tiers as quotes", async
     assert.equal(carrierFree?.vehicleCap, 2);
     assert.equal(carrierFree?.rateBps, 500);
     const enterprise = plans.find((plan) => plan.code === "carrier-enterprise");
-    assert.equal(enterprise?.priceVnd, null);
-    assert.equal(enterprise?.rateBps, null);
-    assert.equal(enterprise?.quoteRequired, true);
-    assert.equal(enterprise?.listPriceLabel, "Liên hệ báo giá");
+    assert.equal(enterprise?.priceVnd, 7990000);
+    assert.equal(enterprise?.rateBps, 200);
+    assert.equal(enterprise?.vehicleCap, 100);
+    assert.equal(enterprise?.quoteRequired, false);
+    assert.equal(enterprise?.listPriceLabel, "7.990.000 VND/tháng");
+    assert.equal(enterprise?.paymentCollected, false);
     const business = plans.find((plan) => plan.code === "carrier-business");
     assert.equal(business?.vehicleCap, 30);
-    assert.equal(business?.priceVnd, null);
+    assert.equal(business?.priceVnd, 2990000);
+    assert.equal(business?.rateBps, 300);
+    const shipperEnterprise = plans.find((plan) => plan.code === "shipper-enterprise");
+    assert.equal(shipperEnterprise?.priceVnd, 6990000);
+    assert.equal(shipperEnterprise?.rateBps, 250);
+    assert.equal(shipperEnterprise?.vehicleCap, null);
+    assert.equal(shipperEnterprise?.billingCycle, "MONTH");
+    assert.equal(plans.some((plan) => plan.code === "shipper-enterprise-annual"), false);
   });
 });
 
@@ -277,12 +288,7 @@ test("published plan versions stay immutable and clients cannot set contract ter
     assert.equal(reread?.priceVnd, 0);
 
     const carrier = await login(baseUrl, carrierEmail);
-    const missing = await fetch(`${baseUrl}/api/packages/my-plan/demo-activate`, {
-      method: "POST",
-      headers: headers(carrier, true),
-      body: JSON.stringify({ planCode: "carrier-enterprise", idempotencyKey: "enterprise-none-1" }),
-    });
-    assert.equal(missing.status, 409);
+    const shipper = await login(baseUrl, shipperEmail);
     const forged = await fetch(`${baseUrl}/api/packages/my-plan/demo-activate`, {
       method: "POST",
       headers: headers(carrier, true),
@@ -299,7 +305,6 @@ test("published plan versions stay immutable and clients cannot set contract ter
       () => grantAuthorizedDemoContract(carrierId, "carrier-business", { priceVnd: 3000000, rateBps: 400, vehicleCap: 30 }),
       (error: unknown) => error instanceof Error && "status" in error && (error as { status: number }).status === 400,
     );
-    await grantAuthorizedDemoContract(carrierId, "carrier-business", { priceVnd: 3000000, rateBps: 260, vehicleCap: null });
     const business = await fetch(`${baseUrl}/api/packages/my-plan/demo-activate`, {
       method: "POST",
       headers: headers(carrier, true),
@@ -307,10 +312,23 @@ test("published plan versions stay immutable and clients cannot set contract ter
     });
     assert.equal(business.status, 200);
     const saved = (await business.json()) as Json;
-    assert.equal((saved.entitlements as Json).rateBps, 260);
+    assert.equal((saved.entitlements as Json).rateBps, 300);
     assert.equal((saved.entitlements as Json).vehicleCap, 30);
-    assert.equal((saved.entitlements as Json).priceVnd, 3000000);
-    assert.notEqual((saved.entitlements as Json).rateBps, 275);
+    assert.equal((saved.entitlements as Json).priceVnd, 2990000);
+    assert.equal(saved.paymentCollected, false);
+    const shipperEnterprise = await fetch(`${baseUrl}/api/packages/my-plan/demo-activate`, {
+      method: "POST",
+      headers: headers(shipper, true),
+      body: JSON.stringify({ planCode: "shipper-enterprise", idempotencyKey: "shipper-ent-0001" }),
+    });
+    assert.equal(shipperEnterprise.status, 200);
+    const shipperSaved = (await shipperEnterprise.json()) as Json;
+    assert.equal((shipperSaved.entitlements as Json).priceVnd, 6990000);
+    assert.equal((shipperSaved.entitlements as Json).rateBps, 250);
+    assert.equal((shipperSaved.entitlements as Json).vehicleCap, null);
+    const shipperUser = await User.findOne({ email: shipperEmail });
+    const shipperSubscription = await AccountSubscription.findOne({ accountId: shipperUser?._id });
+    assert.equal(shipperSubscription?.vehicleCap ?? null, null);
   });
 });
 
@@ -378,7 +396,6 @@ test("vehicle caps, archive, restore and concurrent creates stay inside the plan
     assert.equal(await Vehicle.countDocuments({ carrierId, status: { $ne: "ARCHIVED" } }), 10);
 
     await resetDisposable();
-    await grantAuthorizedDemoContract(carrierId, "carrier-business", { priceVnd: 2500000, rateBps: 300, vehicleCap: null });
     const business = await fetch(`${baseUrl}/api/packages/my-plan/demo-activate`, {
       method: "POST",
       headers: headers(carrier, true),
@@ -386,19 +403,34 @@ test("vehicle caps, archive, restore and concurrent creates stay inside the plan
     });
     assert.equal(business.status, 200);
     await addVehicles(carrierId, 29);
-    assert.equal((await createVehicle(baseUrl, carrier, "51C-500.30")).status, 201);
-    assert.equal((await createVehicle(baseUrl, carrier, "51C-500.31")).status, 409);
+    const businessRace = await Promise.all([
+      createVehicle(baseUrl, carrier, "51C-500.30"),
+      createVehicle(baseUrl, carrier, "51C-500.31"),
+    ]);
+    assert.equal(businessRace.filter((response) => response.status === 201).length, 1);
+    assert.equal(businessRace.filter((response) => response.status === 409).length, 1);
+    assert.equal(await Vehicle.countDocuments({ carrierId, status: { $ne: "ARCHIVED" } }), 30);
+    assert.equal((await createVehicle(baseUrl, carrier, "51C-500.32")).status, 409);
 
     await resetDisposable();
-    await grantAuthorizedDemoContract(carrierId, "carrier-enterprise", { priceVnd: 8000000, rateBps: 200, vehicleCap: 4 });
     const enterprise = await fetch(`${baseUrl}/api/packages/my-plan/demo-activate`, {
       method: "POST",
       headers: headers(carrier, true),
       body: JSON.stringify({ planCode: "carrier-enterprise", idempotencyKey: "cap-enterprise-01" }),
     });
     assert.equal(enterprise.status, 200);
-    await addVehicles(carrierId, 4);
-    assert.equal((await createVehicle(baseUrl, carrier, "51C-600.05")).status, 409);
+    assert.equal(((await enterprise.json()) as Json).paymentCollected, false);
+    const enterpriseTerms = ((await (await fetch(`${baseUrl}/api/packages/my-plan`, { headers: headers(carrier) })).json()) as Json).entitlements as Json;
+    assert.equal(enterpriseTerms.vehicleCap, 100);
+    assert.equal(enterpriseTerms.priceVnd, 7990000);
+    assert.equal(enterpriseTerms.rateBps, 200);
+    await addVehicles(carrierId, 99);
+    const enterpriseRace = await Promise.all([
+      createVehicle(baseUrl, carrier, "51C-600.100"),
+      createVehicle(baseUrl, carrier, "51C-600.101"),
+    ]);
+    assert.equal(enterpriseRace.filter((response) => response.status === 201).length, 1);
+    assert.equal(await Vehicle.countDocuments({ carrierId, status: { $ne: "ARCHIVED" } }), 100);
   });
 });
 
@@ -732,6 +764,53 @@ test("activation records the latest published revision without changing the fixe
     assert.equal(subscription?.planVersionId?.toString(), revision.id);
     assert.equal(subscription?.priceVnd, 799000);
     assert.equal(subscription?.rateBps, 400);
+  });
+});
+
+test("immediate demo end keeps history and does not touch vehicles or the commission ledger", async () => {
+  await resetDisposable();
+  await withServer(async (baseUrl) => {
+    const carrier = await login(baseUrl, carrierEmail);
+    const ledgerBefore = await CommissionLedgerEvent.countDocuments();
+    const activated = await fetch(`${baseUrl}/api/packages/my-plan/demo-activate`, {
+      method: "POST",
+      headers: headers(carrier, true),
+      body: JSON.stringify({ planCode: "carrier-pro-monthly", idempotencyKey: "end-demo-activate" }),
+    });
+    assert.equal(activated.status, 200);
+    const vehicleResponse = await createVehicle(baseUrl, carrier, "51C-100.77");
+    assert.equal(vehicleResponse.status, 201);
+    const vehicle = ((await vehicleResponse.json()) as Json).vehicle as Json;
+    const scheduled = await fetch(`${baseUrl}/api/packages/my-plan/schedule-downgrade`, {
+      method: "POST",
+      headers: headers(carrier, true),
+      body: JSON.stringify({ idempotencyKey: "end-demo-schedule" }),
+    });
+    assert.equal(scheduled.status, 200);
+    const ended = await fetch(`${baseUrl}/api/packages/my-plan/demo-end`, {
+      method: "POST",
+      headers: headers(carrier, true),
+      body: JSON.stringify({ idempotencyKey: "end-demo-now-001" }),
+    });
+    assert.equal(ended.status, 200);
+    const body = (await ended.json()) as Json;
+    assert.equal((body.entitlements as Json).planCode, "carrier-free");
+    assert.equal((body.entitlements as Json).vehicleCap, 2);
+    const subscription = await AccountSubscription.findOne({ accountId: carrierId });
+    assert.ok(subscription);
+    assert.equal(subscription.downgradeToFreeAt, null);
+    assert.equal(subscription.audits.some((entry) => entry.action === "DEMO_ENDED"), true);
+    assert.equal(subscription.audits.some((entry) => entry.action === "DEMO_ACTIVATED"), true);
+    const storedVehicle = await Vehicle.findById(String(vehicle.id));
+    assert.equal(storedVehicle?.status ?? "ACTIVE", "ACTIVE");
+    const replay = await fetch(`${baseUrl}/api/packages/my-plan/demo-end`, {
+      method: "POST",
+      headers: headers(carrier, true),
+      body: JSON.stringify({ idempotencyKey: "end-demo-now-001" }),
+    });
+    assert.equal(replay.status, 200);
+    assert.equal(await CommissionLedgerEvent.countDocuments(), ledgerBefore);
+    assert.equal(await Shipment.countDocuments({ status: "CANCELLED", carrierId }), 0);
   });
 });
 

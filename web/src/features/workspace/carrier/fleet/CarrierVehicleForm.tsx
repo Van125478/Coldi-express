@@ -8,16 +8,18 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import type { CarrierVehicle } from "@/models/publishedShipment";
 import { ApiError } from "@/services/apiClient";
 import { createCarrierVehicle, getCarrierVehicle, updateCarrierVehicle } from "@/services/shipmentService";
+import { vehicleFieldErrors, vehicleFieldOrder, type VehicleDraft } from "@/features/workspace/carrier/fleet/vehicleFieldRules";
 
-type Draft = {
-  label: string;
-  plate: string;
-  vehicleKind: string;
-  temperatureGroup: string;
-  capacityTon: string;
-};
+type Draft = VehicleDraft;
 
 const emptyDraft: Draft = { label: "", plate: "", vehicleKind: "", temperatureGroup: "", capacityTon: "" };
+const fieldIds: Record<keyof Draft, string> = {
+  label: "vehicle-label",
+  plate: "vehicle-plate",
+  vehicleKind: "vehicle-kind",
+  temperatureGroup: "vehicle-temperature",
+  capacityTon: "vehicle-capacity",
+};
 
 export function CarrierVehicleForm({ mode }: { mode: "create" | "edit" }) {
   usePageTitle(mode === "create" ? "Thêm phương tiện" : "Chỉnh sửa xe");
@@ -27,6 +29,7 @@ export function CarrierVehicleForm({ mode }: { mode: "create" | "edit" }) {
   const [state, setState] = useState<"loading" | "ready" | "missing" | "error">(mode === "create" ? "ready" : "loading");
   const [pending, setPending] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [errors, setErrors] = useState<Partial<Record<keyof Draft, string>>>({});
 
   useEffect(() => {
     if (mode === "create" || !id) return;
@@ -47,29 +50,52 @@ export function CarrierVehicleForm({ mode }: { mode: "create" | "edit" }) {
   }, [id, mode]);
 
   function update(key: keyof Draft, value: string) {
-    setDraft((current) => ({ ...current, [key]: value }));
+    setDraft((current) => {
+      const next = { ...current, [key]: value };
+      setErrors((existing) => {
+        if (!existing[key]) return existing;
+        const refreshed = vehicleFieldErrors(next);
+        if (refreshed[key]) return { ...existing, [key]: refreshed[key] };
+        const copy = { ...existing };
+        delete copy[key];
+        return copy;
+      });
+      return next;
+    });
   }
 
   async function save() {
-    const capacityTon = Number(draft.capacityTon);
-    if (!Number.isFinite(capacityTon)) {
-      setNotice("Tải trọng không hợp lệ.");
+    const fieldErrors = vehicleFieldErrors(draft);
+    const names = vehicleFieldOrder.filter((name) => fieldErrors[name]);
+    if (names.length > 0) {
+      setErrors(fieldErrors);
+      setNotice(null);
+      const first = names[0];
+      if (first) document.getElementById(fieldIds[first])?.focus();
       return;
     }
     const input = {
-      label: draft.label,
-      plate: draft.plate,
-      vehicleKind: draft.vehicleKind,
-      temperatureGroup: draft.temperatureGroup,
-      capacityTon,
+      label: draft.label.trim(),
+      plate: draft.plate.trim(),
+      vehicleKind: draft.vehicleKind as "REEFER_TRUCK" | "REEFER_CONTAINER" | "REEFER_VAN",
+      temperatureGroup: draft.temperatureGroup as "COOL" | "FROZEN" | "DEEP_FROZEN",
+      capacityTon: Number(draft.capacityTon.trim().replace(",", ".")),
     };
     setPending(true);
     setNotice(null);
+    setErrors({});
     try {
       const body = mode === "create" || !id ? await createCarrierVehicle(input) : await updateCarrierVehicle(id, input);
       navigate(`${paths.carrierFleet}/xe/${body.vehicle.id}`, { replace: true, state: { saved: true } });
     } catch (error) {
-      setNotice(error instanceof ApiError ? error.message : "Không lưu được xe.");
+      if (error instanceof ApiError && error.fields) {
+        const serverErrors = error.fields as Partial<Record<keyof Draft, string>>;
+        setErrors(serverErrors);
+        const first = vehicleFieldOrder.find((name) => serverErrors[name]);
+        if (first) document.getElementById(fieldIds[first])?.focus();
+      } else {
+        setNotice(error instanceof ApiError ? error.message : "Không lưu được xe.");
+      }
     } finally {
       setPending(false);
     }
@@ -96,8 +122,8 @@ export function CarrierVehicleForm({ mode }: { mode: "create" | "edit" }) {
           <fieldset className="space-y-4">
             <legend className="text-sm font-bold text-navy">Nhận diện xe</legend>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Tên xe" value={draft.label} onChange={(value) => update("label", value)} />
-              <Field label="Biển số" value={draft.plate} onChange={(value) => update("plate", value)} />
+              <Field id="vehicle-label" label="Tên xe" value={draft.label} error={errors.label} onChange={(value) => update("label", value)} />
+              <Field id="vehicle-plate" label="Biển số" value={draft.plate} error={errors.plate} onChange={(value) => update("plate", value)} />
             </div>
           </fieldset>
           <fieldset className="space-y-4">
@@ -105,23 +131,25 @@ export function CarrierVehicleForm({ mode }: { mode: "create" | "edit" }) {
             <div className="grid gap-4 sm:grid-cols-2">
           <label className="block space-y-2 text-sm font-semibold text-ink">
             Loại phương tiện
-            <select className={fieldClass} value={draft.vehicleKind} onChange={(event) => update("vehicleKind", event.target.value)}>
+            <select id="vehicle-kind" aria-invalid={errors.vehicleKind !== undefined} aria-describedby={errors.vehicleKind ? "vehicle-kind-error" : undefined} className={`${fieldClass} ${errors.vehicleKind ? "border-danger" : ""}`} value={draft.vehicleKind} onChange={(event) => update("vehicleKind", event.target.value)}>
               <option value="">Chọn loại</option>
               <option value="REEFER_TRUCK">Xe tải lạnh</option>
               <option value="REEFER_CONTAINER">Container lạnh</option>
               <option value="REEFER_VAN">Xe van lạnh</option>
             </select>
+            {errors.vehicleKind ? <p id="vehicle-kind-error" className="text-sm font-normal text-ink">{errors.vehicleKind}</p> : null}
           </label>
           <label className="block space-y-2 text-sm font-semibold text-ink">
             Nhóm nhiệt độ hỗ trợ
-            <select className={fieldClass} value={draft.temperatureGroup} onChange={(event) => update("temperatureGroup", event.target.value)}>
+            <select id="vehicle-temperature" aria-invalid={errors.temperatureGroup !== undefined} aria-describedby={errors.temperatureGroup ? "vehicle-temperature-error" : undefined} className={`${fieldClass} ${errors.temperatureGroup ? "border-danger" : ""}`} value={draft.temperatureGroup} onChange={(event) => update("temperatureGroup", event.target.value)}>
               <option value="">Chọn nhóm</option>
               <option value="COOL">Lạnh mát</option>
               <option value="FROZEN">Đông</option>
               <option value="DEEP_FROZEN">Cực lạnh</option>
             </select>
+            {errors.temperatureGroup ? <p id="vehicle-temperature-error" className="text-sm font-normal text-ink">{errors.temperatureGroup}</p> : null}
           </label>
-          <Field label="Tải trọng (tấn)" value={draft.capacityTon} onChange={(value) => update("capacityTon", value)} inputMode="decimal" />
+          <Field id="vehicle-capacity" label="Tải trọng (tấn)" value={draft.capacityTon} error={errors.capacityTon} onChange={(value) => update("capacityTon", value)} inputMode="decimal" />
             </div>
           </fieldset>
           {notice ? (
@@ -148,11 +176,13 @@ function fromVehicle(vehicle: CarrierVehicle): Draft {
   };
 }
 
-function Field({ label, value, onChange, inputMode }: { label: string; value: string; onChange: (value: string) => void; inputMode?: "decimal" }) {
+function Field({ id, label, value, error, onChange, inputMode }: { id: string; label: string; value: string; error?: string; onChange: (value: string) => void; inputMode?: "decimal" }) {
+  const errorId = `${id}-error`;
   return (
-    <label className="block space-y-2 text-sm font-semibold text-ink">
+    <label className="block space-y-2 text-sm font-semibold text-ink" htmlFor={id}>
       {label}
-      <input className={fieldClass} value={value} inputMode={inputMode} onChange={(event) => onChange(event.target.value)} />
+      <input id={id} aria-invalid={error !== undefined} aria-describedby={error ? errorId : undefined} className={`${fieldClass} ${error ? "border-danger" : ""}`} value={value} inputMode={inputMode} onChange={(event) => onChange(event.target.value)} />
+      {error ? <p id={errorId} className="text-sm font-normal text-ink">{error}</p> : null}
     </label>
   );
 }

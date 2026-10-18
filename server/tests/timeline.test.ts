@@ -4,6 +4,7 @@ import { once } from "node:events";
 import test, { before, after } from "node:test";
 import mongoose from "mongoose";
 import { hashPassword } from "../src/auth/password.js";
+import { withRequiredCargoImage } from "./support/cargoImage.js";
 import { Shipment } from "../src/models/shipment.js";
 import { User } from "../src/models/user.js";
 import { Vehicle } from "../src/models/vehicle.js";
@@ -69,11 +70,11 @@ async function login(baseUrl: string, email: string): Promise<string> {
   return cookie.split(";")[0] ?? "";
 }
 
-function publish(baseUrl: string, cookie: string, cargoDescription: string) {
+async function publish(baseUrl: string, cookie: string, cargoDescription: string) {
   return fetch(`${baseUrl}/api/shipments`, {
     method: "POST",
     headers: { "content-type": "application/json", origin: "http://127.0.0.1:5173", cookie },
-    body: JSON.stringify({
+    body: JSON.stringify(await withRequiredCargoImage(baseUrl, cookie, {
       cargoDescription,
       pickupLocation: "Cái Bè, Tiền Giang",
       deliveryLocation: "Thủ Đức, TP. Hồ Chí Minh",
@@ -96,7 +97,7 @@ function publish(baseUrl: string, cookie: string, cargoDescription: string) {
       cargoWeightTon: 2.5,
       cargoVolumeM3: 12,
       packageCount: 180,
-    }),
+    })),
   });
 }
 
@@ -230,7 +231,7 @@ test("assignment, pickup, and delivery record one event each and retries do not 
     assert.equal((assignedBody.shipment as Json).status, "MATCHED");
     assert.equal(timelineOf(assignedBody).events.at(-1)?.type, "ASSIGNED");
     assert.equal(timelineOf(assignedBody).events.at(-1)?.statusAfterLabel, "Chờ lấy hàng");
-    assert.equal(timelineOf(assignedBody).events.at(-1)?.detail, "Xe Xe đông lạnh kiểm tra. Tài xế Tài xế kiểm tra.");
+    assert.equal(timelineOf(assignedBody).events.at(-1)?.detail, "Xe đông lạnh kiểm tra. Tài xế kiểm tra.");
     const repeatedAssign = await assign(baseUrl, carrierCookie, id, vehicle._id.toString(), driver._id.toString());
     assert.equal(repeatedAssign.status, 409);
 

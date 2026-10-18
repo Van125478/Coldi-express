@@ -4,6 +4,7 @@ import { once } from "node:events";
 import test, { before, after } from "node:test";
 import mongoose from "mongoose";
 import { hashPassword } from "../src/auth/password.js";
+import { withRequiredCargoImage } from "./support/cargoImage.js";
 import { AuditLog } from "../src/models/auditLog.js";
 import { Shipment } from "../src/models/shipment.js";
 import { User } from "../src/models/user.js";
@@ -172,10 +173,10 @@ test("one shipment moves through marketplace, chat, claim, assignment, transit, 
     const driverUser = await User.findOne({ email: driverEmail });
     assert.ok(carrierUser && otherCarrierUser && driverUser);
 
-    const forged = await send(baseUrl, "/api/shipments", shipper, "POST", { ...order, shipperId: carrierUser.id });
+    const forged = await send(baseUrl, "/api/shipments", shipper, "POST", await withRequiredCargoImage(baseUrl, shipper, { ...order, shipperId: carrierUser.id }));
     assert.equal(forged.status, 400);
 
-    const published = await send(baseUrl, "/api/shipments", shipper, "POST", order);
+    const published = await send(baseUrl, "/api/shipments", shipper, "POST", await withRequiredCargoImage(baseUrl, shipper, order));
     assert.equal(published.status, 201);
     const created = shipmentOf(published.json);
     const id = String(created.id);
@@ -359,7 +360,7 @@ test("one shipment moves through marketplace, chat, claim, assignment, transit, 
 test("two carriers racing for a second shipment still produce one winner", async () => {
   await withServer(async (baseUrl) => {
     const shipper = await login(baseUrl, shipperEmail);
-    const published = await send(baseUrl, "/api/shipments", shipper, "POST", { ...order, cargoDescription: "Hàng tranh chấp MVP-02" });
+    const published = await send(baseUrl, "/api/shipments", shipper, "POST", await withRequiredCargoImage(baseUrl, shipper, { ...order, cargoDescription: "Hàng tranh chấp MVP-02" }));
     assert.equal(published.status, 201);
     const id = String(shipmentOf(published.json).id);
     const [first, second] = await Promise.all([
@@ -376,7 +377,7 @@ test("assignment keeps the vehicle and driver names from that moment", async () 
   await withServer(async (baseUrl) => {
     const shipper = await login(baseUrl, shipperEmail);
     const carrier = await login(baseUrl, carrierEmail);
-    const published = await send(baseUrl, "/api/shipments", shipper, "POST", { ...order, cargoDescription: "Hàng mốc tên xe MVP-03" });
+    const published = await send(baseUrl, "/api/shipments", shipper, "POST", await withRequiredCargoImage(baseUrl, shipper, { ...order, cargoDescription: "Hàng mốc tên xe MVP-03" }));
     const id = String(shipmentOf(published.json).id);
     assert.equal((await send(baseUrl, `/api/carrier/shipments/${id}/claim`, carrier, "POST", {})).status, 200);
     const vehicle = await send(baseUrl, "/api/carrier/fleet/vehicles", carrier, "POST", {
@@ -395,7 +396,7 @@ test("assignment keeps the vehicle and driver names from that moment", async () 
     const beforeEvents = eventsOf(before.json);
     assert.equal(beforeEvents.filter((event) => event.type === "ASSIGNED").length, 1);
     const beforeDetail = String(beforeEvents.find((event) => event.type === "ASSIGNED")?.detail);
-    assert.equal(beforeDetail, "Xe Xe trước khi đổi tên. Tài xế Tài xế tích hợp.");
+    assert.equal(beforeDetail, "Xe trước khi đổi tên. Tài xế tích hợp.");
 
     assert.equal((await send(baseUrl, `/api/carrier/fleet/vehicles/${vehicleId}`, carrier, "PATCH", { ...vehicleBody, label: "Xe sau khi đổi tên", plate: "51C-303.14" })).status, 200);
     assert.equal((await send(baseUrl, `/api/carrier/fleet/drivers/${String(driverUser._id)}`, carrier, "PATCH", { displayName: "Tài xế đã đổi tên" })).status, 200);

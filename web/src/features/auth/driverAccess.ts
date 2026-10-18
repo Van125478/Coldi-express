@@ -8,7 +8,7 @@ export {
   activationLabel,
   isAssignableDriver,
   needsPasswordChange,
-  validateDriverDraft,
+  driverDraftErrors,
   validateReplacementPassword,
 } from "./driverAccountRules";
 

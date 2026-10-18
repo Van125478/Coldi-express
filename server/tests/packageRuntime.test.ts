@@ -83,6 +83,12 @@ test("demo activation route is absent unless the deployment is authorized", asyn
       body: JSON.stringify({ planCode: "shipper-pro-monthly", idempotencyKey: "runtime-key-1" }),
     });
     assert.equal(response.status, 404);
+    const ended = await fetch(`http://127.0.0.1:${address.port}/api/packages/my-plan/demo-end?demo=true`, {
+      method: "POST",
+      headers: { "content-type": "application/json", origin: "http://127.0.0.1:5173", "x-coldi-demo": "true" },
+      body: JSON.stringify({ idempotencyKey: "runtime-end-01" }),
+    });
+    assert.equal(ended.status, 404);
   } finally {
     server.close();
     await once(server, "close");

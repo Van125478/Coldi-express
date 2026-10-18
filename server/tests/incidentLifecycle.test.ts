@@ -141,3 +141,26 @@ test("forged identity and evidence fields are rejected before a case is stored",
   assert.equal(images.ok, false);
   if (!images.ok) assert.equal(images.code, "incident_evidence_blocked");
 });
+
+test("an empty occurrence time stays empty and an earlier date is kept as entered", () => {
+  const now = new Date("2026-10-18T13:00:00.000Z");
+  const base = {
+    shipmentId: "a".repeat(24),
+    incidentType: "VEHICLE_ISSUE",
+    title: "Lủng lốp trên đường",
+    description: "Lốp sau bên phải bị thủng khi xe đang chạy trên quốc lộ.",
+    idempotencyKey: "create-key-occurred",
+  };
+  const omitted = readIncidentDraft(base, undefined, now);
+  assert.equal(omitted.ok, true);
+  if (omitted.ok) assert.equal(omitted.draft.occurredAt, null);
+  const blank = readIncidentDraft({ ...base, occurredAt: "" }, undefined, now);
+  assert.equal(blank.ok, true);
+  if (blank.ok) assert.equal(blank.draft.occurredAt, null);
+  const earlier = readIncidentDraft({ ...base, occurredAt: "2026-10-16T10:00:00.000Z" }, undefined, now);
+  assert.equal(earlier.ok, true);
+  if (earlier.ok) assert.equal(earlier.draft.occurredAt?.toISOString(), "2026-10-16T10:00:00.000Z");
+  const future = readIncidentDraft({ ...base, occurredAt: "2026-10-18T13:06:00.000Z" }, undefined, now);
+  assert.equal(future.ok, false);
+  if (!future.ok) assert.equal(future.fields.occurredAt, "Thời điểm xảy ra không được nằm ở tương lai.");
+});

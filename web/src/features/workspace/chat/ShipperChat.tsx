@@ -1,13 +1,17 @@
 import { useCallback, useEffect, useState } from "react";
 import { ChatThread } from "@/features/workspace/chat/ChatThread";
 import type { ChatConversation } from "@/features/workspace/chat/types";
-import { getShipperMessages, listShipmentConversations, sendShipperMessage } from "@/services/shipmentService";
+import { getShipperMessages, listShipmentConversations, openShipperConversation, sendShipperMessage } from "@/services/shipmentService";
+import { ApiError } from "@/services/apiClient";
+import { Button } from "@/components/ui/button";
 
-export function ShipperChat({ shipmentId, route }: { shipmentId: string; route?: string }) {
+export function ShipperChat({ shipmentId, claimed = false, route }: { shipmentId: string; claimed?: boolean; route?: string }) {
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [reloadKey, setReloadKey] = useState(0);
+  const [opening, setOpening] = useState(false);
+  const [openError, setOpenError] = useState<string | null>(null);
   const selected = conversations.find((item) => item.id === selectedId) ?? null;
 
   useEffect(() => {
@@ -43,6 +47,20 @@ export function ShipperChat({ shipmentId, route }: { shipmentId: string; route?:
     [selected, shipmentId],
   );
 
+  async function openWithCarrier() {
+    setOpening(true);
+    setOpenError(null);
+    try {
+      const body = await openShipperConversation(shipmentId);
+      setSelectedId(body.conversation.id);
+      setReloadKey((value) => value + 1);
+    } catch (error) {
+      setOpenError(error instanceof ApiError ? error.message : "Không mở được cuộc trao đổi.");
+    } finally {
+      setOpening(false);
+    }
+  }
+
   return (
     <section className="space-y-3">
       {selected ? null : (
@@ -61,7 +79,17 @@ export function ShipperChat({ shipmentId, route }: { shipmentId: string; route?:
         </div>
       ) : null}
       {state === "ready" && conversations.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-line bg-surface px-4 py-4 text-sm text-ink">Chưa có nhà xe nào nhắn tin về đơn này.</p>
+        claimed ? (
+          <div className="rounded-2xl border border-dashed border-line bg-surface px-4 py-4">
+            <p className="text-sm text-ink">Nhà xe đã nhận đơn. Bạn có thể nhắn tin trước.</p>
+            <Button type="button" className="mt-3" disabled={opening} onClick={() => void openWithCarrier()}>
+              {opening ? "Đang mở" : "Nhắn tin với nhà xe"}
+            </Button>
+            {openError ? <p role="alert" className="mt-2 text-sm text-ink">{openError}</p> : null}
+          </div>
+        ) : (
+          <p className="rounded-2xl border border-dashed border-line bg-surface px-4 py-4 text-sm text-ink">Chưa có nhà xe nào nhắn tin về đơn này.</p>
+        )
       ) : null}
       {conversations.length > 1 ? (
         <div className="flex flex-wrap gap-2" role="tablist" aria-label="Cuộc trao đổi theo nhà xe">

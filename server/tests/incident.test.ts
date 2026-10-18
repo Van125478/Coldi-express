@@ -4,6 +4,7 @@ import { once } from "node:events";
 import test, { before, after } from "node:test";
 import mongoose from "mongoose";
 import { hashPassword } from "../src/auth/password.js";
+import { TINY_PNG, withRequiredCargoImage } from "./support/cargoImage.js";
 import { reconcileIncidentArtifacts } from "../src/incidents/service.js";
 import { evaluateReminder } from "../src/incidents/lifecycle.js";
 import { CommissionLedgerEvent } from "../src/models/commissionLedger.js";
@@ -87,7 +88,7 @@ function request(baseUrl: string, path: string, cookie: string | null, method = 
 }
 
 async function publish(baseUrl: string, cookie: string, cargoDescription: string) {
-  const response = await request(baseUrl, "/api/shipments", cookie, "POST", {
+  const response = await request(baseUrl, "/api/shipments", cookie, "POST", await withRequiredCargoImage(baseUrl, cookie, {
     cargoDescription,
     pickupLocation: "Cái Bè, Tiền Giang",
     deliveryLocation: "Thủ Đức, TP. Hồ Chí Minh",
@@ -109,7 +110,7 @@ async function publish(baseUrl: string, cookie: string, cargoDescription: string
     cargoWeightTon: 2.5,
     cargoVolumeM3: 12,
     packageCount: 180,
-  });
+  }));
   assert.equal(response.status, 201);
   return ((await response.json()) as { shipment: Json }).shipment;
 }
@@ -622,6 +623,53 @@ test("incident reporting http", { concurrency: false }, async (t) => {
       const late = await createCase(baseUrl, shipperCookie, shipmentId, "OTHER");
       assert.equal(late.response.status, 409);
       assert.equal((late.body.error as { code?: string } | undefined)?.code, "incident_report_window");
+    });
+  });
+
+  await t.test("optional evidence stays private and does not change the shipment or commission", async () => {
+    await withServer(async (baseUrl) => {
+      const shipmentId = await seedShipment("MATCHED");
+      const shipper = await login(baseUrl, shipperEmail);
+      const carrier = await login(baseUrl, carrierEmail);
+      const outsider = await login(baseUrl, otherShipperEmail);
+      const otherCarrier = await login(baseUrl, otherCarrierEmail);
+      const before = await Shipment.findById(shipmentId);
+      const ledgerBefore = await CommissionLedgerEvent.countDocuments({ shipmentId });
+      const empty = await createCase(baseUrl, shipper, shipmentId, "DELAY");
+      assert.equal(empty.response.status, 201);
+      assert.deepEqual(empty.body.incident?.attachments, []);
+
+      const text = await request(baseUrl, "/api/incident-evidence", shipper, "POST", Buffer.from("not-an-image"));
+      assert.equal(text.status, 400);
+      const uploaded = await fetch(`${baseUrl}/api/incident-evidence`, {
+        method: "POST",
+        headers: { origin, cookie: shipper, "content-type": "image/png" },
+        body: TINY_PNG,
+      });
+      assert.equal(uploaded.status, 201);
+      const imageId = String(((await uploaded.json()) as { image: { id: string } }).image.id);
+      assert.equal((await fetch(`${baseUrl}/api/incident-evidence/${imageId}`)).status, 401);
+      assert.equal((await fetch(`${baseUrl}/api/incident-evidence/${imageId}`, { headers: { cookie: outsider } })).status, 404);
+      const created = await createCase(baseUrl, shipper, shipmentId, "VEHICLE_ISSUE", nextKey("evidence"));
+      const withImage = await request(baseUrl, "/api/incidents", shipper, "POST", { ...draft(shipmentId, "CARGO_ISSUE"), evidenceIds: [imageId], idempotencyKey: nextKey("with-image") });
+      assert.equal(withImage.status, 201);
+      const body = (await withImage.json()) as { incident: { id: string; attachments: { id: string }[]; status: string } };
+      assert.deepEqual(body.incident.attachments, [{ id: imageId }]);
+      assert.equal(body.incident.status, "OPEN");
+      assert.equal(created.response.status, 201);
+      const after = await Shipment.findById(shipmentId);
+      assert.equal(after?.status, before?.status);
+      assert.equal(after?.listedPriceVnd, before?.listedPriceVnd);
+      assert.equal(await CommissionLedgerEvent.countDocuments({ shipmentId }), ledgerBefore);
+      assert.equal((await fetch(`${baseUrl}/api/incident-evidence/${imageId}`, { headers: { cookie: shipper } })).status, 200);
+      assert.equal((await fetch(`${baseUrl}/api/incident-evidence/${imageId}`, { headers: { cookie: carrier } })).status, 200);
+      assert.equal((await fetch(`${baseUrl}/api/incident-evidence/${imageId}`, { headers: { cookie: otherCarrier } })).status, 404);
+      assert.equal((await fetch(`${baseUrl}/api/incident-evidence/${imageId}`, { headers: { cookie: outsider } })).status, 404);
+      const legacy = await request(baseUrl, `/api/incidents/${String(empty.body.incident?.id)}`, shipper);
+      assert.equal(legacy.status, 200);
+      assert.deepEqual(((await legacy.json()) as { incident: { attachments: unknown[] } }).incident.attachments, []);
+      const tooMany = await request(baseUrl, "/api/incidents", shipper, "POST", { ...draft(shipmentId, "OTHER"), evidenceIds: ["a".repeat(24), "b".repeat(24), "c".repeat(24), "d".repeat(24), "e".repeat(24), "f".repeat(24)], idempotencyKey: nextKey("too-many") });
+      assert.equal(tooMany.status, 400);
     });
   });
 });
