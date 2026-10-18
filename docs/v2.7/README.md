@@ -1,5 +1,7 @@
 # COLDI — Chính sách nghiệp vụ hiện hành v2.7
 
+> **Hiện hành là [v2.10](../v2.10/README.md).** Bộ này giữ quyết định PKG và COM lúc PR #5. INC-01 đến INC-04 và OIL-01 đến OIL-04 đã được duyệt sau đó và được ghi ở v2.10. Package đã có mã sau PR #6. Câu "chưa có module" bên dưới đúng với baseline của chính file này.
+
 **Ngày:** 18/10/2026. **Loại:** Product/Business source of truth. **Không phải** phiên bản phát hành ứng dụng và **không phải** biên bản code đã triển khai.
 
 **Baseline Git đã đối chiếu:** `Van125478/Coldi-express` `main` `30c9d5fea609e041cb56f9634769cf61f13388b4` (merge PR #4). Package, Commission, Oil Price và Incident Reporting chưa có module đầy đủ trong source. Nghiệm thu bố cục (Carrier Home, phân công chuyến, Driver Home, cấu trúc Chatbox) không thay cho E2E, chat lưu dữ liệu trên trình duyệt, hay Mapbox tiles/markers.

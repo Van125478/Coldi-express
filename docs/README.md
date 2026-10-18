@@ -4,14 +4,25 @@ Ba lớp cần đọc tách nhau.
 
 | Lớp | Ý nghĩa | Bắt đầu từ |
 | --- | --- | --- |
-| CURRENT BUSINESS POLICY v2.7 | Chính sách giá, gói, hoa hồng và mục còn mở | [docs/v2.7/README.md](v2.7/README.md) |
+| CURRENT BUSINESS POLICY v2.10 | Chính sách hiện hành, Package đã có mã, backlog UAT và nghiệm thu desktop | [docs/v2.10/README.md](v2.10/README.md) |
+| EARLIER v2.7 | PKG và COM đã merge ở PR #5. Trạng thái triển khai mới hơn nằm ở v2.10 | [docs/v2.7/README.md](v2.7/README.md) |
 | EARLIER v2.6 | Bộ đã merge PR #4. Chính sách giá và hoa hồng đã được v2.7 thay | [docs/v2.6/README.md](v2.6/README.md) |
-| CURRENT IMPLEMENTED CODE | Logistics đã có mã trên `main` `30c9d5fea609e041cb56f9634769cf61f13388b4`. Chưa phải UAT đầy đủ. Gói, hoa hồng, giá dầu và sự cố chưa triển khai đầy đủ | [TEAM_TESTING_GUIDE](team-testing/TEAM_TESTING_GUIDE.md) |
-| HISTORICAL DOCUMENT | Hồ sơ v2.4, Core 08–14, mvp-review. Không thay chính sách v2.7 | Mục lịch sử bên dưới |
+| CURRENT IMPLEMENTED CODE | Logistics và Package trên `main` `2a41797dae188c1b749a08d85517fb8ec05737c3`. Hoa hồng, sự cố và giá dầu chưa có mã | [TEAM_TESTING_GUIDE](team-testing/TEAM_TESTING_GUIDE.md) |
+| HISTORICAL DOCUMENT | Hồ sơ v2.4, Core 08–14, mvp-review. Không thay chính sách v2.10 | Mục lịch sử bên dưới |
 
-Code đang chạy không phải bản phát hành ứng dụng v2.7. MVP chưa hoàn thành.
+Code đang chạy không phải bản phát hành ứng dụng v2.10. MVP chưa hoàn thành. Thanh toán production không hoạt động.
 
-## v2.7 — chính sách nghiệp vụ hiện hành
+## v2.10 — tài liệu nghiệp vụ hiện hành
+
+- [Trang khởi đầu](v2.10/README.md)
+- [Sổ quyết định](v2.10/01_DECISION_REGISTER.md)
+- [Package đã triển khai](v2.10/02_PACKAGE_IMPLEMENTED.md)
+- [Backlog UAT](v2.10/03_UAT_BACKLOG.md)
+- [Nghiệm thu desktop](v2.10/04_DESKTOP_UAT.md)
+- [Sự cố và giá dầu](v2.10/05_INCIDENT_AND_OIL.md)
+- [Hoa hồng, chưa code](v2.10/06_COMMISSION_NEXT.md)
+
+## v2.7 — chính sách PKG và COM đã merge
 
 - [Trang khởi đầu](v2.7/README.md)
 - [Mục lục](v2.7/INDEX.md)
@@ -56,7 +67,7 @@ Cài đặt Windows đầy đủ: [TEAM_TESTING_GUIDE](team-testing/TEAM_TESTING
 - [API](../server/README.md)
 - [Ảnh chụp trạng thái 18/10/2026](mvp-review/MVP_STATUS_2026-10-18.md) — báo cáo tại baseline, không phải nghiệm thu v2.6
 
-`server/src/app.ts` gắn health, auth, shipment, chat, carrier shipment, carrier conversation, fleet và driver shipment. Không có router gói, hoa hồng, giá dầu hay sự cố.
+`server/src/app.ts` gắn health, auth, shipment, chat, carrier shipment, carrier conversation, fleet, driver shipment và gói dịch vụ. Chưa có router hoa hồng, giá dầu hay sự cố.
 
 ## Lịch sử — giữ nguyên
 
@@ -68,4 +79,4 @@ Cài đặt Windows đầy đủ: [TEAM_TESTING_GUIDE](team-testing/TEAM_TESTING
 
 `_ARCHIVE_PREVIOUS` trong ZIP v2.6 không được copy vào repo. Bản nháp tiêu hao nhiên liệu xe trong archive đó không phải yêu cầu hiện hành. Các báo cáo kiểm thử cũ không bị sửa cho khớp v2.6.
 
-Chính sách nghiệp vụ hiện hành là v2.7. Phiên bản tài liệu và phiên bản ứng dụng là hai việc khác nhau. Core 08 đến Core 14, FE-05A, hướng dẫn nhóm và mvp-review được giữ nguyên.
+Chính sách nghiệp vụ hiện hành là v2.10. Phiên bản tài liệu và phiên bản ứng dụng là hai việc khác nhau. Core 08 đến Core 14, FE-05A, hướng dẫn nhóm và mvp-review được giữ nguyên. Hồ sơ v2.8 và v2.9 ngoài Git không bị sửa đè.
