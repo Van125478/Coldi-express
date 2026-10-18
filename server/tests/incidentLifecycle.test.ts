@@ -68,11 +68,34 @@ test("primary transitions follow the approved path and rejection stays in progre
   assert.equal(primaryTransition("ACKNOWLEDGE", "CLOSED").ok, false);
 });
 
-test("closing stays denied until policy approval and a closed incident cannot reopen", () => {
-  assert.equal(closeTransition("RESOLVED", false).ok, false);
-  assert.deepEqual(closeTransition("RESOLVED", true), { ok: true, from: "RESOLVED", to: "CLOSED" });
-  assert.deepEqual(reopenTransition(), { ok: false, code: "incident_reopen_denied" });
+test("only a resolved vehicle issue closes and other categories keep closing denied", () => {
+  assert.deepEqual(closeTransition("RESOLVED", "VEHICLE_ISSUE"), { ok: true, from: "RESOLVED", to: "CLOSED" });
+  for (const status of ["OPEN", "ACKNOWLEDGED", "IN_PROGRESS"] as const) {
+    assert.deepEqual(closeTransition(status, "VEHICLE_ISSUE"), { ok: false, code: "invalid_transition" });
+  }
+  assert.deepEqual(closeTransition("CLOSED", "VEHICLE_ISSUE"), { ok: false, code: "incident_closed" });
+  for (const type of incidentTypes.filter((type) => type !== "VEHICLE_ISSUE")) {
+    assert.deepEqual(closeTransition("RESOLVED", type), { ok: false, code: "incident_close_denied" });
+    assert.deepEqual(reopenTransition("REQUEST", type, "CLOSED", "NONE"), { ok: false, code: "incident_reopen_denied" });
+  }
   assert.equal(primaryTransition("OBJECT", "CLOSED").ok, false);
+});
+
+function outcome(result: ReturnType<typeof reopenTransition>) {
+  assert.equal(result.ok, true);
+  return result.ok ? { statusTo: result.statusTo, reopenTo: result.reopenTo } : null;
+}
+
+test("reopen state stays separate from the primary status until a decision", () => {
+  assert.deepEqual(outcome(reopenTransition("REQUEST", "VEHICLE_ISSUE", "CLOSED", "NONE")), { statusTo: "CLOSED", reopenTo: "PENDING_CARRIER" });
+  assert.deepEqual(outcome(reopenTransition("CARRIER_APPROVE", "VEHICLE_ISSUE", "CLOSED", "PENDING_CARRIER")), { statusTo: "IN_PROGRESS", reopenTo: "APPROVED_BY_CARRIER" });
+  assert.deepEqual(outcome(reopenTransition("CARRIER_REJECT", "VEHICLE_ISSUE", "CLOSED", "PENDING_CARRIER")), { statusTo: "CLOSED", reopenTo: "AWAITING_ADMIN" });
+  assert.deepEqual(outcome(reopenTransition("ADMIN_APPROVE", "VEHICLE_ISSUE", "CLOSED", "AWAITING_ADMIN")), { statusTo: "IN_PROGRESS", reopenTo: "APPROVED_BY_ADMIN" });
+  assert.deepEqual(outcome(reopenTransition("ADMIN_REJECT", "VEHICLE_ISSUE", "CLOSED", "AWAITING_ADMIN")), { statusTo: "CLOSED", reopenTo: "REJECTED_BY_ADMIN" });
+  assert.equal(reopenTransition("REQUEST", "VEHICLE_ISSUE", "RESOLVED", "NONE").ok, false);
+  assert.equal(reopenTransition("REQUEST", "VEHICLE_ISSUE", "CLOSED", "PENDING_CARRIER").ok, false);
+  assert.equal(reopenTransition("REQUEST", "VEHICLE_ISSUE", "CLOSED", "REJECTED_BY_ADMIN").ok, false);
+  assert.equal(reopenTransition("ADMIN_APPROVE", "VEHICLE_ISSUE", "CLOSED", "PENDING_CARRIER").ok, false);
 });
 
 test("escalation proposal does not replace the primary status", () => {

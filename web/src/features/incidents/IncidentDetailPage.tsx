@@ -13,16 +13,33 @@ import { ApiError } from "@/services/apiClient";
 import { fetchIncidentEvidenceUrl } from "@/services/incidentEvidenceClient";
 import {
   acknowledgeIncident,
+  closeIncident,
   commentIncident,
+  decideIncidentReopen,
   getIncident,
   objectIncident,
+  requestIncidentReopen,
   resolveIncident,
+  respondIncidentReopen,
   startIncident,
   type IncidentEventRecord,
   type IncidentRecord,
 } from "@/services/incidentService";
+import { AuthenticatedImageGallery } from "@/shared/components/media/AuthenticatedImageGallery";
 
-type Pending = "acknowledge" | "start" | "resolve" | "object" | null;
+type Pending = "acknowledge" | "start" | "resolve" | "object" | "close" | "reopen" | "reopen-approve" | "reopen-reject" | "admin-approve" | "admin-reject" | null;
+
+const noteLimits: Record<Exclude<Pending, "acknowledge" | null>, { min: number; max: number; optional?: boolean }> = {
+  start: { min: incidentLimits.noteMin, max: incidentLimits.noteMax },
+  resolve: { min: incidentLimits.resolutionMin, max: incidentLimits.resolutionMax },
+  object: { min: incidentLimits.objectionMin, max: incidentLimits.objectionMax },
+  close: { min: incidentLimits.closeReasonMin, max: incidentLimits.closeReasonMax },
+  reopen: { min: incidentLimits.reopenReasonMin, max: incidentLimits.reopenReasonMax },
+  "reopen-approve": { min: 1, max: incidentLimits.reopenReasonMax, optional: true },
+  "reopen-reject": { min: incidentLimits.reopenReasonMin, max: incidentLimits.reopenReasonMax },
+  "admin-approve": { min: incidentLimits.reopenReasonMin, max: incidentLimits.reopenReasonMax },
+  "admin-reject": { min: incidentLimits.reopenReasonMin, max: incidentLimits.reopenReasonMax },
+};
 
 export function IncidentDetailPage() {
   usePageTitle("Chi tiết sự cố");
@@ -61,12 +78,26 @@ export function IncidentDetailPage() {
     };
   }, [id, logout, reloadKey]);
 
+  async function apply(updated: { incident: IncidentRecord }) {
+    const refreshed = await getIncident(updated.incident.id);
+    setIncident(refreshed.incident);
+    setEvents(refreshed.events);
+    setPending(null);
+    setNote("");
+    setNotice("Đã ghi nhận thao tác.");
+  }
+
   async function run(action: Exclude<Pending, null>, text: string) {
     if (!incident || busy) return;
-    const limits = action === "start" ? incidentLimits.noteMin : action === "resolve" ? incidentLimits.resolutionMin : action === "object" ? incidentLimits.objectionMin : 0;
-    const max = action === "start" ? incidentLimits.noteMax : action === "resolve" ? incidentLimits.resolutionMax : incidentLimits.objectionMax;
-    if (action !== "acknowledge" && (text.trim().length < limits || text.trim().length > max)) {
-      setFieldError(`Nội dung cần từ ${limits} đến ${max} ký tự.`);
+    const limits = action === "acknowledge" ? null : noteLimits[action];
+    const trimmed = text.trim();
+    if (limits && !limits.optional && (trimmed.length < limits.min || trimmed.length > limits.max)) {
+      setFieldError(`Nội dung cần từ ${limits.min} đến ${limits.max} ký tự.`);
+      document.getElementById("incident-action-note")?.focus();
+      return;
+    }
+    if (limits?.optional && trimmed.length > 0 && (trimmed.length < limits.min || trimmed.length > limits.max)) {
+      setFieldError(`Nội dung cần từ ${limits.min} đến ${limits.max} ký tự.`);
       document.getElementById("incident-action-note")?.focus();
       return;
     }
@@ -79,16 +110,19 @@ export function IncidentDetailPage() {
         action === "acknowledge"
           ? await acknowledgeIncident(incident.id, incident.version, key)
           : action === "start"
-            ? await startIncident(incident.id, incident.version, key, text.trim())
+            ? await startIncident(incident.id, incident.version, key, trimmed)
             : action === "resolve"
-              ? await resolveIncident(incident.id, incident.version, key, text.trim())
-              : await objectIncident(incident.id, incident.version, key, text.trim());
-      const refreshed = await getIncident(body.incident.id);
-      setIncident(refreshed.incident);
-      setEvents(refreshed.events);
-      setPending(null);
-      setNote("");
-      setNotice("Đã ghi nhận thao tác.");
+              ? await resolveIncident(incident.id, incident.version, key, trimmed)
+              : action === "object"
+                ? await objectIncident(incident.id, incident.version, key, trimmed)
+                : action === "close"
+                  ? await closeIncident(incident.id, incident.version, key, trimmed)
+                  : action === "reopen"
+                    ? await requestIncidentReopen(incident.id, incident.version, key, trimmed)
+                    : action === "reopen-approve" || action === "reopen-reject"
+                      ? await respondIncidentReopen(incident.id, incident.version, key, action === "reopen-approve" ? "APPROVE" : "REJECT", trimmed || undefined)
+                      : await decideIncidentReopen(incident.id, incident.version, key, action === "admin-approve" ? "APPROVE" : "REJECT", trimmed);
+      await apply(body);
     } catch (error: unknown) {
       if (lostSession(error, logout)) return;
       setNotice(error instanceof ApiError ? error.message : "Không thực hiện được thao tác.");
@@ -122,6 +156,16 @@ export function IncidentDetailPage() {
       setBusy(false);
     }
   }
+
+  const handling =
+    Boolean(incident?.capabilities.acknowledge) ||
+    Boolean(incident?.capabilities.start) ||
+    Boolean(incident?.capabilities.resolve) ||
+    Boolean(incident?.capabilities.object) ||
+    Boolean(incident?.capabilities.close) ||
+    Boolean(incident?.capabilities.requestReopen) ||
+    Boolean(incident?.capabilities.respondReopen) ||
+    Boolean(incident?.capabilities.adjudicateReopen);
 
   return (
     <section className="space-y-6">
@@ -160,7 +204,13 @@ export function IncidentDetailPage() {
                   <IncidentFact term="Xảy ra lúc" value={formatWhen(incident.occurredAt)} />
                 </dl>
                 <p className="whitespace-pre-wrap text-base leading-7 text-ink">{incident.description}</p>
-                <EvidenceList images={incident.attachments} />
+                <AuthenticatedImageGallery
+                  images={incident.attachments}
+                  fetchUrl={fetchIncidentEvidenceUrl}
+                  label="Ảnh chứng cứ"
+                  altPrefix="Ảnh chứng cứ"
+                  emptyText="Không có ảnh chứng cứ."
+                />
               </DetailBlock>
               {incident.resolutionSummary ? (
                 <DetailBlock title="Kết quả xử lý">
@@ -170,10 +220,35 @@ export function IncidentDetailPage() {
                   </dl>
                 </DetailBlock>
               ) : null}
+              {incident.closeReason ? (
+                <DetailBlock title="Đóng sự cố">
+                  <p className="whitespace-pre-wrap text-base leading-7 text-ink">{incident.closeReason}</p>
+                  <dl>
+                    <IncidentFact term="Đóng lúc" value={formatWhen(incident.closedAt)} />
+                  </dl>
+                </DetailBlock>
+              ) : null}
               {incident.objectionReason ? (
                 <DetailBlock title="Phản đối kết quả">
                   <p className="whitespace-pre-wrap text-base leading-7 text-ink">{incident.objectionReason}</p>
                   <p className="text-sm leading-relaxed text-muted">Kết quả trước đó vẫn nằm trong dòng thời gian.</p>
+                </DetailBlock>
+              ) : null}
+              {incident.reopen.status !== "NONE" ? (
+                <DetailBlock title="Yêu cầu mở lại">
+                  <dl>
+                    <IncidentFact term="Trạng thái yêu cầu" value={incident.reopen.statusLabel} />
+                    <IncidentFact term="Lý do" value={incident.reopen.reason ?? "Chưa có"} />
+                    <IncidentFact term="Gửi lúc" value={formatWhen(incident.reopen.requestedAt)} />
+                    <IncidentFact term="Hạn nhà xe" value={formatWhen(incident.reopen.carrierDeadlineAt)} />
+                    <IncidentFact term="Nhà xe phản hồi" value={formatWhen(incident.reopen.carrierRespondedAt)} />
+                    <IncidentFact term="Ghi chú nhà xe" value={incident.reopen.carrierNote ?? "Chưa có"} />
+                    <IncidentFact term="Chuyển quản trị" value={formatWhen(incident.reopen.escalatedAt)} />
+                    <IncidentFact term="Lý do chuyển" value={incident.reopen.escalationCauseLabel ?? "Chưa có"} />
+                    <IncidentFact term="Phân công quản trị" value={incident.reopen.adminAssigned ? "Đã có quản trị được phân công" : "Chưa có quản trị được phân công"} />
+                    <IncidentFact term="Quyết định quản trị" value={formatWhen(incident.reopen.adminDecidedAt)} />
+                    <IncidentFact term="Lý do quản trị" value={incident.reopen.adminReason ?? "Chưa có"} />
+                  </dl>
                 </DetailBlock>
               ) : null}
               <DetailBlock title="Dòng thời gian">
@@ -236,14 +311,40 @@ export function IncidentDetailPage() {
                     Phản đối kết quả
                   </Button>
                 ) : null}
-                {!incident.capabilities.acknowledge && !incident.capabilities.start && !incident.capabilities.resolve && !incident.capabilities.object ? (
-                  <p className="text-sm text-muted">Không có thao tác xử lý cho vai trò của bạn ở trạng thái này.</p>
+                {incident.capabilities.close ? (
+                  <Button type="button" variant="outline" onClick={() => setPending("close")}>
+                    Đóng sự cố phương tiện
+                  </Button>
                 ) : null}
+                {incident.capabilities.requestReopen ? (
+                  <Button type="button" variant="outline" onClick={() => setPending("reopen")}>
+                    Yêu cầu mở lại
+                  </Button>
+                ) : null}
+                {incident.capabilities.respondReopen ? (
+                  <>
+                    <Button type="button" variant="outline" onClick={() => setPending("reopen-approve")}>
+                      Đồng ý mở lại
+                    </Button>
+                    <Button type="button" variant="outline" onClick={() => setPending("reopen-reject")}>
+                      Từ chối mở lại
+                    </Button>
+                  </>
+                ) : null}
+                {incident.capabilities.adjudicateReopen ? (
+                  <>
+                    <Button type="button" variant="outline" onClick={() => setPending("admin-approve")}>
+                      Quản trị đồng ý mở lại
+                    </Button>
+                    <Button type="button" variant="outline" onClick={() => setPending("admin-reject")}>
+                      Quản trị từ chối mở lại
+                    </Button>
+                  </>
+                ) : null}
+                {!handling ? <p className="text-sm text-muted">Không có thao tác xử lý cho vai trò của bạn ở trạng thái này.</p> : null}
                 {pending ? (
                   <div className="rounded-xl border border-line bg-canvas p-3">
-                    <p className="text-sm font-semibold text-ink">
-                      {pending === "acknowledge" ? "Xác nhận tiếp nhận sự cố này?" : pending === "start" ? "Ghi chú khi bắt đầu xử lý" : pending === "resolve" ? "Kết quả xử lý" : "Lý do phản đối"}
-                    </p>
+                    <p className="text-sm font-semibold text-ink">{pendingLabel(pending)}</p>
                     {pending !== "acknowledge" ? (
                       <textarea
                         id="incident-action-note"
@@ -276,44 +377,17 @@ export function IncidentDetailPage() {
   );
 }
 
-function EvidenceList({ images }: { images: { id: string }[] }) {
-  const [urls, setUrls] = useState<Record<string, string>>({});
-  const ids = images.map((image) => image.id).join(",");
-  useEffect(() => {
-    const list = ids.length === 0 ? [] : ids.split(",");
-    let cancelled = false;
-    const created: string[] = [];
-    for (const id of list) {
-      void fetchIncidentEvidenceUrl(id)
-        .then((url) => {
-          if (cancelled) {
-            URL.revokeObjectURL(url);
-            return;
-          }
-          created.push(url);
-          setUrls((current) => ({ ...current, [id]: url }));
-        })
-        .catch(() => undefined);
-    }
-    return () => {
-      cancelled = true;
-      for (const url of created) URL.revokeObjectURL(url);
-    };
-  }, [ids]);
-  if (images.length === 0) return <p className="text-sm leading-relaxed text-muted">Không có ảnh chứng cứ.</p>;
-  return (
-    <ul className="flex flex-wrap gap-2" aria-label="Ảnh chứng cứ">
-      {images.map((image, index) => (
-        <li key={image.id}>
-          {urls[image.id] ? (
-            <img src={urls[image.id]} alt={`Ảnh chứng cứ ${index + 1}`} className="h-24 w-32 rounded-lg border border-line object-cover" />
-          ) : (
-            <div className="h-24 w-32 rounded-lg border border-line bg-canvas" />
-          )}
-        </li>
-      ))}
-    </ul>
-  );
+function pendingLabel(pending: Exclude<Pending, null>): string {
+  if (pending === "acknowledge") return "Xác nhận tiếp nhận sự cố này?";
+  if (pending === "start") return "Ghi chú khi bắt đầu xử lý";
+  if (pending === "resolve") return "Kết quả xử lý";
+  if (pending === "object") return "Lý do phản đối";
+  if (pending === "close") return "Lý do đóng hoặc mã kết quả xử lý";
+  if (pending === "reopen") return "Lý do yêu cầu mở lại";
+  if (pending === "reopen-approve") return "Ghi chú khi đồng ý mở lại (không bắt buộc)";
+  if (pending === "reopen-reject") return "Lý do từ chối mở lại";
+  if (pending === "admin-approve") return "Lý do quản trị đồng ý mở lại";
+  return "Lý do quản trị từ chối mở lại";
 }
 
 function IncidentFact({ term, value }: { term: string; value: string }) {

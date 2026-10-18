@@ -34,6 +34,10 @@ export const incidentLimits = {
   resolutionMax: 2000,
   objectionMin: 10,
   objectionMax: 2000,
+  closeReasonMin: 10,
+  closeReasonMax: 2000,
+  reopenReasonMin: 10,
+  reopenReasonMax: 2000,
 } as const;
 
 export const reportableShipmentStatuses = ["PUBLISHED", "MATCHED", "PICKUP_CONFIRMED", "IN_TRANSIT"] as const;

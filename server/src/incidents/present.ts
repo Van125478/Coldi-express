@@ -1,13 +1,14 @@
 import type { Actor, ShipmentAccess } from "./access.js";
 import { capabilities } from "./access.js";
-import type { EscalationStatus, IncidentAction, IncidentStatus, IncidentType } from "./policy.js";
-import { incidentStatusLabels, incidentTypeLabels } from "./policy.js";
+import type { EscalationStatus, IncidentAction, IncidentStatus, IncidentType, ReopenEscalationCause, ReopenStatus } from "./policy.js";
+import { incidentStatusLabels, incidentTypeLabels, reopenStatusLabels } from "./policy.js";
 
 const roleLabels = {
   SHIPPER: "Chủ hàng",
   CARRIER: "Nhà xe",
   DRIVER: "Tài xế",
   ADMIN: "Quản trị",
+  SYSTEM: "Hệ thống COLDI",
 } as const;
 
 const actionLabels: Record<IncidentAction, string> = {
@@ -17,6 +18,34 @@ const actionLabels: Record<IncidentAction, string> = {
   COMMENT: "Đã thêm cập nhật",
   RESOLVED: "Đã gửi kết quả xử lý",
   OBJECTED: "Đã phản đối kết quả",
+  CLOSED: "Đã đóng sự cố",
+  REOPEN_REQUESTED: "Đã yêu cầu mở lại",
+  REOPEN_APPROVED: "Nhà xe đồng ý mở lại",
+  REOPEN_REJECTED_BY_CARRIER: "Nhà xe từ chối mở lại",
+  REOPEN_ESCALATED_TO_ADMIN: "Đã chuyển quản trị COLDI xem xét",
+  ADMIN_REOPEN_APPROVED: "Quản trị COLDI đồng ý mở lại",
+  ADMIN_REOPEN_REJECTED: "Quản trị COLDI từ chối mở lại",
+};
+
+const escalationCauseLabels: Record<ReopenEscalationCause, string> = {
+  CARRIER_REJECTED: "Nhà xe từ chối yêu cầu",
+  CARRIER_TIMEOUT: "Nhà xe chưa phản hồi trong 48 giờ",
+};
+
+export type ReopenView = {
+  status: ReopenStatus;
+  statusLabel: string;
+  reason: string | null;
+  requestedAt: string | null;
+  carrierDeadlineAt: string | null;
+  carrierRespondedAt: string | null;
+  carrierNote: string | null;
+  escalatedAt: string | null;
+  escalationCause: ReopenEscalationCause | null;
+  escalationCauseLabel: string | null;
+  adminAssigned: boolean;
+  adminDecidedAt: string | null;
+  adminReason: string | null;
 };
 
 export type IncidentView = {
@@ -42,6 +71,9 @@ export type IncidentView = {
   resolvedAt: string | null;
   objectionReason: string | null;
   objectedAt: string | null;
+  closedAt: string | null;
+  closeReason: string | null;
+  reopen: ReopenView;
   capabilities: ReturnType<typeof capabilities>;
   createdAt: string;
   updatedAt: string;
@@ -92,6 +124,18 @@ type IncidentSource = {
   resolvedAt?: Date | null;
   objectionReason?: string | null;
   objectedAt?: Date | null;
+  closedAt?: Date | null;
+  closeReason?: string | null;
+  reopenStatus?: ReopenStatus | null;
+  reopenReason?: string | null;
+  reopenRequestedAt?: Date | null;
+  reopenCarrierDeadlineAt?: Date | null;
+  reopenCarrierRespondedAt?: Date | null;
+  reopenCarrierNote?: string | null;
+  reopenEscalatedAt?: Date | null;
+  reopenEscalationCause?: ReopenEscalationCause | null;
+  reopenAdminDecidedAt?: Date | null;
+  reopenAdminReason?: string | null;
   attachments?: { toString(): string }[];
   createdAt: Date;
   updatedAt: Date;
@@ -101,7 +145,7 @@ type EventSource = {
   _id: { toString(): string };
   incidentId: { toString(): string };
   action: IncidentAction;
-  actorId: { toString(): string };
+  actorId?: { toString(): string } | null;
   actorRole: keyof typeof roleLabels;
   occurredAt: Date;
   statusBefore: IncidentStatus;
@@ -113,7 +157,31 @@ type EventSource = {
 
 const evidenceReason = "Ảnh chứng cứ là tùy chọn, tối đa 5 ảnh. Báo cáo không có ảnh vẫn được ghi nhận.";
 
-export function toIncidentView(incident: IncidentSource, shipment: ShipmentAccess & { label: string }, actor: Actor): IncidentView {
+function iso(value: Date | null | undefined): string | null {
+  return value ? value.toISOString() : null;
+}
+
+function reopenView(incident: IncidentSource): ReopenView {
+  const status = incident.reopenStatus ?? "NONE";
+  const cause = incident.reopenEscalationCause ?? null;
+  return {
+    status,
+    statusLabel: reopenStatusLabels[status],
+    reason: incident.reopenReason ?? null,
+    requestedAt: iso(incident.reopenRequestedAt),
+    carrierDeadlineAt: iso(incident.reopenCarrierDeadlineAt),
+    carrierRespondedAt: iso(incident.reopenCarrierRespondedAt),
+    carrierNote: incident.reopenCarrierNote ?? null,
+    escalatedAt: iso(incident.reopenEscalatedAt),
+    escalationCause: cause,
+    escalationCauseLabel: cause ? escalationCauseLabels[cause] : null,
+    adminAssigned: incident.handlerId != null,
+    adminDecidedAt: iso(incident.reopenAdminDecidedAt),
+    adminReason: incident.reopenAdminReason ?? null,
+  };
+}
+
+export function toIncidentView(incident: IncidentSource, shipment: ShipmentAccess & { label: string }, actor: Actor, now = new Date()): IncidentView {
   return {
     id: incident._id.toString(),
     shipmentId: incident.shipmentId.toString(),
@@ -137,6 +205,9 @@ export function toIncidentView(incident: IncidentSource, shipment: ShipmentAcces
     resolvedAt: incident.resolvedAt ? incident.resolvedAt.toISOString() : null,
     objectionReason: incident.objectionReason ?? null,
     objectedAt: incident.objectedAt ? incident.objectedAt.toISOString() : null,
+    closedAt: iso(incident.closedAt),
+    closeReason: incident.closeReason ?? null,
+    reopen: reopenView(incident),
     capabilities: capabilities(
       actor,
       {
@@ -144,8 +215,12 @@ export function toIncidentView(incident: IncidentSource, shipment: ShipmentAcces
         reporterRole: incident.reporterRole,
         handlerId: incident.handlerId ? incident.handlerId.toString() : null,
         status: incident.status,
+        incidentType: incident.incidentType,
+        reopenStatus: incident.reopenStatus ?? "NONE",
+        reopenCarrierDeadlineAt: incident.reopenCarrierDeadlineAt ?? null,
       },
       shipment,
+      now,
     ),
     createdAt: incident.createdAt.toISOString(),
     updatedAt: incident.updatedAt.toISOString(),
@@ -159,7 +234,7 @@ export function toEventView(event: EventSource): IncidentEventView | null {
     incidentId: event.incidentId.toString(),
     action: event.action,
     actionLabel: actionLabels[event.action],
-    actorId: event.actorId.toString(),
+    actorId: event.actorId ? event.actorId.toString() : "",
     actorRole: event.actorRole,
     actorRoleLabel: roleLabels[event.actorRole],
     occurredAt: event.occurredAt.toISOString(),

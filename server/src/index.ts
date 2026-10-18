@@ -5,7 +5,7 @@ import { connectDatabase, disconnectDatabase } from "./config/database.js";
 import { getEnv } from "./config/env.js";
 import { reconcileCommissionOutbox } from "./commission/record.js";
 import { startOilPriceScheduler } from "./market/oil/scheduler.js";
-import { reconcileIncidentArtifacts } from "./incidents/service.js";
+import { reconcileIncidentArtifacts, startReopenEscalationSweeper } from "./incidents/service.js";
 import { reconcileAllFleetCapacities } from "./packages/fleetCapacity.js";
 import { reconcileVehicleLeases } from "./packages/vehicleLease.js";
 
@@ -42,7 +42,9 @@ if (!connected) {
 }
 
 let stopOilScheduler = () => {};
+let stopReopenSweeper = () => {};
 if (connected) {
+  stopReopenSweeper = startReopenEscalationSweeper();
   try {
     stopOilScheduler = startOilPriceScheduler();
   } catch (error) {
@@ -68,6 +70,7 @@ async function shutdown(signal: string) {
   forceTimer.unref();
 
   stopOilScheduler();
+  stopReopenSweeper();
   server.close(async () => {
     try {
       await disconnectDatabase();

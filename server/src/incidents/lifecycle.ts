@@ -1,4 +1,5 @@
-import type { EscalationStatus, IncidentStatus, ReminderKind } from "./policy.js";
+import type { EscalationStatus, IncidentStatus, IncidentType, ReminderKind, ReopenStatus } from "./policy.js";
+import { closableIncidentTypes, reopenedIncidentStatus } from "./policy.js";
 
 export const initialIncidentStatus: IncidentStatus = "OPEN";
 export const initialEscalationStatus: EscalationStatus = "NONE";
@@ -23,18 +24,50 @@ export function primaryTransition(action: PrimaryAction, status: IncidentStatus)
   return { ok: true, from: rule.from, to: rule.to };
 }
 
-/**
- * INC-CLOSE-01 is open. HTTP must call this with policyApproved false.
- * The domain can represent CLOSED so the invariant is testable.
- */
-export function closeTransition(status: IncidentStatus, policyApproved: boolean): TransitionResult {
-  if (!policyApproved) return { ok: false, code: "invalid_transition" };
+export type CloseResult = TransitionResult | { ok: false; code: "incident_close_denied" };
+
+/** Close is approved for VEHICLE_ISSUE only, and only from RESOLVED. Other types keep INC-CLOSE-01 open. */
+export function closeTransition(status: IncidentStatus, incidentType: IncidentType): CloseResult {
+  if (!closableIncidentTypes.includes(incidentType)) return { ok: false, code: "incident_close_denied" };
+  if (status === "CLOSED") return { ok: false, code: "incident_closed" };
   if (status !== "RESOLVED") return { ok: false, code: "invalid_transition" };
   return { ok: true, from: "RESOLVED", to: "CLOSED" };
 }
 
-export function reopenTransition(): { ok: false; code: "incident_reopen_denied" } {
-  return { ok: false, code: "incident_reopen_denied" };
+const reopen = {
+  REQUEST: { from: "NONE", to: "PENDING_CARRIER", status: "CLOSED" },
+  CARRIER_APPROVE: { from: "PENDING_CARRIER", to: "APPROVED_BY_CARRIER", status: reopenedIncidentStatus },
+  CARRIER_REJECT: { from: "PENDING_CARRIER", to: "AWAITING_ADMIN", status: "CLOSED" },
+  TIMEOUT: { from: "PENDING_CARRIER", to: "AWAITING_ADMIN", status: "CLOSED" },
+  ADMIN_APPROVE: { from: "AWAITING_ADMIN", to: "APPROVED_BY_ADMIN", status: reopenedIncidentStatus },
+  ADMIN_REJECT: { from: "AWAITING_ADMIN", to: "REJECTED_BY_ADMIN", status: "CLOSED" },
+} as const satisfies Record<string, { from: ReopenStatus; to: ReopenStatus; status: IncidentStatus }>;
+
+export type ReopenAction = keyof typeof reopen;
+
+export type ReopenResult =
+  | { ok: true; reopenFrom: ReopenStatus; reopenTo: ReopenStatus; statusFrom: IncidentStatus; statusTo: IncidentStatus }
+  | { ok: false; code: "incident_reopen_denied" | "invalid_reopen" };
+
+/**
+ * A request never changes the primary status. Only a carrier or admin approval leaves CLOSED.
+ * A rejection by the admin is final for that closure.
+ */
+export function reopenTransition(
+  action: ReopenAction,
+  incidentType: IncidentType,
+  status: IncidentStatus,
+  reopenStatus: ReopenStatus,
+): ReopenResult {
+  if (!closableIncidentTypes.includes(incidentType)) return { ok: false, code: "incident_reopen_denied" };
+  if (status !== "CLOSED") return { ok: false, code: "invalid_reopen" };
+  const rule = reopen[action];
+  if (reopenStatus !== rule.from) return { ok: false, code: "invalid_reopen" };
+  return { ok: true, reopenFrom: rule.from, reopenTo: rule.to, statusFrom: "CLOSED", statusTo: rule.status };
+}
+
+export function reopenDeadline(requestedAt: Date, windowMs: number): Date {
+  return new Date(requestedAt.getTime() + windowMs);
 }
 
 const escalation = {

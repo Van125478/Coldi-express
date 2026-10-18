@@ -6,12 +6,33 @@ import { Incident } from "../models/incident.js";
 import { IncidentEvent } from "../models/incidentEvent.js";
 import { IncidentNotification } from "../models/incidentNotification.js";
 import { Shipment } from "../models/shipment.js";
-import type { Actor, ShipmentAccess } from "./access.js";
-import { canComment, canObject, caseScope, createDecision, isCarrierHandler, recipientIds } from "./access.js";
+import type { Actor, IncidentAccess, ShipmentAccess } from "./access.js";
+import {
+  canAdjudicateReopen,
+  canClose,
+  canComment,
+  canObject,
+  canRequestReopen,
+  canRespondReopen,
+  carrierWindowOpen,
+  caseScope,
+  createDecision,
+  isCarrierHandler,
+  recipientIds,
+} from "./access.js";
 import { attachIncidentEvidence } from "./evidence.js";
-import { initialEscalationStatus, initialIncidentStatus, primaryTransition, type PrimaryAction } from "./lifecycle.js";
-import type { EscalationStatus, IncidentAction, IncidentStatus, IncidentType } from "./policy.js";
-import { appliedKeyLimit, incidentStatuses, pageDefault } from "./policy.js";
+import {
+  closeTransition,
+  initialEscalationStatus,
+  initialIncidentStatus,
+  primaryTransition,
+  reopenDeadline,
+  reopenTransition,
+  type PrimaryAction,
+  type ReopenAction,
+} from "./lifecycle.js";
+import type { EscalationStatus, IncidentAction, IncidentStatus, IncidentType, ReopenEscalationCause, ReopenStatus } from "./policy.js";
+import { appliedKeyLimit, incidentLimits, incidentStatuses, pageDefault, reopenCarrierWindowMs } from "./policy.js";
 import { toEventView, toIncidentView, toNotificationView, type IncidentEventView, type IncidentView, type NotificationView } from "./present.js";
 
 type Id = Types.ObjectId;
@@ -38,29 +59,53 @@ export type StoredIncident = {
   objectionReason?: string | null;
   objectedAt?: Date | null;
   objectedBy?: Id | null;
+  closedAt?: Date | null;
+  closedBy?: Id | null;
+  closeReason?: string | null;
+  reopenStatus?: ReopenStatus | null;
+  reopenRequestId?: string | null;
+  reopenRequestedAt?: Date | null;
+  reopenRequestedBy?: Id | null;
+  reopenReason?: string | null;
+  reopenCarrierDeadlineAt?: Date | null;
+  reopenCarrierRespondedAt?: Date | null;
+  reopenCarrierRespondedBy?: Id | null;
+  reopenCarrierNote?: string | null;
+  reopenEscalatedAt?: Date | null;
+  reopenEscalationCause?: ReopenEscalationCause | null;
+  reopenAdminDecidedAt?: Date | null;
+  reopenAdminDecidedBy?: Id | null;
+  reopenAdminReason?: string | null;
   idempotencyKey: string;
   appliedKeys?: string[];
   attachments?: string[];
-  pendingEvents?: {
-    idempotencyKey: string;
-    action: IncidentAction;
-    actorId: Id;
-    actorRole: Actor["role"];
-    statusBefore: IncidentStatus;
-    statusAfter: IncidentStatus;
-    note?: string;
-    correlationId: string;
-  }[];
+  pendingEvents?: PendingEvent[];
   createdAt: Date;
   updatedAt: Date;
+};
+
+type EventRole = Actor["role"] | "SYSTEM";
+
+type EventActor = { id: string | null; role: EventRole };
+
+type PendingEvent = {
+  idempotencyKey: string;
+  action: IncidentAction;
+  actorId?: Id | string | null;
+  actorRole: EventRole;
+  statusBefore: IncidentStatus;
+  statusAfter: IncidentStatus;
+  note?: string;
+  occurredAt?: Date | null;
+  correlationId: string;
 };
 
 type StoredEvent = {
   _id: Id;
   incidentId: Id;
   action: IncidentAction;
-  actorId: Id;
-  actorRole: "SHIPPER" | "CARRIER" | "DRIVER" | "ADMIN";
+  actorId?: Id | null;
+  actorRole: EventRole;
   occurredAt: Date;
   statusBefore: IncidentStatus;
   statusAfter: IncidentStatus;
@@ -81,7 +126,17 @@ const notificationLabels: Record<IncidentAction, string> = {
   COMMENT: "Có cập nhật mới trên sự cố",
   RESOLVED: "Sự cố đã có kết quả xử lý",
   OBJECTED: "Kết quả xử lý đang được phản đối",
+  CLOSED: "Sự cố phương tiện đã được đóng",
+  REOPEN_REQUESTED: "Chủ hàng yêu cầu mở lại sự cố",
+  REOPEN_APPROVED: "Nhà xe đã đồng ý mở lại sự cố",
+  REOPEN_REJECTED_BY_CARRIER: "Nhà xe đã từ chối mở lại sự cố",
+  REOPEN_ESCALATED_TO_ADMIN: "Yêu cầu mở lại đã chuyển quản trị COLDI",
+  ADMIN_REOPEN_APPROVED: "Quản trị COLDI đã đồng ý mở lại sự cố",
+  ADMIN_REOPEN_REJECTED: "Quản trị COLDI đã từ chối mở lại sự cố",
 };
+
+const timeoutNote = "Nhà xe chưa phản hồi trong 48 giờ kể từ lúc chủ hàng gửi yêu cầu.";
+const carrierRejectedNote = "Nhà xe từ chối. Yêu cầu chuyển quản trị COLDI xem xét.";
 
 export function correlationFrom(header: unknown): string {
   return readCorrelationId(header) ?? `inc-${randomUUID()}`;
@@ -195,14 +250,318 @@ export async function addIncidentComment(actor: Actor, incidentId: string, expec
   return transition(actor, incidentId, expectedVersion, idempotencyKey, correlationId, "COMMENT", note);
 }
 
+export type ClosureKind = "CLOSE" | ReopenAction;
+
+type ClosureRequest = {
+  actor: Actor;
+  incidentId: string;
+  expectedVersion: number;
+  idempotencyKey: string;
+  correlationId: string;
+  note: unknown;
+  now?: Date;
+};
+
+export function closeIncident(input: ClosureRequest): Promise<IncidentView> {
+  return closureMutation("CLOSE", input);
+}
+
+export function requestIncidentReopen(input: ClosureRequest): Promise<IncidentView> {
+  return closureMutation("REQUEST", input);
+}
+
+export function carrierRespondReopen(input: ClosureRequest & { approve: boolean }): Promise<IncidentView> {
+  return closureMutation(input.approve ? "CARRIER_APPROVE" : "CARRIER_REJECT", input);
+}
+
+export function adminDecideReopen(input: ClosureRequest & { approve: boolean }): Promise<IncidentView> {
+  return closureMutation(input.approve ? "ADMIN_APPROVE" : "ADMIN_REJECT", input);
+}
+
+const reopenStatusFilter = (status: ReopenStatus) => (status === "NONE" ? { $in: ["NONE", null] } : status);
+
+async function closureMutation(kind: ClosureKind, input: ClosureRequest): Promise<IncidentView> {
+  const { actor, idempotencyKey, correlationId } = input;
+  const now = input.now ?? new Date();
+  let current = await requireVisible(actor, input.incidentId);
+  if (current.appliedKeys?.includes(idempotencyKey)) {
+    await repairIncident(current._id.toString());
+    return presentAuthorized(actor, current, now);
+  }
+  if (await escalateIfOverdue(current, now)) {
+    if (kind === "CARRIER_APPROVE" || kind === "CARRIER_REJECT") {
+      throw new HttpError(409, "reopen_window_expired", "Đã quá 48 giờ. Yêu cầu đã chuyển quản trị COLDI.");
+    }
+    current = await requireVisible(actor, input.incidentId);
+  }
+  const shipment = await loadShipment(current.shipmentId.toString());
+  if (!shipment) throw new HttpError(404, "not_found", "Không tìm thấy sự cố này.");
+
+  const access = accessOf(current);
+  const reopenStatus = current.reopenStatus ?? "NONE";
+  let statusAfter: IncidentStatus;
+  let reopenAfter: ReopenStatus;
+  if (kind === "CLOSE") {
+    const result = closeTransition(current.status, current.incidentType);
+    if (!result.ok && result.code === "incident_close_denied") {
+      throw new HttpError(403, "incident_close_denied", "Chỉ sự cố phương tiện có chính sách đóng. Loại sự cố này chưa được đóng.");
+    }
+    if (!canClose(actor, { ...access, status: "RESOLVED" }, shipment)) {
+      throw new HttpError(403, "incident_forbidden", "Chỉ nhà xe đang nhận chuyến này được đóng sự cố phương tiện.");
+    }
+    if (!result.ok) throw new HttpError(409, result.code, "Chỉ đóng được sự cố đã có kết quả xử lý.");
+    statusAfter = result.to;
+    reopenAfter = "NONE";
+  } else {
+    const result = reopenTransition(kind, current.incidentType, current.status, reopenStatus);
+    if (!result.ok && result.code === "incident_reopen_denied") {
+      throw new HttpError(403, "incident_reopen_denied", "Chỉ sự cố phương tiện có chính sách mở lại.");
+    }
+    assertClosureActor(kind, actor, access, shipment);
+    if ((kind === "CARRIER_APPROVE" || kind === "CARRIER_REJECT") && !carrierWindowOpen(access, now)) {
+      throw new HttpError(409, "reopen_window_expired", "Đã quá 48 giờ. Yêu cầu đã chuyển quản trị COLDI.");
+    }
+    if (!result.ok) throw new HttpError(409, "invalid_reopen", reopenConflictMessage(kind, current, now));
+    statusAfter = result.statusTo;
+    reopenAfter = result.reopenTo;
+  }
+
+  const note = closureNote(kind, input.note);
+  if ((current.appliedKeys?.length ?? 0) >= appliedKeyLimit) {
+    throw new HttpError(409, "incident_history_limit", "Sự cố đã đạt giới hạn kỹ thuật của số lần cập nhật.");
+  }
+
+  const set: Record<string, unknown> = { status: statusAfter, reopenStatus: reopenAfter };
+  const unset: Record<string, ""> = {};
+  const events: PendingEvent[] = [];
+  const base = { actorId: actor.id, actorRole: actor.role, statusBefore: current.status, statusAfter, occurredAt: now, correlationId };
+  if (kind === "CLOSE") {
+    Object.assign(set, { closedAt: now, closedBy: actor.id, closeReason: note, reopenRequestId: null, reopenEscalationCause: null });
+    for (const field of reopenRoundFields) unset[field] = "";
+    events.push({ ...base, idempotencyKey, action: "CLOSED", ...(note ? { note } : {}) });
+  } else if (kind === "REQUEST") {
+    Object.assign(set, {
+      reopenRequestId: randomUUID(),
+      reopenRequestedAt: now,
+      reopenRequestedBy: actor.id,
+      reopenReason: note,
+      reopenCarrierDeadlineAt: reopenDeadline(now, reopenCarrierWindowMs),
+    });
+    events.push({ ...base, idempotencyKey, action: "REOPEN_REQUESTED", ...(note ? { note } : {}) });
+  } else if (kind === "CARRIER_APPROVE") {
+    Object.assign(set, { reopenCarrierRespondedAt: now, reopenCarrierRespondedBy: actor.id, reopenCarrierNote: note });
+    events.push({ ...base, idempotencyKey, action: "REOPEN_APPROVED", ...(note ? { note } : {}) });
+  } else if (kind === "CARRIER_REJECT") {
+    Object.assign(set, {
+      reopenCarrierRespondedAt: now,
+      reopenCarrierRespondedBy: actor.id,
+      reopenCarrierNote: note,
+      reopenEscalatedAt: now,
+      reopenEscalationCause: "CARRIER_REJECTED",
+    });
+    events.push({ ...base, idempotencyKey, action: "REOPEN_REJECTED_BY_CARRIER", ...(note ? { note } : {}) });
+    events.push({
+      ...base,
+      actorId: null,
+      actorRole: "SYSTEM",
+      idempotencyKey: `${idempotencyKey}:escalate`,
+      action: "REOPEN_ESCALATED_TO_ADMIN",
+      note: carrierRejectedNote,
+    });
+  } else {
+    Object.assign(set, { reopenAdminDecidedAt: now, reopenAdminDecidedBy: actor.id, reopenAdminReason: note });
+    events.push({ ...base, idempotencyKey, action: kind === "ADMIN_APPROVE" ? "ADMIN_REOPEN_APPROVED" : "ADMIN_REOPEN_REJECTED", ...(note ? { note } : {}) });
+  }
+
+  const filter: Record<string, unknown> = {
+    _id: current._id,
+    version: input.expectedVersion,
+    status: current.status,
+    reopenStatus: reopenStatusFilter(reopenStatus),
+    appliedKeys: { $ne: idempotencyKey },
+  };
+  if (kind === "CARRIER_APPROVE" || kind === "CARRIER_REJECT") {
+    filter.reopenRequestId = current.reopenRequestId;
+    filter.reopenCarrierDeadlineAt = { $gt: now };
+  }
+  const update: Record<string, unknown> = {
+    $set: set,
+    $inc: { version: 1 },
+    $addToSet: { appliedKeys: idempotencyKey },
+    $push: { pendingEvents: { $each: events } },
+  };
+  if (Object.keys(unset).length > 0) update.$unset = unset;
+
+  const updated = await Incident.findOneAndUpdate(filter, update, { returnDocument: "after" }).lean<StoredIncident | null>();
+  if (!updated) {
+    const raced = await Incident.findById(current._id).lean<StoredIncident | null>();
+    if (raced?.appliedKeys?.includes(idempotencyKey)) {
+      await repairIncident(raced._id.toString());
+      return presentAuthorized(actor, raced, now);
+    }
+    if (raced && (kind === "CARRIER_APPROVE" || kind === "CARRIER_REJECT") && raced.reopenStatus === "AWAITING_ADMIN") {
+      throw new HttpError(409, "reopen_window_expired", "Đã quá 48 giờ. Yêu cầu đã chuyển quản trị COLDI.");
+    }
+    throw new HttpError(409, "version_conflict", "Sự cố vừa được cập nhật. Hãy tải lại rồi thử lại.");
+  }
+
+  const complete = await flushPending(
+    updated,
+    events.map((event) => event.idempotencyKey),
+    shipment,
+  );
+  if (!complete) throw new HttpError(500, "incident_audit_incomplete", "Cập nhật đã lưu nhưng lịch sử chưa ghi xong. Hãy gửi lại cùng mã idempotency.");
+  return toIncidentView(updated, shipment, actor, now);
+}
+
+const reopenRoundFields = [
+  "reopenRequestedAt",
+  "reopenRequestedBy",
+  "reopenReason",
+  "reopenCarrierDeadlineAt",
+  "reopenCarrierRespondedAt",
+  "reopenCarrierRespondedBy",
+  "reopenCarrierNote",
+  "reopenEscalatedAt",
+  "reopenAdminDecidedAt",
+  "reopenAdminDecidedBy",
+  "reopenAdminReason",
+] as const;
+
+function assertClosureActor(kind: ReopenAction, actor: Actor, access: IncidentAccess, shipment: ShipmentContext): void {
+  const pretend = (reopenStatus: ReopenStatus): IncidentAccess => ({ ...access, status: "CLOSED", reopenStatus, reopenCarrierDeadlineAt: new Date(8.64e15) });
+  const allowed =
+    kind === "REQUEST"
+      ? canRequestReopen(actor, pretend("NONE"), shipment)
+      : kind === "CARRIER_APPROVE" || kind === "CARRIER_REJECT"
+        ? canRespondReopen(actor, pretend("PENDING_CARRIER"), shipment, new Date(0))
+        : canAdjudicateReopen(actor, pretend("AWAITING_ADMIN"));
+  if (allowed) return;
+  const message =
+    kind === "REQUEST"
+      ? "Chỉ chủ hàng của chuyến này được yêu cầu mở lại."
+      : kind === "CARRIER_APPROVE" || kind === "CARRIER_REJECT"
+        ? "Chỉ nhà xe đang nhận chuyến này được phản hồi yêu cầu mở lại."
+        : "Chỉ quản trị COLDI được phân công cho sự cố này được quyết định.";
+  throw new HttpError(403, "incident_forbidden", message);
+}
+
+function reopenConflictMessage(kind: ReopenAction, incident: StoredIncident, now: Date): string {
+  if (incident.status !== "CLOSED") return "Chỉ yêu cầu mở lại được khi sự cố đã đóng.";
+  const status = incident.reopenStatus ?? "NONE";
+  if (kind === "REQUEST" && status === "REJECTED_BY_ADMIN") return "Quản trị COLDI đã từ chối mở lại lần đóng này.";
+  if (kind === "REQUEST") return "Đã có yêu cầu mở lại đang chờ xử lý.";
+  if ((kind === "CARRIER_APPROVE" || kind === "CARRIER_REJECT") && status === "AWAITING_ADMIN") {
+    return incident.reopenEscalationCause === "CARRIER_TIMEOUT" || !carrierWindowOpen(accessOf(incident), now)
+      ? "Đã quá 48 giờ. Yêu cầu đã chuyển quản trị COLDI."
+      : "Yêu cầu đã chuyển quản trị COLDI.";
+  }
+  return "Không có yêu cầu mở lại ở bước này.";
+}
+
+function closureNote(kind: ClosureKind, value: unknown): string | null {
+  const optional = kind === "CARRIER_APPROVE";
+  const text = typeof value === "string" ? value.trim().replaceAll("\u0000", "") : "";
+  if (optional && text === "") return null;
+  const [min, max, label] =
+    kind === "CLOSE"
+      ? [incidentLimits.closeReasonMin, incidentLimits.closeReasonMax, "Lý do đóng hoặc mã kết quả xử lý"]
+      : kind === "REQUEST"
+        ? [incidentLimits.reopenReasonMin, incidentLimits.reopenReasonMax, "Lý do yêu cầu mở lại"]
+        : kind === "CARRIER_APPROVE"
+          ? [1, incidentLimits.reopenResponseMax, "Ghi chú của nhà xe"]
+          : kind === "CARRIER_REJECT"
+            ? [incidentLimits.reopenReasonMin, incidentLimits.reopenResponseMax, "Lý do từ chối"]
+            : [incidentLimits.reopenReasonMin, incidentLimits.reopenResponseMax, "Lý do quyết định"];
+  if (typeof value !== "string" || text.length < min || text.length > max) {
+    const field = kind === "CLOSE" ? "closeReason" : "reason";
+    throw new HttpError(400, "invalid_request", `${label} cần từ ${min} đến ${max} ký tự.`, { [field]: `${label} cần từ ${min} đến ${max} ký tự.` });
+  }
+  return text;
+}
+
+/**
+ * Refers one overdue reopen request to COLDI Admin. The deadline and request id are persisted,
+ * so a restart or a second worker repeats the same conditional update and only one write wins.
+ */
+async function escalateIfOverdue(incident: StoredIncident, now: Date): Promise<boolean> {
+  if (incident.reopenStatus !== "PENDING_CARRIER" || !incident.reopenRequestId || !incident.reopenCarrierDeadlineAt) return false;
+  if (incident.reopenCarrierDeadlineAt.getTime() > now.getTime()) return false;
+  const key = `reopen-timeout:${incident.reopenRequestId}`;
+  const event: PendingEvent = {
+    idempotencyKey: key,
+    action: "REOPEN_ESCALATED_TO_ADMIN",
+    actorId: null,
+    actorRole: "SYSTEM",
+    statusBefore: incident.status,
+    statusAfter: incident.status,
+    note: timeoutNote,
+    occurredAt: now,
+    correlationId: `reopen-timeout-${incident.reopenRequestId}`.slice(0, 80),
+  };
+  const updated = await Incident.findOneAndUpdate(
+    {
+      _id: incident._id,
+      reopenStatus: "PENDING_CARRIER",
+      reopenRequestId: incident.reopenRequestId,
+      reopenCarrierDeadlineAt: { $lte: now },
+      appliedKeys: { $ne: key },
+    },
+    {
+      $set: { reopenStatus: "AWAITING_ADMIN", reopenEscalatedAt: now, reopenEscalationCause: "CARRIER_TIMEOUT" },
+      $inc: { version: 1 },
+      $addToSet: { appliedKeys: key },
+      $push: { pendingEvents: event },
+    },
+    { returnDocument: "after" },
+  ).lean<StoredIncident | null>();
+  const target = updated ?? (await Incident.findById(incident._id).lean<StoredIncident | null>());
+  if (!target?.appliedKeys?.includes(key)) return false;
+  await flushPending(target, [key], await loadShipment(target.shipmentId.toString()));
+  return updated !== null;
+}
+
+export async function escalateOverdueReopenRequests(now = new Date(), limit = 50): Promise<number> {
+  const rows = await Incident.find({ reopenStatus: "PENDING_CARRIER", reopenCarrierDeadlineAt: { $lte: now } })
+    .sort({ reopenCarrierDeadlineAt: 1 })
+    .limit(limit)
+    .lean<StoredIncident[]>();
+  let escalated = 0;
+  for (const row of rows) {
+    if (await escalateIfOverdue(row, now)) escalated += 1;
+  }
+  return escalated;
+}
+
+/** Runs on startup and then on an interval. The deadline lives in MongoDB, not in this timer. */
+export function startReopenEscalationSweeper(intervalMs = 60_000): () => void {
+  let running = false;
+  const run = async () => {
+    if (running) return;
+    running = true;
+    try {
+      await escalateOverdueReopenRequests(new Date());
+    } catch (error) {
+      console.error("Incident reopen escalation did not finish.", error instanceof Error ? error.name : "error");
+    } finally {
+      running = false;
+    }
+  };
+  void run();
+  const timer = setInterval(() => void run(), intervalMs);
+  timer.unref();
+  return () => clearInterval(timer);
+}
+
 export async function getAuthorizedIncident(actor: Actor, incidentId: string): Promise<{ incident: IncidentView; events: IncidentEventView[] }> {
-  const stored = await requireVisible(actor, incidentId);
+  let stored = await requireVisible(actor, incidentId);
+  if (await escalateIfOverdue(stored, new Date())) stored = await requireVisible(actor, incidentId);
   await repairIncident(stored._id.toString());
   const shipment = await loadShipment(stored.shipmentId.toString());
   if (!shipment || caseScope(actor, accessOf(stored), shipment) === "none") {
     throw new HttpError(404, "not_found", "Không tìm thấy sự cố này.");
   }
-  return { incident: toIncidentView(stored, shipment, actor), events: await visibleEvents(stored._id.toString()) };
+  return { incident: toIncidentView(stored, shipment, actor, new Date()), events: await visibleEvents(stored._id.toString()) };
 }
 
 export async function listAuthorizedIncidents(
@@ -227,14 +586,16 @@ export async function listAuthorizedIncidents(
     clauses.push({ $or: [{ updatedAt: { $lt: updatedAt } }, { updatedAt, _id: { $lt: cursor.i } }] });
   }
   const limit = input.limit || pageDefault;
+  const now = new Date();
   const rows = await Incident.find({ $and: clauses }).sort({ updatedAt: -1, _id: -1 }).limit(limit + 1).lean<StoredIncident[]>();
   const page = rows.slice(0, limit);
   const last = page.at(-1);
   const incidents: IncidentView[] = [];
   for (const row of page) {
-    const shipment = await loadShipment(row.shipmentId.toString());
-    if (!shipment || caseScope(actor, accessOf(row), shipment) === "none") continue;
-    incidents.push(toIncidentView(row, shipment, actor));
+    const current = (await escalateIfOverdue(row, now)) ? ((await Incident.findById(row._id).lean<StoredIncident | null>()) ?? row) : row;
+    const shipment = await loadShipment(current.shipmentId.toString());
+    if (!shipment || caseScope(actor, accessOf(current), shipment) === "none") continue;
+    incidents.push(toIncidentView(current, shipment, actor, now));
   }
   return {
     incidents,
@@ -425,12 +786,12 @@ async function requireVisible(actor: Actor, incidentId: string): Promise<StoredI
   return incident;
 }
 
-async function presentAuthorized(actor: Actor, incident: StoredIncident): Promise<IncidentView> {
+async function presentAuthorized(actor: Actor, incident: StoredIncident, now = new Date()): Promise<IncidentView> {
   const shipment = await loadShipment(incident.shipmentId.toString());
   if (!shipment || caseScope(actor, accessOf(incident), shipment) === "none") {
     throw new HttpError(404, "not_found", "Không tìm thấy sự cố này.");
   }
-  return toIncidentView(incident, shipment, actor);
+  return toIncidentView(incident, shipment, actor, now);
 }
 
 async function repairIncident(incidentId: string): Promise<void> {
@@ -448,31 +809,52 @@ async function repairIncident(incidentId: string): Promise<void> {
     correlationId: `repair-${incident._id.toString()}`,
   });
   for (const pending of incident.pendingEvents ?? []) {
-    await ensureEvent({
-      incident,
-      action: pending.action,
-      actor: { id: pending.actorId.toString(), role: pending.actorRole },
-      statusBefore: pending.statusBefore,
-      statusAfter: pending.statusAfter,
-      ...(pending.note ? { note: pending.note } : {}),
-      idempotencyKey: pending.idempotencyKey,
-      correlationId: pending.correlationId,
-    });
+    await ensurePendingEvent(incident, pending);
   }
   if (!shipment) return;
-  const events = await IncidentEvent.find({ incidentId: incident._id }).limit(appliedKeyLimit).lean<StoredEvent[]>();
+  const events = await IncidentEvent.find({ incidentId: incident._id }).limit(appliedKeyLimit * 2).lean<StoredEvent[]>();
   for (const event of events) {
-    await notify(incident, event, shipment, event.actorId.toString());
+    await notify(incident, event, shipment, event.actorId ? event.actorId.toString() : null);
   }
+}
+
+function ensurePendingEvent(incident: StoredIncident, pending: PendingEvent): Promise<StoredEvent | null> {
+  return ensureEvent({
+    incident,
+    action: pending.action,
+    actor: { id: pending.actorId ? pending.actorId.toString() : null, role: pending.actorRole },
+    statusBefore: pending.statusBefore,
+    statusAfter: pending.statusAfter,
+    ...(pending.note ? { note: pending.note } : {}),
+    ...(pending.occurredAt ? { occurredAt: pending.occurredAt } : {}),
+    idempotencyKey: pending.idempotencyKey,
+    correlationId: pending.correlationId,
+  });
+}
+
+/** Writes the pending events with these keys, then notifies each. Returns false when an event could not be stored. */
+async function flushPending(incident: StoredIncident, keys: readonly string[], shipment: ShipmentContext | null): Promise<boolean> {
+  let complete = true;
+  for (const pending of incident.pendingEvents ?? []) {
+    if (!keys.includes(pending.idempotencyKey)) continue;
+    const event = await ensurePendingEvent(incident, pending);
+    if (!event) {
+      complete = false;
+      continue;
+    }
+    if (shipment) await notify(incident, event, shipment, event.actorId ? event.actorId.toString() : null);
+  }
+  return complete;
 }
 
 async function ensureEvent(input: {
   incident: StoredIncident;
   action: IncidentAction;
-  actor: Actor;
+  actor: EventActor;
   statusBefore: IncidentStatus;
   statusAfter: IncidentStatus;
   note?: string;
+  occurredAt?: Date;
   idempotencyKey: string;
   correlationId: string;
 }): Promise<StoredEvent | null> {
@@ -481,7 +863,7 @@ async function ensureEvent(input: {
     action: input.action,
     actorId: input.actor.id,
     actorRole: input.actor.role,
-    occurredAt: new Date(),
+    occurredAt: input.occurredAt ?? new Date(),
     statusBefore: input.statusBefore,
     statusAfter: input.statusAfter,
     escalationBefore: input.incident.escalationStatus,
@@ -503,10 +885,10 @@ async function ensureEvent(input: {
   }
 }
 
-async function notify(incident: StoredIncident, event: StoredEvent, shipment: ShipmentContext, actorId: string): Promise<void> {
+async function notify(incident: StoredIncident, event: StoredEvent, shipment: ShipmentContext, actorId: string | null): Promise<void> {
   if (event.visibility === "INTERNAL") return;
   const recipients = recipientIds({
-    actorId,
+    actorId: actorId ?? "",
     reporterId: incident.reporterId.toString(),
     handlerId: incident.handlerId ? incident.handlerId.toString() : null,
     shipperId: shipment.shipperId,
@@ -586,12 +968,15 @@ async function loadShipment(id: string): Promise<ShipmentContext | null> {
   };
 }
 
-function accessOf(incident: StoredIncident) {
+function accessOf(incident: StoredIncident): IncidentAccess {
   return {
     reporterId: incident.reporterId.toString(),
     reporterRole: incident.reporterRole,
     handlerId: incident.handlerId ? incident.handlerId.toString() : null,
     status: incident.status,
+    incidentType: incident.incidentType,
+    reopenStatus: incident.reopenStatus ?? "NONE",
+    reopenCarrierDeadlineAt: incident.reopenCarrierDeadlineAt ?? null,
   };
 }
 
