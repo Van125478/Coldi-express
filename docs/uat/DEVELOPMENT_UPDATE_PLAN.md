@@ -28,4 +28,11 @@ Leave `C:\Coldi` and the `coldi` database untouched.
 9. Smoke test after restart: carrier search `COLDI Demo` with temperature `Đông`, one historical shipment card without a huge empty image, a new shipment image upload, driver username login, and the existing incident `lủng lốp` still openable with its timeline intact.
 10. Recovery: if the new processes fail, check out the recorded previous SHA and start the previous processes. Restore the database only from the backup taken before the index migration, and only if that migration was actually run.
 
-Development was still on the pre-commission line when this plan was written. The eventual fast-forward needs commission PR #10 plus the later approved fix pull requests. Do not assume those features are on port 5173 until this update is done.
+Read-only check on 18/10/2026, with no fetch, pull, or checkout:
+
+- Branch `coldi-development`
+- HEAD `2c8f5d1442e69c6c33aabf5de46c822082f21b26` (the PR #9 merge)
+- Working tree clean
+- The branch reported itself behind its recorded `origin/main` by 3 commits
+
+That HEAD is still the pre-commission line. The eventual fast-forward needs commission PR #10 plus the later approved fix pull requests. Do not assume those features are on port 5173 until this update is done. Re-read the branch and working tree when the Product Owner is present; this snapshot is not a permission to update.
