@@ -1,6 +1,8 @@
 # COLDI v2.6 — Hoa hồng hai phía: business rules & ngoại lệ
 
-**APPROVED định hướng:** phương án A — tính hoa hồng riêng cho **Shipper và Carrier**. **PROPOSED:** công thức, thời điểm chốt rate, làm tròn, trạng thái và xử lý ngoại lệ dưới đây. Chưa có API commission/billing/settlement trong baseline. Không có thanh toán online trong MVP.
+> **Luật hiện hành:** [v2.7 — hoa hồng và sổ cái](../../v2.7/04_COMMISSION_POLICY_AND_LEDGER.md). COM-01 đến COM-05 và COM-07A đã duyệt. COM-06 duyệt VOID, HOLD theo phía và điều chỉnh bất biến; điều kiện hủy và ngưỡng xét vẫn mở. Các nhãn PROPOSED và OPEN trong file này là lời lúc PR #4 merge, không còn chặn các mục đã duyệt. Chưa có API commission trong source. Không có thanh toán online. Mô phỏng chỉ trong Demo/QA.
+
+**Đã duyệt:** phương án A — tính hoa hồng riêng cho **Shipper và Carrier** trên cùng `listedPriceVnd`. Công thức, snapshot, làm tròn half-up và trạng thái ESTIMATED/ACCRUED nằm ở v2.7. Chưa có API commission/billing/settlement trong baseline. Không có thanh toán online trong MVP.
 
 ## 1. Khái niệm
 
@@ -13,7 +15,7 @@
 - `Carrier net estimate = B - F_c`.
 - `COLDI gross commission accrual = F_s + F_c` (không phải lợi nhuận sau thuế/chi phí hoặc tiền mặt đã thu).
 
-**Rounding proposal:** chuyển tỷ lệ sang integer basis points (5%=500bp, 4%=400bp, 3,5%=350bp). Tính theo arithmetic an toàn, làm tròn một lần trên mỗi phí theo VND; quy tắc half-up đến VND phải được Product Owner chốt. Với giá trị bất thường/hoàn phí không thể chỉ dựa vào `number` JS nếu rủi ro overflow.
+**Rounding, đã duyệt ở COM-04:** chuyển tỷ lệ sang integer basis points (5%=500bp, 4%=400bp, 3,5%=350bp). Làm tròn half-up từng bên tới 1 VND. VAT sau MVP. Câu gốc lúc merge còn nói quy tắc half-up phải chờ chốt. Với số lớn, tính bằng `BigInt` như v2.7, không dựa vào `number` JS khi có rủi ro tràn.
 
 ## 2. Ví dụ minh họa (không phải hóa đơn)
 

@@ -1,8 +1,10 @@
 # COLDI — Bộ tài liệu sản phẩm và nghiệp vụ v2.6
 
-**Ngày:** 18/10/2026 · **Loại:** Bản đặc tả để Product Owner duyệt · **Không phải biên bản nghiệm thu code**.
+> **Chính sách hiện hành là [v2.7](../v2.7/README.md), ngày 18/10/2026.** Trang này giữ bộ đã merge trong PR #4 tại `30c9d5fea609e041cb56f9634769cf61f13388b4`. Các câu bên dưới nói bảng giá chưa duyệt, trần xe chỉ là đề xuất, gói trả phí luôn cần Admin duyệt, hoặc COM-02 đến COM-07 còn mở là **lịch sử lúc merge**, không còn là luật đang dùng. PKG-01, PKG-02, PKG-03, PKG-06B, PKG-07 và COM-01 đến COM-07A đã được duyệt trong v2.7. Bản gốc đúng từng chữ lúc merge vẫn nằm trong Git tại commit đó. Phê duyệt v2.7 không có nghĩa các module đã được code.
 
-**Phiên bản tài liệu hiện hành: v2.6.** Đây không phải phiên bản phát hành của ứng dụng và không có nghĩa MVP đã hoàn thành.
+**Ngày:** 18/10/2026 · **Loại:** Bản đặc tả đã merge trong PR #4, sau đó được chú thích · **Không phải biên bản nghiệm thu code**.
+
+**Phiên bản tài liệu này: v2.6, đã được thay bởi v2.7 cho chính sách giá, gói và hoa hồng.** Đây không phải phiên bản phát hành của ứng dụng và không có nghĩa MVP đã hoàn thành.
 
 **Baseline source rà soát gần nhất:** `Van125478/Coldi-express`, `main` tại `7d07e941ace1d3490996c53a6bed36478a6d4836` (PR #3 đã merge). Nếu HEAD thay đổi sau ngày này, phải đối chiếu source lại trước triển khai. Trong phiên soạn v2.6 **không chạy lại** 71 bài test backend hoặc browser E2E. Không có thao tác lên dữ liệu thật.
 
@@ -12,8 +14,8 @@ Bộ này được đưa vào Git tại `docs/v2.6/` từ ZIP `COLDI_v2.6_ALL_DO
 
 1. Trang này — phân biệt đã duyệt, đề xuất và chưa chốt.
 2. [MVP Scope](product/01_MVP_SCOPE_v2.6.md) — yêu cầu hiện hành của tài liệu.
-3. [Bảng giá Shipper/Carrier](product/02_PRICING_PACKAGES_v2.6.md) — bảng giá đề xuất lấy từ ảnh.
-4. [Hoa hồng hai phía](product/03_COMMISSION_POLICY_v2.6.md) — hướng A đã chọn; quy tắc chi tiết còn đề xuất.
+3. [Bảng giá Shipper/Carrier](product/02_PRICING_PACKAGES_v2.6.md) — số liệu lịch sử; baseline hiện hành ở [v2.7](../v2.7/02_PRICING_AND_PACKAGE.md).
+4. [Hoa hồng hai phía](product/03_COMMISSION_POLICY_v2.6.md) — bản thảo lúc PR #4; luật hiện hành ở [v2.7](../v2.7/04_COMMISSION_POLICY_AND_LEDGER.md).
 5. [Luồng gói](product/04_PACKAGE_WORKFLOWS_v2.6.md) — nâng, hạ, hết hạn, hạn mức.
 6. [Giá dầu thế giới](product/05_WORLD_OIL_PRICE_v2.6.md) — Brent/WTI. Không phải ghi chép đổ dầu hay tiêu hao xe.
 7. [Sự cố vận chuyển](product/06_INCIDENT_REPORTING_v2.6.md) — bản thiết kế nghiệp vụ.
@@ -25,9 +27,9 @@ Bộ này được đưa vào Git tại `docs/v2.6/` từ ZIP `COLDI_v2.6_ALL_DO
 ## 1. Đã chốt ở mức định hướng
 
 - COLDI MVP gồm logistics, quản lý gói dịch vụ, thông tin gói, quyền lợi, hạn mức, **giá dầu thô thế giới**, báo cáo sự cố và nghiệm thu thực tế.
-- **Hoa hồng phương án A:** COLDI *dự kiến* thu hai khoản hoa hồng độc lập của **Shipper và Carrier** trên cùng chuyến. Cách triển khai, điểm ghi nhận và phương thức thu tiền cần phê duyệt chi tiết.
-- Thanh toán online **không nằm trong bản MVP đang đặc tả**. Đơn `DELIVERY_CONFIRMED` không đồng nghĩa thu tiền hay đã đối soát.
-- Bảng giá và hoa hồng trong ảnh do Product Owner cung cấp là **proposal**. Chưa có chỉ thị chốt thành mức phí áp dụng thực tế.
+- **Hoa hồng phương án A:** COLDI tính hai khoản hoa hồng độc lập của **Shipper và Carrier**. Chi tiết COM-01 đến COM-07A nằm ở [v2.7](../v2.7/04_COMMISSION_POLICY_AND_LEDGER.md). Đoạn này lúc PR #4 còn ghi công thức là đề xuất.
+- Thanh toán online **không nằm trong MVP**. Đơn `DELIVERY_CONFIRMED` không đồng nghĩa thu tiền hay đã đối soát. COM-07A chỉ cho mô phỏng trong Demo/QA.
+- Bảng giá cố định là **baseline thương mại dự kiến chính thức** theo PKG-01 trong v2.7. Câu gốc lúc merge nói đây chỉ là proposal chưa duyệt. Chưa có bán gói online.
 - **Giá dầu thế giới** chỉ là **thông tin giá Brent/WTI được cập nhật có nguồn, đơn vị, ngày quan sát và trạng thái dữ liệu**. Không phải nhập lần đổ dầu, tiêu hao, định mức, chi phí theo xe hoặc chuyến, hay bảng giá dầu bán lẻ Việt Nam.
 
 ## 2. Đọc tài liệu theo thứ tự
@@ -78,7 +80,8 @@ Bản nháp `MVP_FUEL_STATISTICS_SPEC_DRAFT.md` trong archive của ZIP mô tả
 Khi tài liệu lịch sử và v2.6 khác nhau:
 
 - **HISTORICAL DOCUMENT:** hồ sơ tại thời điểm viết.
-- **CURRENT v2.6 PRODUCT SCOPE:** đặc tả trong thư mục này, gồm cả mục PROPOSED và OPEN.
-- **CURRENT IMPLEMENTED CODE:** source trên `main` tại baseline ở trên, cho tới khi có commit mới.
+- **CURRENT BUSINESS POLICY:** [v2.7](../v2.7/README.md).
+- **EARLIER v2.6:** đặc tả trong thư mục này. Phần giá, gói và hoa hồng đã được v2.7 thay.
+- **CURRENT IMPLEMENTED CODE:** source trên `main`. Logistics có mã. Gói, hoa hồng, giá dầu và sự cố chưa được triển khai đầy đủ.
 
-Source đang chạy vẫn là chuẩn để khẳng định tính năng đã có mã. v2.6 là đề xuất phạm vi sản phẩm mới nhất và vẫn cần Product Owner ký các quyết định chi tiết.
+Source đang chạy vẫn là chuẩn để khẳng định tính năng đã có mã. v2.6 không còn là chính sách giá và hoa hồng hiện hành.

@@ -1,5 +1,7 @@
 # COLDI — Mục lục tài liệu v2.6
 
+> **Chính sách hiện hành:** [v2.7](../v2.7/README.md). Mục lục này trỏ vào bộ đã merge PR #4. Đừng dùng các nhãn OPEN của COM-02 đến COM-07, PKG-01, PKG-02, PKG-03, PKG-06 và PKG-07 trong các file cũ như luật đang áp dụng.
+
 Trang này là mục lục của bộ `docs/v2.6/`. Bản đồ toàn repository nằm ở [docs/README.md](../README.md). Trang khởi đầu của bộ này là [README v2.6](README.md).
 
 **Product:** [MVP scope](product/01_MVP_SCOPE_v2.6.md) · [Pricing](product/02_PRICING_PACKAGES_v2.6.md) · [Commission](product/03_COMMISSION_POLICY_v2.6.md) · [Package workflows](product/04_PACKAGE_WORKFLOWS_v2.6.md) · [Oil feed](product/05_WORLD_OIL_PRICE_v2.6.md) · [Incident](product/06_INCIDENT_REPORTING_v2.6.md) · [Open decisions](product/07_OPEN_DECISIONS_v2.6.md) · [Exception matrix](product/08_EXCEPTION_SCENARIOS_v2.6.md).
@@ -14,4 +16,4 @@ Trang này là mục lục của bộ `docs/v2.6/`. Bản đồ toàn repository
 
 Cài đặt người mới trên Windows nằm ngoài bộ này: [TEAM_TESTING_GUIDE](../team-testing/TEAM_TESTING_GUIDE.md).
 
-Nếu tài liệu lịch sử trên GitHub và v2.6 khác nhau: v2.6 là **đặc tả phạm vi hiện hành cần Product Owner duyệt**, còn `main` vẫn là nguồn sự thật của code đang chạy. Mọi use case mới giữ nhãn `DRAFT` hoặc `PROPOSED` tới khi Product Owner chấp thuận. Không coi dòng PROPOSED là rule đã duyệt.
+Nếu tài liệu lịch sử, v2.6 và v2.7 khác nhau về giá, gói hoặc hoa hồng: **v2.7 là chính sách hiện hành**. `main` vẫn là nguồn sự thật của code đang chạy. Một dòng PROPOSED còn lại trong v2.6 không phải rule đã duyệt, và cũng không hủy một quyết định đã ghi APPROVED trong v2.7.

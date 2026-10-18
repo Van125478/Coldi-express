@@ -1,5 +1,7 @@
 # COLDI Docs Update Package — 17/10/2026
 
+> Hồ sơ ngày 17/10/2026. Chính sách giá, gói và hoa hồng hiện hành là [v2.7](../../v2.7/README.md). Câu "chưa được commit" bên dưới đúng vào ngày đóng gói này, không còn mô tả trạng thái Git hiện tại.
+
 Bản này **chưa được commit/push**. Nó bao gồm các tài liệu Markdown cần được bổ sung vào đúng nhánh `integration/coldi-v2.3-mvp` sau khi chủ dự án cho phép:
 
 1. `docs/product/COLDI_v2.4_Product_Decisions_2026-10-17.md` — biên bản **toàn bộ quyết định sản phẩm** trong chuỗi hội thoại, bao gồm Account, Guest/Login, Marketplace một trang, Carrier Detail, Mapbox, Shipper/Driver, UI/UX, scope/phase, Git và điều kiện nghiệm thu.

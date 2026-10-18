@@ -1,6 +1,8 @@
 # COLDI v2.6 — Phạm vi MVP hiện hành
 
-**Phê duyệt định hướng:** Logistics + Package Management + Package Information + World Oil Price Update + Incident Reporting + E2E, theo lời Product Owner. Phí hoa hồng phương án A thu **cả hai phía** đã chọn ở mức mô hình; bảng giá và quy tắc vận hành vẫn là proposal. **Code state không thay đổi do docs này.**
+> Chính sách giá, gói và hoa hồng hiện hành nằm ở [v2.7](../../v2.7/README.md). File này giữ phạm vi mô tả lúc PR #4.
+
+**Phê duyệt định hướng:** Logistics + Package Management + Package Information + World Oil Price Update + Incident Reporting + E2E, theo lời Product Owner. Phí hoa hồng hai phía, bảng giá cố định và trần xe đã được duyệt trong v2.7. Câu gốc lúc PR #4 nói bảng giá và quy tắc vận hành vẫn là proposal. **Code state không thay đổi do docs này.** Module gói, hoa hồng, giá dầu và sự cố vẫn chưa được triển khai.
 
 ## 1. Ranh giới sản phẩm
 

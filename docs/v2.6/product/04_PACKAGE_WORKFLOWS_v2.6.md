@@ -1,6 +1,8 @@
-# COLDI v2.6 — Package Management, entitlement, quota & lifecycle (DRAFT)
+# COLDI v2.6 — Package Management, entitlement, quota & lifecycle
 
-**Định hướng APPROVED:** gói cho cả SHIPPER và CARRIER; có thông tin gói, quyền gói, hạn mức, chiết khấu hoa hồng hai phía; thanh toán online sau MVP. **Những workflow dưới đây là đề xuất**, cần ký trước coding. Hiện không có Subscription model/API trong `main` baseline.
+> **Luật hiện hành:** [v2.7 — vòng đời gói](../../v2.7/03_PACKAGE_LIFECYCLE_AND_SECURITY.md). PKG-02, PKG-03, PKG-06B và PKG-07 đã duyệt. Câu "mọi gói trả phí đều cần Admin phê duyệt" trong các mục dưới là bản thảo lúc PR #4. Nó bị thay bởi: Demo/QA được phép tự kích hoạt khi môi trường được cấp phép; production không đăng ký endpoint kích hoạt demo và không tự thu tiền. Quota đơn Shipper và quyền lợi Premium vẫn mở. Hiện không có Subscription model/API trong `main`.
+
+**Đã duyệt hướng:** gói cho cả SHIPPER và CARRIER; gói thuộc User; trần xe ACTIVE; hết hạn về Free; thanh toán online sau MVP. Các bước Admin duyệt trong file này là hồ sơ bản thảo, không phải đường kích hoạt production.
 
 ## 1. Diễn viên và quyền sơ bộ
 

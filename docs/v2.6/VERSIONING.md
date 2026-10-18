@@ -1,6 +1,8 @@
 # Chính sách phiên bản tài liệu COLDI
 
-- **Phiên bản hiện tại của bộ tài liệu: v2.6**, ngày 18/10/2026.
+> **Cập nhật 18/10/2026:** phiên bản chính sách hiện hành là **v2.7** tại [docs/v2.7/VERSIONING.md](../v2.7/VERSIONING.md). Đoạn dưới mô tả quy tắc lúc phát hành v2.6 và được giữ để truy lịch sử. v2.7 không viết lại commit PR #4.
+
+- **Phiên bản của bộ trong thư mục này: v2.6**, ngày 18/10/2026, đã được thay bởi v2.7 cho chính sách giá, gói và hoa hồng.
 - Theo yêu cầu chủ dự án, **mỗi lần công bố một bản tài liệu có thay đổi nội dung thì tăng phiên bản**, không ghi đè nội dung v2.6 mà không đổi số. **Phiên bản kế tiếp mặc định: v2.7**, trừ khi Product Owner yêu cầu mốc lớn khác.
 - Phiên bản của **bộ tài liệu** không có nghĩa là phiên bản code/deployment đã chạy. README phải nói rõ hai khái niệm.
 - Sửa chính tả trong bản nháp đang review có thể thực hiện trước khi phát hành; sau khi phát hành ZIP chính thức, mọi thay đổi được đưa vào lần cập nhật số tiếp theo.

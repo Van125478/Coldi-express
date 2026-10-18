@@ -1,6 +1,8 @@
 # COLDI Documentation Changelog — v2.6
 
-**Ngày xuất bản:** 18/10/2026. **Bản tham chiếu trước:** bộ tài liệu v2.4 Revision 2 (18/10/2026). **Bản hiện hành của tài liệu:** v2.6 (theo yêu cầu Product Owner; không tự giả lập một bản v2.5 đã xuất bản).
+> **Phụ lục 18/10/2026, sau khi PR #4 đã merge:** chính sách giá, gói và hoa hồng chuyển sang [v2.7](../v2.7/CHANGELOG.md). Changelog gốc bên dưới mô tả lúc xuất bản v2.6. Câu "giá và tỷ lệ là phương án đề xuất" và "chưa được merge" là lịch sử của đợt đó. PR #4 đã merge tại `30c9d5fea609e041cb56f9634769cf61f13388b4`. Bản chú thích này không phải nội dung gốc của commit đó.
+
+**Ngày xuất bản:** 18/10/2026. **Bản tham chiếu trước:** bộ tài liệu v2.4 Revision 2 (18/10/2026). **Bộ này:** v2.6. **Chính sách hiện hành:** v2.7. Không tự giả lập một bản v2.5 đã xuất bản.
 
 ## Thay đổi bắt buộc
 

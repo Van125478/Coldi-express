@@ -4,19 +4,35 @@ Ba lớp cần đọc tách nhau.
 
 | Lớp | Ý nghĩa | Bắt đầu từ |
 | --- | --- | --- |
-| CURRENT v2.6 PRODUCT SCOPE | Đặc tả sản phẩm hiện hành. Có mục APPROVED, PROPOSED và OPEN | [docs/v2.6/README.md](v2.6/README.md) |
-| CURRENT IMPLEMENTED CODE | Logistics đã có mã trên `main` `7d07e941ace1d3490996c53a6bed36478a6d4836`. Chưa phải UAT đầy đủ | [TEAM_TESTING_GUIDE](team-testing/TEAM_TESTING_GUIDE.md) |
-| HISTORICAL DOCUMENT | Hồ sơ các đợt trước. Không thay phạm vi v2.6 | Mục lịch sử bên dưới |
+| CURRENT BUSINESS POLICY v2.7 | Chính sách giá, gói, hoa hồng và mục còn mở | [docs/v2.7/README.md](v2.7/README.md) |
+| EARLIER v2.6 | Bộ đã merge PR #4. Chính sách giá và hoa hồng đã được v2.7 thay | [docs/v2.6/README.md](v2.6/README.md) |
+| CURRENT IMPLEMENTED CODE | Logistics đã có mã trên `main` `30c9d5fea609e041cb56f9634769cf61f13388b4`. Chưa phải UAT đầy đủ. Gói, hoa hồng, giá dầu và sự cố chưa triển khai đầy đủ | [TEAM_TESTING_GUIDE](team-testing/TEAM_TESTING_GUIDE.md) |
+| HISTORICAL DOCUMENT | Hồ sơ v2.4, Core 08–14, mvp-review. Không thay chính sách v2.7 | Mục lịch sử bên dưới |
 
-Code đang chạy không phải bản phát hành ứng dụng v2.6. MVP chưa hoàn thành.
+Code đang chạy không phải bản phát hành ứng dụng v2.7. MVP chưa hoàn thành.
 
-## v2.6 — đặc tả hiện hành
+## v2.7 — chính sách nghiệp vụ hiện hành
+
+- [Trang khởi đầu](v2.7/README.md)
+- [Mục lục](v2.7/INDEX.md)
+- [Sổ quyết định](v2.7/01_DECISIONS_AND_SCOPE.md)
+- [Giá và gói](v2.7/02_PRICING_AND_PACKAGE.md)
+- [Vòng đời gói và Demo/QA](v2.7/03_PACKAGE_LIFECYCLE_AND_SECURITY.md)
+- [Hoa hồng và sổ cái](v2.7/04_COMMISSION_POLICY_AND_LEDGER.md)
+- [Ma trận kiểm thử](v2.7/05_COMMISSION_TEST_MATRIX.md) — ca kiểm thử, chưa chạy trong đợt này
+- [Dầu, sự cố, QA còn mở](v2.7/06_OPEN_OPERATIONS_OIL_INCIDENT.md)
+- [Bàn giao triển khai](v2.7/07_IMPLEMENTATION_HANDOFF.md)
+- [Phiên bản](v2.7/VERSIONING.md) · [Changelog](v2.7/CHANGELOG.md)
+
+Nghiệm thu bố cục: Carrier Home, phân công chuyến, Driver Home, cấu trúc Chatbox. E2E, chat lưu trên trình duyệt và Mapbox tiles/markers chưa được nghiệm thu đầy đủ. FE-05B vẫn chờ. Hồ sơ: [FE-05A](frontend/FE-05A_Visual_Acceptance_and_Carrier_Backlog_2026-10-17.md).
+
+## v2.6 — bộ đã merge, không còn là chính sách giá hiện hành
 
 - [Trang khởi đầu](v2.6/README.md)
 - [Mục lục](v2.6/INDEX.md)
 - [Phạm vi MVP](v2.6/product/01_MVP_SCOPE_v2.6.md)
-- [Bảng giá gói](v2.6/product/02_PRICING_PACKAGES_v2.6.md) — đề xuất, chưa phải bảng phí đã duyệt
-- [Hoa hồng hai phía](v2.6/product/03_COMMISSION_POLICY_v2.6.md) — hướng A đã chọn; công thức còn đề xuất
+- [Bảng giá gói](v2.6/product/02_PRICING_PACKAGES_v2.6.md) — số liệu lịch sử; baseline hiện hành ở v2.7
+- [Hoa hồng hai phía](v2.6/product/03_COMMISSION_POLICY_v2.6.md) — bản thảo lúc PR #4; luật hiện hành ở v2.7
 - [Luồng gói](v2.6/product/04_PACKAGE_WORKFLOWS_v2.6.md)
 - [Giá dầu thô thế giới](v2.6/product/05_WORLD_OIL_PRICE_v2.6.md) — Brent/WTI, không phải tiêu hao xe
 - [Báo cáo sự cố](v2.6/product/06_INCIDENT_REPORTING_v2.6.md)
@@ -52,4 +68,4 @@ Cài đặt Windows đầy đủ: [TEAM_TESTING_GUIDE](team-testing/TEAM_TESTING
 
 `_ARCHIVE_PREVIOUS` trong ZIP v2.6 không được copy vào repo. Bản nháp tiêu hao nhiên liệu xe trong archive đó không phải yêu cầu hiện hành. Các báo cáo kiểm thử cũ không bị sửa cho khớp v2.6.
 
-Khi một quyết định nghiệp vụ mới làm thay đổi bản v2.6 đã phát hành, tài liệu kế tiếp là v2.7. Phiên bản tài liệu và phiên bản ứng dụng là hai việc khác nhau.
+Chính sách nghiệp vụ hiện hành là v2.7. Phiên bản tài liệu và phiên bản ứng dụng là hai việc khác nhau. Core 08 đến Core 14, FE-05A, hướng dẫn nhóm và mvp-review được giữ nguyên.
