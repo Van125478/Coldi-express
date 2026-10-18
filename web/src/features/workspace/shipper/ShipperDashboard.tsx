@@ -7,6 +7,7 @@ import { lostSession } from "@/features/workspace/sessionLoss";
 import { primaryLinkClass } from "@/features/workspace/format";
 import { followedShipment, shipperBucket } from "@/features/workspace/shipper/shipperGroups";
 import { ShipperShipmentCard } from "@/features/workspace/shipper/ShipperShipmentCard";
+import { WorldOilPriceWidget } from "@/features/market/WorldOilPriceWidget";
 import { EmptyPanel, PageHeader } from "@/features/workspace/ui";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import type { PublishedShipment } from "@/models/publishedShipment";
@@ -155,6 +156,7 @@ export function ShipperDashboard() {
           </ul>
         </section>
       ) : null}
+      <WorldOilPriceWidget variant="compact" />
     </section>
   );
 }

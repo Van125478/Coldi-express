@@ -4,6 +4,7 @@ import { createApp } from "./app.js";
 import { connectDatabase, disconnectDatabase } from "./config/database.js";
 import { getEnv } from "./config/env.js";
 import { reconcileCommissionOutbox } from "./commission/record.js";
+import { startOilPriceScheduler } from "./market/oil/scheduler.js";
 import { reconcileIncidentArtifacts } from "./incidents/service.js";
 import { reconcileAllFleetCapacities } from "./packages/fleetCapacity.js";
 import { reconcileVehicleLeases } from "./packages/vehicleLease.js";
@@ -40,6 +41,15 @@ if (!connected) {
   }
 }
 
+let stopOilScheduler = () => {};
+if (connected) {
+  try {
+    stopOilScheduler = startOilPriceScheduler();
+  } catch (error) {
+    console.error("Oil price scheduler did not start.", error instanceof Error ? error.name : "error");
+  }
+}
+
 server.listen(env.PORT, () => {
   console.log(`COLDI API listening on port ${env.PORT}.`);
 });
@@ -57,6 +67,7 @@ async function shutdown(signal: string) {
   }, 10_000);
   forceTimer.unref();
 
+  stopOilScheduler();
   server.close(async () => {
     try {
       await disconnectDatabase();
