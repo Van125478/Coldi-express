@@ -83,7 +83,7 @@ export async function resolveAccountEntitlements(accountId: string, now = new Da
   const subscription = await AccountSubscription.findOne({ accountId });
   const paid = isEffectivePaid(subscription, now) ? subscription : null;
   const effective = paid ? paidPlan(paid.planCode) : freePlan(user.role);
-  const version = await PlanVersion.findOne({ planCode: effective.code, revision: 1, status: "PUBLISHED" });
+  const version = await PlanVersion.findOne({ planCode: effective.code, status: "PUBLISHED" }).sort({ revision: -1 });
   const activeVehicleCount = user.role === "CARRIER" ? await Vehicle.countDocuments({ carrierId: accountId, ...activeVehicleFilter() }) : 0;
   const vehicleCap = user.role === "CARRIER" ? (paid ? (paid.vehicleCap ?? null) : effective.vehicleCap) : null;
   const rateBps = paid ? paid.rateBps : effective.rateBps;

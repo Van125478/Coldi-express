@@ -252,17 +252,11 @@ export function materializeTerms(plan: PlanSpec, contract: ContractInput | null)
   if (!Number.isInteger(contract.rateBps) || plan.rateMinBps === null || plan.rateMaxBps === null || contract.rateBps < plan.rateMinBps || contract.rateBps > plan.rateMaxBps) {
     throw new HttpError(400, "invalid_request", "Tỷ lệ hợp đồng phải là basis point nguyên nằm trong khoảng đã công bố. Không tự lấy điểm giữa.");
   }
-  if (plan.code === "carrier-business") {
-    if (contract.vehicleCap != null && contract.vehicleCap !== 30) {
-      throw new HttpError(400, "invalid_request", "Gói Business có trần 30 xe hoạt động. Không đổi trần này bằng hợp đồng demo.");
+  if (plan.vehicleCap != null) {
+    if (contract.vehicleCap != null && contract.vehicleCap !== plan.vehicleCap) {
+      throw new HttpError(400, "invalid_request", "Trần xe đã niêm yết không đổi bằng điều khoản tự nhập.");
     }
-    return { priceVnd: contract.priceVnd, rateBps: contract.rateBps, vehicleCap: 30 };
-  }
-  if (plan.code === "carrier-enterprise") {
-    if (!Number.isInteger(contract.vehicleCap) || contract.vehicleCap == null || contract.vehicleCap < 1) {
-      throw new HttpError(409, "quote_required", "Gói Enterprise của nhà xe cần trần xe cụ thể trong hợp đồng đã phê duyệt.");
-    }
-    return { priceVnd: contract.priceVnd, rateBps: contract.rateBps, vehicleCap: contract.vehicleCap };
+    return { priceVnd: contract.priceVnd, rateBps: contract.rateBps, vehicleCap: plan.vehicleCap };
   }
   if (contract.vehicleCap != null) {
     throw new HttpError(400, "invalid_request", "Gói chủ hàng không đặt trần xe.");

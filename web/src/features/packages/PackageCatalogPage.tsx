@@ -60,12 +60,12 @@ export function PackageCatalogPage() {
             <p className="text-[11px] font-semibold tracking-[0.22em] text-navy">BẢNG GIÁ</p>
             <h1 className="mt-3 max-w-3xl text-4xl font-extrabold tracking-tight text-balance text-navy-deep sm:text-5xl">Gói dịch vụ cho vận tải lạnh B2B</h1>
             <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted">
-              Giá niêm yết, hoa hồng và trần xe lấy từ catalog đang công bố. Gói theo hợp đồng chưa có số cuối cùng thì ghi liên hệ báo giá. Tài xế không mua gói.
+              Giá niêm yết, hoa hồng, chu kỳ thanh toán và trần xe lấy từ catalog đang công bố. Website chưa thu tiền và trang này không tự kích hoạt gói. Tài xế không mua gói.
             </p>
           </div>
           <div className="rounded-3xl border border-line bg-surface p-5">
             <p className="text-sm font-semibold text-ink">Xem gói gắn với tài khoản</p>
-            <p className="mt-2 text-sm leading-relaxed text-muted">Chủ hàng và nhà xe vào đúng trang gói của mình. Trang này không tạo thanh toán.</p>
+            <p className="mt-2 text-sm leading-relaxed text-muted">Chủ hàng và nhà xe vào đúng trang gói của mình. Giá trên bảng là niêm yết. Kích hoạt Demo chỉ có trên môi trường được cấp phép và không tạo giao dịch thanh toán.</p>
             <Button asChild className="mt-4 w-full">
               <Link to={cta.href}>{cta.label}</Link>
             </Button>

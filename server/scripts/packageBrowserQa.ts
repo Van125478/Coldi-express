@@ -272,17 +272,21 @@ async function browserQa() {
   });
   const page = await context.newPage();
 
-  await runFlow("Guest catalog shows fixed prices and quote tiers", page, async () => {
+  await runFlow("Guest catalog shows published Business and Enterprise prices", page, async () => {
     await page.goto(`${webOrigin}/goi-dich-vu`, { waitUntil: "domcontentloaded" });
     await page.getByRole("heading", { name: "Gói dịch vụ COLDI" }).waitFor();
     await page.getByText(/799[.\s\u00a0\u202f]?000/).first().waitFor();
     await page.getByText(/999[.\s\u00a0\u202f]?000/).first().waitFor();
-    await page.getByText("Liên hệ báo giá").first().waitFor();
+    await page.getByText(/6[.\s\u00a0\u202f]?990[.\s\u00a0\u202f]?000/).first().waitFor();
+    await page.getByRole("tab", { name: "Nhà xe" }).click();
+    await page.getByText(/2[.\s\u00a0\u202f]?990[.\s\u00a0\u202f]?000/).first().waitFor();
+    await page.getByText("30 xe ACTIVE").first().waitFor();
+    await page.getByText("100 xe ACTIVE").first().waitFor();
     await page.getByText("2 xe").first().waitFor();
     if ((await page.getByRole("button", { name: /Thanh toán|Kích hoạt/ }).count()) !== 0) {
       throw new Error("The public catalog exposed a payment or activation control.");
     }
-    return "Shipper Pro 799000, Carrier Pro 999000, quote tiers, carrier Free cap 2.";
+    return "Shipper Pro 799000, Carrier Pro 999000, published Business and Enterprise prices, carrier Free cap 2.";
   });
 
   await runFlow("Shipper Free plan has no contract inputs", page, async () => {
@@ -291,8 +295,8 @@ async function browserQa() {
     await page.getByRole("heading", { name: "Free", exact: true }).waitFor();
     await page.getByText("0 VND").first().waitFor();
     const enterprise = page.locator("li").filter({ hasText: "Enterprise" });
-    await enterprise.getByText("Liên hệ báo giá").first().waitFor();
-    if ((await enterprise.getByRole("button").count()) !== 0) throw new Error("Enterprise exposed an activation button.");
+    await enterprise.getByText(/6[.\s\u00a0\u202f]?990[.\s\u00a0\u202f]?000/).first().waitFor();
+    if ((await enterprise.getByRole("button", { name: /Thanh toán/ }).count()) !== 0) throw new Error("Enterprise exposed a payment button.");
     if ((await page.locator("input, textarea").count()) !== 0) throw new Error("The shipper plan page accepted typed commercial terms.");
     return "Free plan, zero price, quote copy, no price or cap fields.";
   });
