@@ -7,7 +7,7 @@ Ba lớp cần đọc tách nhau.
 | CURRENT BUSINESS POLICY v2.10 | Chính sách hiện hành, Package đã có mã, backlog UAT và nghiệm thu desktop | [docs/v2.10/README.md](v2.10/README.md) |
 | EARLIER v2.7 | PKG và COM đã merge ở PR #5. Trạng thái triển khai mới hơn nằm ở v2.10 | [docs/v2.7/README.md](v2.7/README.md) |
 | EARLIER v2.6 | Bộ đã merge PR #4. Chính sách giá và hoa hồng đã được v2.7 thay | [docs/v2.6/README.md](v2.6/README.md) |
-| CURRENT IMPLEMENTED CODE | Logistics và Package trên `main` `2a41797dae188c1b749a08d85517fb8ec05737c3`. Hoa hồng, sự cố và giá dầu chưa có mã | [TEAM_TESTING_GUIDE](team-testing/TEAM_TESTING_GUIDE.md) |
+| CURRENT IMPLEMENTED CODE | Logistics, Package, hoa hồng, sự cố và giá dầu thô. Handoff dầu: [oil/MVP_HANDOFF.md](oil/MVP_HANDOFF.md). Bộ v2.10 không bị sửa trong PR dầu | [TEAM_TESTING_GUIDE](team-testing/TEAM_TESTING_GUIDE.md) |
 | HISTORICAL DOCUMENT | Hồ sơ v2.4, Core 08–14, mvp-review. Không thay chính sách v2.10 | Mục lịch sử bên dưới |
 
 Code đang chạy không phải bản phát hành ứng dụng v2.10. MVP chưa hoàn thành. Thanh toán production không hoạt động.
@@ -67,7 +67,7 @@ Cài đặt Windows đầy đủ: [TEAM_TESTING_GUIDE](team-testing/TEAM_TESTING
 - [API](../server/README.md)
 - [Ảnh chụp trạng thái 18/10/2026](mvp-review/MVP_STATUS_2026-10-18.md) — báo cáo tại baseline, không phải nghiệm thu v2.6
 
-`server/src/app.ts` gắn health, auth, shipment, chat, carrier shipment, carrier conversation, fleet, driver shipment và gói dịch vụ. Chưa có router hoa hồng, giá dầu hay sự cố.
+`server/src/app.ts` gắn health, auth, shipment, chat, carrier shipment, carrier conversation, fleet, driver shipment, gói, hoa hồng, sự cố và `GET /api/market/oil-prices`. Handoff kỹ thuật: [hoa hồng](commission/MVP_HANDOFF.md), [sự cố](incident/MVP_HANDOFF.md), [giá dầu](oil/MVP_HANDOFF.md).
 
 ## Lịch sử — giữ nguyên
 

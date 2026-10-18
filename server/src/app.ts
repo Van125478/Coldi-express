@@ -15,6 +15,7 @@ import { incidentRouter } from "./routes/incident.routes.js";
 import { shipmentChatRouter } from "./routes/shipmentChat.routes.js";
 import { packageRouter } from "./routes/package.routes.js";
 import { commissionRouter } from "./routes/commission.routes.js";
+import { oilPriceRouter } from "./routes/oilPrice.routes.js";
 import { shipmentRouter } from "./routes/shipment.routes.js";
 
 export function createApp() {
@@ -45,6 +46,7 @@ export function createApp() {
   app.use("/api/carrier/fleet", carrierFleetRouter);
   app.use("/api/driver/shipments", driverShipmentRouter);
   app.use("/api/incidents", incidentRouter);
+  app.use("/api/market/oil-prices", oilPriceRouter);
   if (env.NODE_ENV === "test") {
     app.get("/api/test/shipper-only", requireAuth, requireRole("SHIPPER"), (_request, response) => {
       response.status(200).json({ ok: true });
