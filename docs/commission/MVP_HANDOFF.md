@@ -1,6 +1,6 @@
 # Commission Management MVP — technical handoff
 
-Baseline: `df9eede38e64e9be3d23e184527c9c472f4da174` (`origin/main` after business documentation v2.10).
+Baseline: `origin/main` after PR #8 Incident Reporting and PR #9 Package UI. Business documentation v2.10 is unchanged.
 
 This is a simulation. It locks a commission rate and can record an accrual. It does not collect money, create a payment, an invoice, a payout, a refund, or a `PAID` state.
 
@@ -20,6 +20,7 @@ Business documentation v2.10 is unchanged. Prices, rates, and fleet caps are unc
 | VOID wired to cancellation | BLOCKED. No approved cancellation workflow exists in code |
 | HOLD, RELEASE, ADJUSTMENT HTTP | BLOCKED. Default deny until permission, threshold, and dispute rules are approved |
 | Production collection, payout, settlement | Not implemented. Production simulation flag refuses to start |
+| Incident reporting | Independent. An incident does not HOLD commission, does not block delivery, and does not create a second accrual |
 
 ## Calculation
 

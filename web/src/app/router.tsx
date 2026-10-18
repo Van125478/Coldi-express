@@ -34,6 +34,9 @@ import { DriverTrips } from "@/features/workspace/driver/DriverTrips";
 import { ShipperDashboard } from "@/features/workspace/shipper/ShipperDashboard";
 import { ShipperShipmentDetail } from "@/features/workspace/shipper/ShipperShipmentDetail";
 import { ShipperShipments } from "@/features/workspace/shipper/ShipperShipments";
+import { IncidentDetailPage } from "@/features/incidents/IncidentDetailPage";
+import { IncidentListPage } from "@/features/incidents/IncidentListPage";
+import { ReportIncidentPage } from "@/features/incidents/ReportIncidentPage";
 import { AccountPlanPage } from "@/features/packages/AccountPlanPage";
 import { CommissionHistoryPage } from "@/features/commission/CommissionHistoryPage";
 import { PackageCatalogPage } from "@/features/packages/PackageCatalogPage";
@@ -52,6 +55,9 @@ export const router = createBrowserRouter([
           { path: "/shipper/tao-don", element: <CreateShipmentPage /> },
           { path: "/shipper/don-hang", element: <ShipperShipments /> },
           { path: "/shipper/don-hang/:id", element: <ShipperShipmentDetail /> },
+          { path: "/shipper/su-co", element: <IncidentListPage /> },
+          { path: "/shipper/su-co/moi", element: <ReportIncidentPage /> },
+          { path: "/shipper/su-co/:id", element: <IncidentDetailPage /> },
           { path: "/shipper/hoa-hong", element: <CommissionHistoryPage /> },
           { path: "/shipper/goi", element: <AccountPlanPage /> },
         ],
@@ -68,6 +74,9 @@ export const router = createBrowserRouter([
           { path: "/carrier/tim-chuyen", element: <CarrierLoadBoard /> },
           { path: "/carrier/chuyen-cua-toi", element: <ClaimedShipments /> },
           { path: "/carrier/chuyen/:id", element: <CarrierTripDetail /> },
+          { path: "/carrier/su-co", element: <IncidentListPage /> },
+          { path: "/carrier/su-co/moi", element: <ReportIncidentPage /> },
+          { path: "/carrier/su-co/:id", element: <IncidentDetailPage /> },
           { path: "/carrier/hoa-hong", element: <CommissionHistoryPage /> },
           { path: "/carrier/doi-xe", element: <CarrierVehicles /> },
           { path: "/carrier/doi-xe/xe/moi", element: <CarrierVehicleForm mode="create" /> },
@@ -93,6 +102,9 @@ export const router = createBrowserRouter([
               { path: "/driver", element: <DriverHome /> },
               { path: "/driver/chuyen", element: <DriverTrips /> },
               { path: "/driver/chuyen/:id", element: <DriverTripDetail /> },
+              { path: "/driver/su-co", element: <IncidentListPage /> },
+              { path: "/driver/su-co/moi", element: <ReportIncidentPage /> },
+              { path: "/driver/su-co/:id", element: <IncidentDetailPage /> },
             ],
           },
         ],

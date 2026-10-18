@@ -8,6 +8,7 @@ import { accrueDeliveredShipment, quoteForAccount, reconcileCommissionOutbox } f
 import { HttpError } from "../src/middlewares/errorHandler.js";
 import { AuditLog } from "../src/models/auditLog.js";
 import { CommissionLedgerEvent, ledgerEventTypes } from "../src/models/commissionLedger.js";
+import { IncidentEvent } from "../src/models/incidentEvent.js";
 import { AccountSubscription, PlanVersion } from "../src/models/package.js";
 import { Shipment } from "../src/models/shipment.js";
 import { User } from "../src/models/user.js";
@@ -428,6 +429,72 @@ test("COM-T14 pickup and GPS do not accrue, and an incident does not hold", asyn
     assert.equal(await CommissionLedgerEvent.countDocuments({ shipmentId: id, eventType: "HOLD" }), 0);
     await Shipment.updateOne({ _id: id }, { $set: { status: "IN_TRANSIT" } });
     assert.equal((await post(baseUrl, driver, `/api/driver/shipments/${id}/delivery`, {})).status, 200);
+  });
+});
+
+test("a reported incident stays off the ledger and delivery still accrues once", async () => {
+  await withServer(async (baseUrl) => {
+    const shipper = await login(baseUrl, shipperEmail);
+    const carrier = await login(baseUrl, carrierEmail);
+    const driver = await login(baseUrl, driverEmail);
+    const created = await publish(baseUrl, shipper, "Đơn có sự cố");
+    const id = String((created.body.shipment as Json).id);
+    assert.equal((await post(baseUrl, carrier, `/api/carrier/shipments/${id}/claim`, {})).status, 200);
+    assert.equal((await assign(baseUrl, carrier, id)).status, 200);
+    assert.equal((await post(baseUrl, driver, `/api/driver/shipments/${id}/pickup`, {})).status, 200);
+    const statusBefore = (await Shipment.findById(id))?.status;
+    const reported = await post(baseUrl, shipper, "/api/incidents", {
+      shipmentId: id,
+      incidentType: "DELAY",
+      title: "Chậm tại điểm giao",
+      description: "Xe chưa tới điểm giao sau khung giờ đã thống nhất trên đơn.",
+      idempotencyKey: "incident-open-commission-1",
+    });
+    assert.equal(reported.status, 201);
+    const incident = reported.body.incident as Json;
+    const incidentId = String(incident.id);
+    assert.equal((await Shipment.findById(id))?.status, statusBefore);
+    assert.equal(await CommissionLedgerEvent.countDocuments({ shipmentId: id, eventType: "HOLD" }), 0);
+    assert.equal(await countAccrual(id), 0);
+    assert.ok(await IncidentEvent.countDocuments({ incidentId }) >= 1);
+
+    assert.equal((await post(baseUrl, driver, `/api/driver/shipments/${id}/delivery`, {})).status, 200);
+    assert.equal((await Shipment.findById(id))?.status, "DELIVERY_CONFIRMED");
+    assert.equal(await countAccrual(id, "SHIPPER"), 1);
+    assert.equal(await countAccrual(id, "CARRIER"), 1);
+
+    const acknowledged = await post(baseUrl, carrier, `/api/incidents/${incidentId}/acknowledge`, {
+      expectedVersion: 1,
+      idempotencyKey: "incident-ack-commission",
+    });
+    assert.equal(acknowledged.status, 200);
+    const started = await post(baseUrl, carrier, `/api/incidents/${incidentId}/start`, {
+      expectedVersion: Number((acknowledged.body.incident as Json).version),
+      idempotencyKey: "incident-start-commission",
+      note: "Đang kiểm tra lịch giao.",
+    });
+    assert.equal(started.status, 200);
+    const resolved = await post(baseUrl, carrier, `/api/incidents/${incidentId}/resolve`, {
+      expectedVersion: Number((started.body.incident as Json).version),
+      idempotencyKey: "incident-resolve-commission",
+      resolutionSummary: "Xe đã tới và hàng được giao theo xác nhận của tài xế.",
+    });
+    assert.equal(resolved.status, 200);
+    const objected = await post(baseUrl, shipper, `/api/incidents/${incidentId}/object`, {
+      expectedVersion: Number((resolved.body.incident as Json).version),
+      idempotencyKey: "incident-object-commission",
+      objectionReason: "Chủ hàng cần ghi nhận thêm giờ đến thực tế.",
+    });
+    assert.equal(objected.status, 200);
+    assert.equal(await countAccrual(id, "SHIPPER"), 1);
+    assert.equal(await countAccrual(id, "CARRIER"), 1);
+    assert.equal(await CommissionLedgerEvent.countDocuments({ shipmentId: id, eventType: "HOLD" }), 0);
+    const actions = await IncidentEvent.find({ incidentId }).select("action");
+    assert.equal(actions.some((event) => event.action === "CREATED" || event.action === "OBJECTED"), true);
+    assert.equal(actions.some((event) => event.action.includes("ACCRUAL")), false);
+    const shipment = await Shipment.findById(id);
+    assert.equal(shipment?.commission?.shipperStatus, "ACCRUED");
+    assert.equal(shipment?.commission?.carrierStatus, "ACCRUED");
   });
 });
 
