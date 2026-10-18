@@ -4,14 +4,16 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/features/auth/useAuth";
 import { catalogPrimaryCta } from "@/features/packages/packageNavigation";
 import {
+  annualComparisonNote,
+  billingChoiceLabel,
   commissionText,
-  isProPlan,
   paymentNote,
-  planTitle,
   priceBlock,
+  tierExplanation,
   vehicleCapText,
-  type CatalogPlan,
+  visualTiers,
   type PlanAudience,
+  type VisualTier,
 } from "@/features/packages/planPresentation";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { cn } from "@/lib/cn";
@@ -30,6 +32,7 @@ export function PackageCatalogPage() {
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [reloadKey, setReloadKey] = useState(0);
   const [audienceChoice, setAudienceChoice] = useState<PlanAudience | null>(null);
+  const [proCycle, setProCycle] = useState<"MONTH" | "YEAR">("MONTH");
   const audience = audienceChoice ?? (role === "CARRIER" ? "CARRIER" : "SHIPPER");
 
   useEffect(() => {
@@ -49,6 +52,7 @@ export function PackageCatalogPage() {
   }, [reloadKey]);
 
   const visible = plans.filter((plan) => plan.audience === audience);
+  const tiers = visualTiers(visible);
   const cta = catalogPrimaryCta(role);
   const note = paymentNote(plans);
 
@@ -93,7 +97,7 @@ export function PackageCatalogPage() {
               );
             })}
           </div>
-          <p className="text-sm text-muted">{audience === "SHIPPER" ? "So sánh giá niêm yết và hoa hồng." : "So sánh giá niêm yết, hoa hồng và trần xe ACTIVE."}</p>
+          <p className="max-w-xl text-sm leading-relaxed text-muted">{tierExplanation(audience)}</p>
         </div>
 
         {state === "loading" ? <CatalogSkeleton /> : null}
@@ -115,14 +119,14 @@ export function PackageCatalogPage() {
             <p className="mt-2 text-sm leading-relaxed text-muted">Catalog chưa công bố gói {audience === "SHIPPER" ? "chủ hàng" : "nhà xe"}.</p>
           </div>
         ) : null}
-        {state === "ready" && visible.length > 0 ? (
+        {state === "ready" && tiers.length > 0 ? (
           <>
-            <ul className="mt-8 grid items-stretch gap-4 [grid-template-columns:repeat(auto-fit,minmax(17rem,1fr))]">
-              {visible.map((plan) => (
-                <PlanCard key={plan.code} plan={plan} cta={cta} />
+            <ul className={cn("mt-8 grid items-stretch gap-4", audience === "SHIPPER" ? "sm:grid-cols-2 xl:grid-cols-3" : "sm:grid-cols-2 xl:grid-cols-4")}>
+              {tiers.map((tier) => (
+                <TierCard key={tier.id} tier={tier} cta={cta} proCycle={proCycle} onProCycle={setProCycle} />
               ))}
             </ul>
-            <ComparisonTable plans={visible} audience={audience} />
+            <ComparisonTable tiers={tiers} audience={audience} />
           </>
         ) : null}
         {note ? <p className="mt-8 max-w-3xl text-sm leading-relaxed text-muted">{note}</p> : null}
@@ -131,26 +135,58 @@ export function PackageCatalogPage() {
   );
 }
 
-function PlanCard({ plan, cta }: { plan: PackagePlan; cta: { href: string; label: string } }) {
-  const price = priceBlock(plan);
-  const vehicles = vehicleCapText(plan);
-  const pro = isProPlan(plan);
+function TierCard({
+  tier,
+  cta,
+  proCycle,
+  onProCycle,
+}: {
+  tier: VisualTier;
+  cta: { href: string; label: string };
+  proCycle: "MONTH" | "YEAR";
+  onProCycle: (cycle: "MONTH" | "YEAR") => void;
+}) {
+  const selected = tier.id === "pro" ? (tier.plans.find((plan) => plan.billingCycle === proCycle) ?? tier.plans[0]) : tier.plans[0];
+  const price = priceBlock(selected);
+  const vehicles = vehicleCapText(selected);
+  const comparison = annualComparisonNote(selected);
+  const pro = tier.id === "pro";
   return (
     <li
-      data-emphasis={pro ? "pro" : "standard"}
+      data-tier={tier.id}
       className={cn(
         "flex h-full flex-col rounded-3xl border bg-surface p-5",
         pro ? "border-navy shadow-[0_16px_40px_rgba(23,37,84,0.08)]" : "border-line",
       )}
     >
       <div className={cn("h-1.5 w-14 rounded-full", pro ? "bg-navy" : "bg-line")} aria-hidden="true" />
-      <h2 className="mt-4 text-2xl font-extrabold tracking-tight text-ink">{planTitle(plan)}</h2>
+      <h2 className="mt-4 text-2xl font-extrabold tracking-tight text-ink">{tier.title}</h2>
+      {pro && tier.plans.length > 1 ? (
+        <div className="mt-4 inline-flex rounded-full border border-line bg-canvas p-1" role="radiogroup" aria-label="Chu kỳ thanh toán của Pro">
+          {tier.plans.map((plan) => {
+            const checked = plan.code === selected.code;
+            return (
+              <button
+                key={plan.code}
+                type="button"
+                role="radio"
+                aria-checked={checked}
+                className={cn("min-h-11 rounded-full px-4 text-sm font-semibold", checked ? "bg-navy text-white" : "text-ink")}
+                onClick={() => onProCycle(plan.billingCycle === "YEAR" ? "YEAR" : "MONTH")}
+              >
+                {billingChoiceLabel(plan)}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
       <p className="mt-5 text-3xl font-extrabold tracking-tight text-navy-deep">{price.amount}</p>
-      <p className="mt-1 text-sm font-semibold text-muted">{price.cycle}</p>
+      <p className="mt-1 text-sm font-semibold text-ink">{price.cycle}</p>
+      {comparison ? <p className="mt-2 text-sm leading-relaxed text-muted">{comparison}</p> : null}
       <dl className="mt-6 space-y-3 border-t border-line pt-4 text-sm">
         <div>
           <dt className="text-muted">Hoa hồng</dt>
-          <dd className="font-semibold text-ink">{commissionText(plan)}</dd>
+          <dd className="font-semibold text-ink">{commissionText(selected)}</dd>
         </div>
         {vehicles ? (
           <div>
@@ -172,42 +208,66 @@ function PlanCard({ plan, cta }: { plan: PackagePlan; cta: { href: string; label
   );
 }
 
-function ComparisonTable({ plans, audience }: { plans: PackagePlan[]; audience: PlanAudience }) {
+function ComparisonTable({ tiers, audience }: { tiers: VisualTier[]; audience: PlanAudience }) {
   return (
     <div className="mt-12">
-      <h2 className="text-2xl font-extrabold tracking-tight text-ink">So sánh gói {audience === "SHIPPER" ? "chủ hàng" : "nhà xe"}</h2>
+      <h2 className="text-2xl font-extrabold tracking-tight text-ink">So sánh bậc gói {audience === "SHIPPER" ? "chủ hàng" : "nhà xe"}</h2>
+      <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted">Mỗi ô ghi số niêm yết cùng chu kỳ của số đó. Cột Pro có cả hai cách trả. Số theo tháng của gói năm chỉ để đối chiếu, không phải số được thu mỗi tháng.</p>
       <div className="mt-4 overflow-x-auto rounded-3xl border border-line bg-surface">
         <table className="w-full min-w-[40rem] border-collapse text-left text-sm">
           <thead className="bg-canvas text-muted">
             <tr>
               <th scope="col" className="px-4 py-3 font-semibold">Hạng mục</th>
-              {plans.map((plan) => (
-                <th key={plan.code} scope="col" className="px-4 py-3 font-semibold text-ink">
-                  {planTitle(plan)}
-                </th>
+              {tiers.map((tier) => (
+                <th key={tier.id} scope="col" className="px-4 py-3 font-semibold text-ink">{tier.title}</th>
               ))}
             </tr>
           </thead>
           <tbody>
-            <ComparisonRow label="Giá niêm yết" plans={plans} cell={(plan) => priceBlock(plan).amount} />
-            <ComparisonRow label="Chu kỳ" plans={plans} cell={(plan) => priceBlock(plan).cycle} />
-            <ComparisonRow label="Hoa hồng" plans={plans} cell={(plan) => commissionText(plan)} />
-            {audience === "CARRIER" ? <ComparisonRow label="Trần xe ACTIVE" plans={plans} cell={(plan) => vehicleCapText(plan) ?? ""} /> : null}
+            <tr className="border-t border-line">
+              <th scope="row" className="px-4 py-3 align-top font-semibold text-muted">Giá niêm yết</th>
+              {tiers.map((tier) => (
+                <td key={tier.id} className="px-4 py-3 align-top text-ink">
+                  {tier.plans.map((plan) => {
+                    const price = priceBlock(plan);
+                    const note = annualComparisonNote(plan);
+                    return (
+                      <p key={plan.code} className="mt-2 font-semibold first:mt-0">
+                        {tier.plans.length > 1 ? `${billingChoiceLabel(plan)}: ` : null}
+                        {price.amount}
+                        <span className="mt-1 block text-sm font-semibold text-muted">{price.cycle}</span>
+                        {note ? <span className="mt-1 block text-sm font-normal leading-relaxed text-muted">{note}</span> : null}
+                      </p>
+                    );
+                  })}
+                </td>
+              ))}
+            </tr>
+            <tr className="border-t border-line">
+              <th scope="row" className="px-4 py-3 align-top font-semibold text-muted">Hoa hồng</th>
+              {tiers.map((tier) => (
+                <td key={tier.id} className="px-4 py-3 align-top font-semibold text-ink">
+                  {tier.plans.map((plan) => (
+                    <p key={plan.code} className="mt-2 first:mt-0">
+                      {tier.plans.length > 1 ? `${billingChoiceLabel(plan)}: ` : null}
+                      {commissionText(plan)}
+                    </p>
+                  ))}
+                </td>
+              ))}
+            </tr>
+            {audience === "CARRIER" ? (
+              <tr className="border-t border-line">
+                <th scope="row" className="px-4 py-3 align-top font-semibold text-muted">Trần xe ACTIVE</th>
+                {tiers.map((tier) => (
+                  <td key={tier.id} className="px-4 py-3 align-top font-semibold text-ink">{vehicleCapText(tier.plans[0]) ?? ""}</td>
+                ))}
+              </tr>
+            ) : null}
           </tbody>
         </table>
       </div>
     </div>
-  );
-}
-
-function ComparisonRow({ label, plans, cell }: { label: string; plans: PackagePlan[]; cell: (plan: CatalogPlan) => string }) {
-  return (
-    <tr className="border-t border-line">
-      <th scope="row" className="px-4 py-3 font-semibold text-muted">{label}</th>
-      {plans.map((plan) => (
-        <td key={plan.code} className="px-4 py-3 font-semibold text-ink">{cell(plan)}</td>
-      ))}
-    </tr>
   );
 }
 
