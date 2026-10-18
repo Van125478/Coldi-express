@@ -5,7 +5,7 @@ import { planCatalog, toCatalogDto } from "../src/packages/catalog.ts";
 import { destinationAfterLogin } from "../../web/src/features/auth/driverAccess.ts";
 import { formatVnd } from "../../web/src/features/packages/formatPlan.ts";
 import { catalogPrimaryCta, packageAwareNext, publicPackageNav } from "../../web/src/features/packages/packageNavigation.ts";
-import { activeVehicleText, commissionText, isProPlan, paymentNote, planTitle, priceBlock, termCopy, vehicleCapText } from "../../web/src/features/packages/planPresentation.ts";
+import { activeVehicleText, annualComparisonNote, commissionText, isProPlan, paymentNote, planTitle, priceBlock, termCopy, vehicleCapText, visualTiers } from "../../web/src/features/packages/planPresentation.ts";
 
 const catalog = planCatalog.map(toCatalogDto);
 
@@ -106,6 +106,22 @@ test("catalog copy keeps approved prices, cycles, commission and the enterprise 
   assert.equal(isProPlan(carrierEnterprise), false);
   assert.equal(planTitle(shipperMonth), "Pro tháng");
   assert.equal(planTitle(shipperYear), "Pro năm");
+
+  const shipperTiers = visualTiers(catalog.filter((item) => item.audience === "SHIPPER"));
+  assert.deepEqual(shipperTiers.map((tier) => tier.title), ["Free", "Pro", "Enterprise"]);
+  assert.deepEqual(shipperTiers.find((tier) => tier.id === "pro")?.plans.map((item) => item.code), ["shipper-pro-monthly", "shipper-pro-annual"]);
+  const carrierTiers = visualTiers(catalog.filter((item) => item.audience === "CARRIER"));
+  assert.deepEqual(carrierTiers.map((tier) => tier.title), ["Free", "Pro", "Business", "Enterprise"]);
+  assert.deepEqual(carrierTiers.find((tier) => tier.id === "pro")?.plans.map((item) => item.code), ["carrier-pro-monthly", "carrier-pro-annual"]);
+  const shipperAnnualNote = annualComparisonNote(shipperYear);
+  assert.equal(shipperAnnualNote?.includes(`${formatVnd(7_990_000)} mỗi năm`), true);
+  assert.equal(shipperAnnualNote?.includes("chỉ để đối chiếu"), true);
+  assert.equal(shipperAnnualNote?.includes(formatVnd(Math.round(7_990_000 / 12))), true);
+  assert.equal(annualComparisonNote(shipperMonth), null);
+  const carrierAnnualNote = annualComparisonNote(carrierYear);
+  assert.equal(carrierAnnualNote?.includes(`${formatVnd(9_990_000)} mỗi năm`), true);
+  assert.equal(carrierTiers.find((tier) => tier.id === "pro")?.plans[1]?.vehicleCap, 10);
+  assert.equal(carrierTiers.find((tier) => tier.id === "business")?.plans.length, 1);
   assert.equal(activeVehicleText(3, null), "3 xe ACTIVE · trần theo hợp đồng");
   assert.equal(activeVehicleText(1, 2), "1 / 2 xe ACTIVE");
   assert.match(paymentNote(catalog) ?? "", /chưa thu tiền/i);
