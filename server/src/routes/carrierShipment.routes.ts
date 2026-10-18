@@ -3,6 +3,7 @@ import { readCorrelationId, recordSuccessfulAudit } from "../audit/recordAudit.j
 import { isValidObjectId } from "mongoose";
 import { claimDriverForAssignment, releaseDriverHold } from "../fleet/driverAccount.js";
 import { assertCarrierMayClaim } from "../packages/entitlements.js";
+import { releaseVehicleReservation, reserveVehicleForShipment } from "../packages/vehicleLease.js";
 import { activeVehicleFilter } from "../packages/vehicleStatus.js";
 import { HttpError } from "../middlewares/errorHandler.js";
 import { requireAuth } from "../middlewares/requireAuth.js";
@@ -165,26 +166,36 @@ carrierShipmentRouter.post("/:id/assign", requireTrustedOrigin, async (request, 
       throw new HttpError(404, "not_found", "Không tìm thấy đơn.");
     }
 
-    const [vehicle, archivedVehicle, driver] = await Promise.all([
-      Vehicle.findOne({ _id: input.vehicleId, carrierId, ...activeVehicleFilter() }).select("label status"),
-      Vehicle.findOne({ _id: input.vehicleId, carrierId, status: "ARCHIVED" }).select("_id"),
-      User.findOne({ _id: input.driverId, role: "DRIVER", carrierId }).select("displayName"),
-    ]);
+    const driver = await User.findOne({ _id: input.driverId, role: "DRIVER", carrierId }).select("displayName");
+    const archivedVehicle = await Vehicle.findOne({ _id: input.vehicleId, carrierId, status: "ARCHIVED" }).select("_id");
     if (archivedVehicle) {
       throw new HttpError(409, "vehicle_archived", "Xe đã lưu trữ không được phân công cho chuyến mới.");
     }
+    const vehicle = await Vehicle.findOne({ _id: input.vehicleId, carrierId, ...activeVehicleFilter() }).select("label status");
     if (!vehicle || !driver) {
       throw new HttpError(400, "invalid_request", "Xe hoặc tài xế không thuộc nhà xe này.");
     }
-    const claim = await claimDriverForAssignment(input.driverId, carrierId, id);
-    if (claim !== "claimed") {
-      throw new HttpError(409, "conflict", "Tài xế chưa thể nhận chuyến.");
+    const existingShipment = await Shipment.findById(id).select("carrierId status vehicleId driverId");
+    if (!existingShipment) throw new HttpError(404, "not_found", "Không tìm thấy đơn.");
+    if (existingShipment.carrierId?.toString() !== carrierId) {
+      throw new HttpError(403, "forbidden", "Nhà xe này không phụ trách chuyến.");
+    }
+    if (existingShipment.vehicleId || existingShipment.driverId) {
+      throw new HttpError(409, "conflict", "Chuyến này đã được phân công.");
+    }
+    if (existingShipment.status !== "MATCHED") {
+      throw new HttpError(409, "conflict", "Chuyến chưa sẵn sàng để phân công.");
     }
 
-    const stillActive = await Vehicle.findOne({ _id: input.vehicleId, carrierId, ...activeVehicleFilter() }).select("_id");
-    if (!stillActive) {
-      await releaseDriverHold(input.driverId, id);
+    const reserved = await reserveVehicleForShipment(carrierId, input.vehicleId, id);
+    if (!reserved) {
       throw new HttpError(409, "vehicle_archived", "Xe đã lưu trữ không được phân công cho chuyến mới.");
+    }
+
+    const claim = await claimDriverForAssignment(input.driverId, carrierId, id);
+    if (claim !== "claimed") {
+      await releaseVehicleReservation(carrierId, input.vehicleId, id);
+      throw new HttpError(409, "conflict", "Tài xế chưa thể nhận chuyến.");
     }
 
     const occurredAt = new Date();
@@ -211,7 +222,7 @@ carrierShipmentRouter.post("/:id/assign", requireTrustedOrigin, async (request, 
             statusAfter: "MATCHED",
             vehicleId: input.vehicleId,
             driverId: input.driverId,
-            assignedVehicleLabel: vehicle.label.trim(),
+            assignedVehicleLabel: reserved.label.trim(),
             ...(driver.displayName?.trim() ? { assignedDriverName: driver.displayName.trim() } : {}),
           },
         ),
@@ -219,10 +230,13 @@ carrierShipmentRouter.post("/:id/assign", requireTrustedOrigin, async (request, 
       );
     } catch (error) {
       await releaseDriverHold(input.driverId, id);
+      await releaseVehicleReservation(carrierId, input.vehicleId, id);
       throw error;
     }
     if (!shipment) {
       const existing = await Shipment.findById(id);
+      const keptReservation = existing?.vehicleId?.toString() === input.vehicleId && existing.status !== "DELIVERY_CONFIRMED" && existing.status !== "COMPLETED" && existing.status !== "CANCELLED";
+      if (!keptReservation) await releaseVehicleReservation(carrierId, input.vehicleId, id);
       if (existing?.driverId?.toString() !== input.driverId) await releaseDriverHold(input.driverId, id);
       if (!existing) throw new HttpError(404, "not_found", "Không tìm thấy đơn.");
       if (existing.carrierId?.toString() !== carrierId) {

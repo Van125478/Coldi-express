@@ -3,6 +3,7 @@ import { readCorrelationId, recordSuccessfulAudit } from "../audit/recordAudit.j
 import { isValidObjectId } from "mongoose";
 import { HttpError } from "../middlewares/errorHandler.js";
 import { releaseDriverHold } from "../fleet/driverAccount.js";
+import { releaseVehicleReservation } from "../packages/vehicleLease.js";
 import { requireAuth } from "../middlewares/requireAuth.js";
 import { requireOperationalSession } from "../middlewares/requireOperational.js";
 import { requireTrustedOrigin } from "../middlewares/requireOrigin.js";
@@ -174,6 +175,9 @@ driverShipmentRouter.post("/:id/delivery", requireTrustedOrigin, async (request,
       throw new HttpError(409, "conflict", "Chuyến chưa sẵn sàng để xác nhận giao hàng.");
     }
     await releaseDriverHold(driverId, id);
+    if (shipment.vehicleId && shipment.carrierId) {
+      await releaseVehicleReservation(shipment.carrierId.toString(), shipment.vehicleId.toString(), id);
+    }
     if (updated) {
       await recordSuccessfulAudit({
         action: "SHIPMENT_DELIVERY_CONFIRMED",

@@ -3,6 +3,7 @@ import { createServer } from "node:http";
 import { createApp } from "./app.js";
 import { connectDatabase, disconnectDatabase } from "./config/database.js";
 import { getEnv } from "./config/env.js";
+import { reconcileAllFleetCapacities } from "./packages/fleetCapacity.js";
 
 const env = getEnv();
 const app = createApp();
@@ -11,6 +12,12 @@ const server = createServer(app);
 const connected = await connectDatabase(env.MONGODB_URI);
 if (!connected) {
   console.error("MongoDB is unavailable. GET /api/health will report the database as unavailable.");
+} else {
+  try {
+    await reconcileAllFleetCapacities();
+  } catch (error) {
+    console.error("Fleet capacity reconcile did not finish.", error);
+  }
 }
 
 server.listen(env.PORT, () => {

@@ -27,6 +27,7 @@ const vehicleSchema = new Schema(
     statusChangedAt: { type: Date },
     archivedAt: { type: Date },
     restoredAt: { type: Date },
+    leasedShipmentIds: { type: [{ type: Schema.Types.ObjectId, ref: "Shipment" }], default: [] },
   },
   { timestamps: true },
 );

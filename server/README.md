@@ -39,7 +39,7 @@ Sửa `.env` trước `npm run dev`. Biến bắt buộc, kiểm tra trong `src/
 | `PACKAGE_DEMO_DEPLOYMENT_ID` | Mã triển khai Demo/QA, ít nhất 8 ký tự, phải trùng mã được cấp phép |
 | `PACKAGE_DEMO_AUTHORIZED_DEPLOYMENT_ID` | Mã được cấp phép, đặt riêng với mã triển khai. Một biến boolean không đủ để biến production thành demo |
 
-`NODE_ENV` không tự bật kích hoạt gói. Production mà bật cờ demo, hoặc đặt mode `qa`/`demo`, sẽ dừng lúc khởi động. Database `coldi` không được dùng cho kích hoạt demo. Trần xe dùng bộ đếm nguyên tử trên một document. Thao tác này không phải transaction nhiều collection; replica set không được giả định.
+`NODE_ENV` không tự bật kích hoạt gói. Production mà bật cờ demo, hoặc đặt mode `qa`/`demo`, sẽ dừng lúc khởi động. Database `coldi` không được dùng cho kích hoạt demo. Trần xe dùng một document đếm: `activeCount` là xe đã ghi nhận, `holds` là suất đang giữ. Đối soát chỉ xóa suất quá hạn rồi chỉnh `activeCount` khi không còn suất đang giữ. Đây không phải transaction nhiều collection; replica set không được giả định.
 
 Thiếu biến thì API không lên, báo `Missing required environment variable`. `AUTH_SECRET` ngắn hơn 32 ký tự báo `AUTH_SECRET must be at least 32 characters.`
 

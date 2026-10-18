@@ -104,7 +104,11 @@ export function CarrierLoadBoard() {
       setSelected((current) => current.filter((item) => item !== id));
     } catch (caught) {
       if (lostSession(caught, logout)) return;
-      if (caught instanceof ApiError && caught.status === 409) {
+      if (caught instanceof ApiError && caught.code === "over_limit") {
+        setNoticeTone("error");
+        setNotice(caught.message);
+        setConfirmId(null);
+      } else if (caught instanceof ApiError && caught.status === 409) {
         setNoticeTone("conflict");
         setNotice("Đơn này đã có nhà xe khác nhận. Chuyến không còn mở.");
         setConfirmId(null);

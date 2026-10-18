@@ -32,11 +32,21 @@ const planVersionSchema = new Schema(
 
 planVersionSchema.index({ planCode: 1, revision: 1 }, { unique: true });
 
-for (const hook of ["updateOne", "updateMany", "findOneAndUpdate", "replaceOne", "deleteOne", "deleteMany"] as const) {
-  planVersionSchema.pre(hook, function rejectPlanVersionMutation() {
-    throw new Error(immutableVersionMessage);
-  });
+planVersionSchema.pre("save", function rejectPlanVersionSave() {
+  if (!this.isNew) throw new Error(immutableVersionMessage);
+});
+
+function rejectPlanVersionMutation() {
+  throw new Error(immutableVersionMessage);
 }
+
+planVersionSchema.pre("updateOne", rejectPlanVersionMutation);
+planVersionSchema.pre("updateMany", rejectPlanVersionMutation);
+planVersionSchema.pre("findOneAndUpdate", rejectPlanVersionMutation);
+planVersionSchema.pre("findOneAndReplace", rejectPlanVersionMutation);
+planVersionSchema.pre("replaceOne", rejectPlanVersionMutation);
+planVersionSchema.pre("deleteOne", rejectPlanVersionMutation);
+planVersionSchema.pre("deleteMany", rejectPlanVersionMutation);
 
 const contractTermsSchema = new Schema(
   {
@@ -67,6 +77,25 @@ const accountSubscriptionSchema = new Schema(
     downgradeToFreeAt: { type: Date, default: null },
     revision: { type: Number, required: true },
     lastIdempotencyKey: { type: String, default: null },
+    audits: {
+      type: [
+        new Schema(
+          {
+            action: { type: String, required: true, enum: ["DEMO_ACTIVATED", "DOWNGRADE_SCHEDULED"] },
+            idempotencyKey: { type: String, required: true },
+            actorId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+            actorRole: { type: String, required: true },
+            planCode: { type: String, required: true },
+            planVersionId: { type: Schema.Types.ObjectId, ref: "PlanVersion" },
+            activationSource: { type: String, required: true, enum: ["DEMO_QA", "SCHEDULED_DOWNGRADE"] },
+            paymentCollected: { type: Boolean, required: true },
+            recordedAt: { type: Date, required: true },
+          },
+          { _id: false },
+        ),
+      ],
+      default: [],
+    },
   },
   { versionKey: false },
 );
@@ -89,13 +118,37 @@ const planAuditEventSchema = new Schema(
 
 planAuditEventSchema.index({ accountId: 1, idempotencyKey: 1 }, { unique: true });
 
+const fleetHoldSchema = new Schema(
+  {
+    token: { type: String, required: true },
+    createdAt: { type: Date, required: true },
+  },
+  { _id: false },
+);
+
 const fleetCapacitySchema = new Schema(
   {
     carrierId: { type: Schema.Types.ObjectId, ref: "User", required: true, unique: true },
     activeCount: { type: Number, required: true, min: 0 },
+    holds: { type: [fleetHoldSchema], default: [] },
   },
   { versionKey: false },
 );
+
+const demoContractGrantSchema = new Schema(
+  {
+    accountId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    planCode: { type: String, required: true },
+    priceVnd: { type: Number, required: true },
+    rateBps: { type: Number, required: true },
+    vehicleCap: { type: Number, default: null },
+    environmentId: { type: String, required: true },
+    authorizedBy: { type: String, required: true, enum: ["QA_FIXTURE"] },
+  },
+  { timestamps: true, versionKey: false },
+);
+
+demoContractGrantSchema.index({ accountId: 1, planCode: 1, environmentId: 1 }, { unique: true });
 
 export const PlanDefinition = model("PlanDefinition", planDefinitionSchema);
 export const PlanVersion = model("PlanVersion", planVersionSchema);
@@ -103,3 +156,4 @@ export const ContractTerms = model("ContractTerms", contractTermsSchema);
 export const AccountSubscription = model("AccountSubscription", accountSubscriptionSchema);
 export const PlanAuditEvent = model("PlanAuditEvent", planAuditEventSchema);
 export const FleetCapacity = model("FleetCapacity", fleetCapacitySchema);
+export const DemoContractGrant = model("DemoContractGrant", demoContractGrantSchema);

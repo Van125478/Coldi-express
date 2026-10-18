@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { once } from "node:events";
-import test, { before, after } from "node:test";
+import test, { before, after, mock } from "node:test";
 import mongoose from "mongoose";
 import { hashPassword } from "../src/auth/password.js";
-import { AccountSubscription, FleetCapacity, PlanAuditEvent, PlanVersion, ContractTerms } from "../src/models/package.js";
+import { grantAuthorizedDemoContract, repairPlanAudits } from "../src/packages/activation.js";
+import { reconcileFleetCapacity, releaseActiveVehicleReservation, reserveActiveVehicleSlot } from "../src/packages/fleetCapacity.js";
+import { AccountSubscription, DemoContractGrant, FleetCapacity, PlanAuditEvent, PlanVersion, ContractTerms } from "../src/models/package.js";
 import { Shipment } from "../src/models/shipment.js";
 import { User } from "../src/models/user.js";
 import { Vehicle } from "../src/models/vehicle.js";
@@ -121,6 +123,7 @@ async function resetDisposable() {
     AccountSubscription.deleteMany({}),
     PlanAuditEvent.deleteMany({}),
     ContractTerms.deleteMany({}),
+    DemoContractGrant.deleteMany({}),
     Shipment.deleteMany({}),
   ]);
 }
@@ -257,11 +260,22 @@ test("legacy accounts resolve to Free and only the account owner can activate", 
   });
 });
 
-test("published plan versions stay immutable and contract tiers need explicit terms", async () => {
+test("published plan versions stay immutable and clients cannot set contract terms", async () => {
   await resetDisposable();
   await withServer(async (baseUrl) => {
     await fetch(`${baseUrl}/api/packages/catalog`);
     await assert.rejects(() => PlanVersion.updateOne({ planCode: "shipper-free", revision: 1 }, { priceVnd: 1 }), /immutable/);
+    await assert.rejects(() => PlanVersion.updateMany({ planCode: "shipper-free" }, { priceVnd: 1 }), /immutable/);
+    await assert.rejects(() => PlanVersion.findOneAndUpdate({ planCode: "shipper-free", revision: 1 }, { priceVnd: 1 }), /immutable/);
+    await assert.rejects(() => PlanVersion.replaceOne({ planCode: "shipper-free", revision: 1 }, { planCode: "shipper-free", revision: 1, priceVnd: 1, contractRequired: false, status: "PUBLISHED", effectiveFrom: new Date() }), /immutable/);
+    await assert.rejects(() => PlanVersion.deleteOne({ planCode: "shipper-free", revision: 1 }), /immutable/);
+    const loaded = await PlanVersion.findOne({ planCode: "shipper-free", revision: 1 });
+    assert.ok(loaded);
+    loaded.priceVnd = 1;
+    await assert.rejects(() => loaded.save(), /immutable/);
+    const reread = await PlanVersion.findOne({ planCode: "shipper-free", revision: 1 });
+    assert.equal(reread?.priceVnd, 0);
+
     const carrier = await login(baseUrl, carrierEmail);
     const missing = await fetch(`${baseUrl}/api/packages/my-plan/demo-activate`, {
       method: "POST",
@@ -269,29 +283,33 @@ test("published plan versions stay immutable and contract tiers need explicit te
       body: JSON.stringify({ planCode: "carrier-enterprise", idempotencyKey: "enterprise-none-1" }),
     });
     assert.equal(missing.status, 409);
-    const outside = await fetch(`${baseUrl}/api/packages/my-plan/demo-activate`, {
+    const forged = await fetch(`${baseUrl}/api/packages/my-plan/demo-activate`, {
       method: "POST",
       headers: headers(carrier, true),
       body: JSON.stringify({
         planCode: "carrier-business",
-        idempotencyKey: "business-bad-0001",
-        contract: { priceVnd: 3000000, rateBps: 400 },
+        idempotencyKey: "business-forged-01",
+        contract: { priceVnd: 3000000, rateBps: 260, vehicleCap: 30 },
+        contractId: "forged-contract",
       }),
     });
-    assert.equal(outside.status, 400);
+    assert.equal(forged.status, 400);
+    assert.equal(await AccountSubscription.countDocuments({ accountId: carrierId, planCode: "carrier-business" }), 0);
+    await assert.rejects(
+      () => grantAuthorizedDemoContract(carrierId, "carrier-business", { priceVnd: 3000000, rateBps: 400, vehicleCap: 30 }),
+      (error: unknown) => error instanceof Error && "status" in error && (error as { status: number }).status === 400,
+    );
+    await grantAuthorizedDemoContract(carrierId, "carrier-business", { priceVnd: 3000000, rateBps: 260, vehicleCap: null });
     const business = await fetch(`${baseUrl}/api/packages/my-plan/demo-activate`, {
       method: "POST",
       headers: headers(carrier, true),
-      body: JSON.stringify({
-        planCode: "carrier-business",
-        idempotencyKey: "business-ok-00001",
-        contract: { priceVnd: 3000000, rateBps: 260 },
-      }),
+      body: JSON.stringify({ planCode: "carrier-business", idempotencyKey: "business-ok-00001" }),
     });
     assert.equal(business.status, 200);
     const saved = (await business.json()) as Json;
     assert.equal((saved.entitlements as Json).rateBps, 260);
     assert.equal((saved.entitlements as Json).vehicleCap, 30);
+    assert.equal((saved.entitlements as Json).priceVnd, 3000000);
     assert.notEqual((saved.entitlements as Json).rateBps, 275);
   });
 });
@@ -360,14 +378,11 @@ test("vehicle caps, archive, restore and concurrent creates stay inside the plan
     assert.equal(await Vehicle.countDocuments({ carrierId, status: { $ne: "ARCHIVED" } }), 10);
 
     await resetDisposable();
+    await grantAuthorizedDemoContract(carrierId, "carrier-business", { priceVnd: 2500000, rateBps: 300, vehicleCap: null });
     const business = await fetch(`${baseUrl}/api/packages/my-plan/demo-activate`, {
       method: "POST",
       headers: headers(carrier, true),
-      body: JSON.stringify({
-        planCode: "carrier-business",
-        idempotencyKey: "cap-business-0001",
-        contract: { priceVnd: 2500000, rateBps: 300 },
-      }),
+      body: JSON.stringify({ planCode: "carrier-business", idempotencyKey: "cap-business-0001" }),
     });
     assert.equal(business.status, 200);
     await addVehicles(carrierId, 29);
@@ -375,14 +390,11 @@ test("vehicle caps, archive, restore and concurrent creates stay inside the plan
     assert.equal((await createVehicle(baseUrl, carrier, "51C-500.31")).status, 409);
 
     await resetDisposable();
+    await grantAuthorizedDemoContract(carrierId, "carrier-enterprise", { priceVnd: 8000000, rateBps: 200, vehicleCap: 4 });
     const enterprise = await fetch(`${baseUrl}/api/packages/my-plan/demo-activate`, {
       method: "POST",
       headers: headers(carrier, true),
-      body: JSON.stringify({
-        planCode: "carrier-enterprise",
-        idempotencyKey: "cap-enterprise-01",
-        contract: { priceVnd: 8000000, rateBps: 200, vehicleCap: 4 },
-      }),
+      body: JSON.stringify({ planCode: "carrier-enterprise", idempotencyKey: "cap-enterprise-01" }),
     });
     assert.equal(enterprise.status, 200);
     await addVehicles(carrierId, 4);
@@ -472,6 +484,180 @@ test("over-limit blocks new claims but keeps claimed trips and driver operations
       headers: headers(carrier, true),
       body: JSON.stringify({}),
     })).status, 409);
+  });
+});
+
+test("subscription audit survives a failed projection and a retry", async () => {
+  await resetDisposable();
+  await withServer(async (baseUrl) => {
+    const carrier = await login(baseUrl, carrierEmail);
+    const projector = mock.method(PlanAuditEvent, "create", () => {
+      throw new Error("audit projector down");
+    });
+    try {
+      const activated = await fetch(`${baseUrl}/api/packages/my-plan/demo-activate`, {
+        method: "POST",
+        headers: headers(carrier, true),
+        body: JSON.stringify({ planCode: "carrier-pro-monthly", idempotencyKey: "audit-fault-0001" }),
+      });
+      assert.equal(activated.status, 200);
+      const subscription = await AccountSubscription.findOne({ accountId: carrierId });
+      assert.equal(subscription?.audits?.some((entry) => entry.idempotencyKey === "audit-fault-0001" && entry.action === "DEMO_ACTIVATED"), true);
+      assert.equal(await PlanAuditEvent.countDocuments({ accountId: carrierId, idempotencyKey: "audit-fault-0001" }), 0);
+      assert.equal(await AccountSubscription.countDocuments({ accountId: carrierId }), 1);
+    } finally {
+      projector.mock.restore();
+    }
+    assert.equal(await repairPlanAudits(carrierId), 1);
+    assert.equal(await PlanAuditEvent.countDocuments({ accountId: carrierId, idempotencyKey: "audit-fault-0001" }), 1);
+    const replay = await fetch(`${baseUrl}/api/packages/my-plan/demo-activate`, {
+      method: "POST",
+      headers: headers(carrier, true),
+      body: JSON.stringify({ planCode: "carrier-pro-monthly", idempotencyKey: "audit-fault-0001" }),
+    });
+    assert.equal(replay.status, 200);
+    assert.equal(await AccountSubscription.countDocuments({ accountId: carrierId }), 1);
+    assert.equal(await PlanAuditEvent.countDocuments({ accountId: carrierId, idempotencyKey: "audit-fault-0001" }), 1);
+  });
+});
+
+test("fleet capacity reconcile frees an expired hold and keeps a fresh one", async () => {
+  await resetDisposable();
+  const token = await reserveActiveVehicleSlot(carrierId, 2);
+  const held = await FleetCapacity.findOne({ carrierId });
+  assert.equal(held?.holds?.length, 1);
+  assert.equal(held?.activeCount, 0);
+  await reconcileFleetCapacity(carrierId);
+  const fresh = await FleetCapacity.findOne({ carrierId });
+  assert.equal(fresh?.holds?.length, 1);
+  assert.equal(fresh?.activeCount, 0);
+  await FleetCapacity.updateOne({ carrierId, "holds.token": token }, { $set: { "holds.$.createdAt": new Date(Date.now() - 60_000) } });
+  await reconcileFleetCapacity(carrierId);
+  const cleared = await FleetCapacity.findOne({ carrierId });
+  assert.equal(cleared?.holds?.length, 0);
+  assert.equal(cleared?.activeCount, 0);
+  const again = await reserveActiveVehicleSlot(carrierId, 2);
+  await releaseActiveVehicleReservation(carrierId, again);
+  const released = await FleetCapacity.findOne({ carrierId });
+  assert.equal(released?.holds?.length, 0);
+  assert.equal(released?.activeCount, 0);
+});
+
+test("archive and assign cannot leave an archived vehicle on an open trip", async () => {
+  await resetDisposable();
+  const unfinished = new Set(["DRAFT", "MATCHED", "PICKUP_CONFIRMED", "IN_TRANSIT", "INCIDENT"]);
+  await withServer(async (baseUrl) => {
+    const shipper = await login(baseUrl, shipperEmail);
+    const carrier = await login(baseUrl, carrierEmail);
+    const open = await publish(baseUrl, shipper);
+    const created = await createVehicle(baseUrl, carrier, "51C-800.01");
+    assert.equal(created.status, 201);
+    const vehicleId = String((((await created.json()) as Json).vehicle as Json).id);
+    const claimed = await fetch(`${baseUrl}/api/carrier/shipments/${String(open.id)}/claim`, {
+      method: "POST",
+      headers: headers(carrier, true),
+      body: JSON.stringify({}),
+    });
+    assert.equal(claimed.status, 200);
+
+    const assignedFirst = await fetch(`${baseUrl}/api/carrier/shipments/${String(open.id)}/assign`, {
+      method: "POST",
+      headers: headers(carrier, true),
+      body: JSON.stringify({ vehicleId, driverId }),
+    });
+    assert.equal(assignedFirst.status, 200);
+    const archiveAfter = await fetch(`${baseUrl}/api/carrier/fleet/vehicles/${vehicleId}/archive`, {
+      method: "POST",
+      headers: headers(carrier, true),
+      body: JSON.stringify({}),
+    });
+    assert.equal(archiveAfter.status, 409);
+    assert.equal((await Vehicle.findById(vehicleId))?.status ?? "ACTIVE", "ACTIVE");
+
+    await resetDisposable();
+    const second = await publish(baseUrl, shipper);
+    const secondVehicle = await createVehicle(baseUrl, carrier, "51C-800.02");
+    const secondVehicleId = String((((await secondVehicle.json()) as Json).vehicle as Json).id);
+    assert.equal((await fetch(`${baseUrl}/api/carrier/shipments/${String(second.id)}/claim`, {
+      method: "POST",
+      headers: headers(carrier, true),
+      body: JSON.stringify({}),
+    })).status, 200);
+    const archivedFirst = await fetch(`${baseUrl}/api/carrier/fleet/vehicles/${secondVehicleId}/archive`, {
+      method: "POST",
+      headers: headers(carrier, true),
+      body: JSON.stringify({}),
+    });
+    assert.equal(archivedFirst.status, 200);
+    const assignAfter = await fetch(`${baseUrl}/api/carrier/shipments/${String(second.id)}/assign`, {
+      method: "POST",
+      headers: headers(carrier, true),
+      body: JSON.stringify({ vehicleId: secondVehicleId, driverId }),
+    });
+    assert.equal(assignAfter.status, 409);
+    assert.equal((await Shipment.findById(second.id))?.vehicleId, undefined);
+
+    for (let round = 0; round < 8; round += 1) {
+      await Promise.all([Vehicle.deleteMany({}), FleetCapacity.deleteMany({}), Shipment.deleteMany({})]);
+      const shipment = await publish(baseUrl, shipper);
+      const vehicle = await createVehicle(baseUrl, carrier, `51C-81${round}.01`);
+      assert.equal(vehicle.status, 201);
+      const id = String((((await vehicle.json()) as Json).vehicle as Json).id);
+      assert.equal((await fetch(`${baseUrl}/api/carrier/shipments/${String(shipment.id)}/claim`, {
+        method: "POST",
+        headers: headers(carrier, true),
+        body: JSON.stringify({}),
+      })).status, 200);
+      await Promise.all([
+        fetch(`${baseUrl}/api/carrier/fleet/vehicles/${id}/archive`, {
+          method: "POST",
+          headers: headers(carrier, true),
+          body: JSON.stringify({}),
+        }),
+        fetch(`${baseUrl}/api/carrier/shipments/${String(shipment.id)}/assign`, {
+          method: "POST",
+          headers: headers(carrier, true),
+          body: JSON.stringify({ vehicleId: id, driverId }),
+        }),
+      ]);
+      const storedVehicle = await Vehicle.findById(id);
+      const storedShipment = await Shipment.findById(shipment.id);
+      const openTrip = Boolean(storedShipment?.vehicleId) && unfinished.has(String(storedShipment?.status));
+      if (openTrip) assert.notEqual(storedVehicle?.status, "ARCHIVED");
+      if (storedVehicle?.status === "ARCHIVED") {
+        assert.equal(storedShipment?.vehicleId?.toString() === id && unfinished.has(String(storedShipment?.status)), false);
+        assert.equal(storedVehicle.leasedShipmentIds?.length ?? 0, 0);
+      }
+    }
+  });
+});
+
+test("activation records the latest published revision without changing the fixed price", async () => {
+  await resetDisposable();
+  await withServer(async (baseUrl) => {
+    await fetch(`${baseUrl}/api/packages/catalog`);
+    const revision = await PlanVersion.create({
+      planCode: "shipper-pro-monthly",
+      revision: 2,
+      priceVnd: 799000,
+      rateBps: 400,
+      vehicleCap: null,
+      contractRequired: false,
+      status: "PUBLISHED",
+      effectiveFrom: new Date("2026-10-18T00:00:00.000Z"),
+    });
+    const shipper = await login(baseUrl, shipperEmail);
+    const activated = await fetch(`${baseUrl}/api/packages/my-plan/demo-activate`, {
+      method: "POST",
+      headers: headers(shipper, true),
+      body: JSON.stringify({ planCode: "shipper-pro-monthly", idempotencyKey: "shipper-rev-0002" }),
+    });
+    assert.equal(activated.status, 200);
+    const shipperUser = await User.findOne({ email: shipperEmail });
+    const subscription = await AccountSubscription.findOne({ accountId: shipperUser?._id });
+    assert.equal(subscription?.planVersionId?.toString(), revision.id);
+    assert.equal(subscription?.priceVnd, 799000);
+    assert.equal(subscription?.rateBps, 400);
   });
 });
 

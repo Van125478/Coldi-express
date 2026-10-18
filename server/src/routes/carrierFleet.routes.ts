@@ -12,7 +12,7 @@ import { Shipment, type TemperatureGroup } from "../models/shipment.js";
 import { User } from "../models/user.js";
 import { Vehicle, type VehicleKind, type VehicleStatus } from "../models/vehicle.js";
 import { resolveAccountEntitlements } from "../packages/entitlements.js";
-import { releaseActiveVehicleSlot, reserveActiveVehicleSlot } from "../packages/fleetCapacity.js";
+import { commitActiveVehicleSlot, releaseActiveVehicleReservation, releaseCommittedVehicleSlot, reserveActiveVehicleSlot } from "../packages/fleetCapacity.js";
 import { activeVehicleFilter, unfinishedShipmentStatuses } from "../packages/vehicleStatus.js";
 
 export const carrierFleetRouter = Router();
@@ -24,7 +24,9 @@ carrierFleetRouter.get("/vehicles", async (request, response, next) => {
     const carrierId = carrier(request.authUser?.id);
     const vehicles = await Vehicle.find({ carrierId }).sort({ label: 1, _id: 1 });
     const blocked = await unfinishedVehicleIds(carrierId, vehicles.map((vehicle) => vehicle._id.toString()));
-    response.status(200).json({ vehicles: vehicles.map((vehicle) => toVehicleDto(vehicle, blocked.has(vehicle._id.toString()))) });
+    response.status(200).json({
+      vehicles: vehicles.map((vehicle) => toVehicleDto(vehicle, blocked.has(vehicle._id.toString()) || (vehicle.leasedShipmentIds?.length ?? 0) > 0)),
+    });
   } catch (error) {
     next(error);
   }
@@ -38,14 +40,15 @@ carrierFleetRouter.post("/vehicles", requireTrustedOrigin, async (request, respo
     if (entitlements.vehicleCap == null) {
       throw new HttpError(409, "plan_limit_exceeded", "Gói hiện tại không có hạn mức xe.");
     }
-    await reserveActiveVehicleSlot(carrierId, entitlements.vehicleCap);
+    const reservation = await reserveActiveVehicleSlot(carrierId, entitlements.vehicleCap);
     let vehicle;
     try {
       vehicle = await Vehicle.create({ ...input, carrierId, status: "ACTIVE", statusChangedAt: new Date() });
     } catch (error) {
-      await releaseActiveVehicleSlot(carrierId);
+      await releaseActiveVehicleReservation(carrierId, reservation);
       throw error;
     }
+    await commitActiveVehicleSlot(carrierId, reservation);
     await recordSuccessfulAudit({
       action: "VEHICLE_CREATED",
       actorId: carrierId,
@@ -67,7 +70,7 @@ carrierFleetRouter.get("/vehicles/:id", async (request, response, next) => {
     const carrierId = carrier(request.authUser?.id);
     const vehicle = await ownedVehicle(carrierId, request.params.id);
     const blocked = await unfinishedVehicleIds(carrierId, [vehicle._id.toString()]);
-    response.status(200).json({ vehicle: toVehicleDto(vehicle, blocked.has(vehicle._id.toString())) });
+    response.status(200).json({ vehicle: toVehicleDto(vehicle, blocked.has(vehicle._id.toString()) || (vehicle.leasedShipmentIds?.length ?? 0) > 0) });
   } catch (error) {
     next(error);
   }
@@ -106,17 +109,28 @@ carrierFleetRouter.post("/vehicles/:id/archive", requireTrustedOrigin, async (re
     }
     const archivedAt = new Date();
     const updated = await Vehicle.findOneAndUpdate(
-      { _id: id, carrierId, ...activeVehicleFilter() },
+      {
+        _id: id,
+        carrierId,
+        ...activeVehicleFilter(),
+        $or: [{ leasedShipmentIds: { $exists: false } }, { leasedShipmentIds: { $size: 0 } }],
+      },
       { status: "ARCHIVED", archivedAt, statusChangedAt: archivedAt },
       { returnDocument: "after" },
     );
-    if (!updated) throw new HttpError(404, "not_found", "Không tìm thấy xe đang hoạt động để lưu trữ.");
+    if (!updated) {
+      const current = await Vehicle.findOne({ _id: id, carrierId }).select("status leasedShipmentIds");
+      if ((current?.leasedShipmentIds?.length ?? 0) > 0) {
+        throw new HttpError(409, "vehicle_on_unfinished_trip", "Xe đang được giữ cho một chuyến. Không lưu trữ xe đang gắn với chuyến chưa kết thúc.");
+      }
+      throw new HttpError(404, "not_found", "Không tìm thấy xe đang hoạt động để lưu trữ.");
+    }
     const assignedDuringArchive = await Shipment.exists({ carrierId, vehicleId: id, status: { $in: [...unfinishedShipmentStatuses] } });
     if (assignedDuringArchive) {
       await Vehicle.updateOne({ _id: id, carrierId, status: "ARCHIVED" }, { status: "ACTIVE", statusChangedAt: new Date(), archivedAt: null });
       throw new HttpError(409, "vehicle_on_unfinished_trip", "Xe vừa được phân công. Không lưu trữ xe đang gắn với chuyến chưa kết thúc.");
     }
-    await releaseActiveVehicleSlot(carrierId);
+    await releaseCommittedVehicleSlot(carrierId);
     await recordSuccessfulAudit({
       action: "VEHICLE_ARCHIVED",
       actorId: carrierId,
@@ -141,7 +155,7 @@ carrierFleetRouter.post("/vehicles/:id/restore", requireTrustedOrigin, async (re
     const id = routeId(request.params.id);
     const entitlements = await resolveAccountEntitlements(carrierId);
     if (entitlements.vehicleCap == null) throw new HttpError(409, "plan_limit_exceeded", "Gói hiện tại không có hạn mức xe.");
-    await reserveActiveVehicleSlot(carrierId, entitlements.vehicleCap);
+    const reservation = await reserveActiveVehicleSlot(carrierId, entitlements.vehicleCap);
     const restoredAt = new Date();
     const updated = await Vehicle.findOneAndUpdate(
       { _id: id, carrierId, status: "ARCHIVED" },
@@ -149,9 +163,10 @@ carrierFleetRouter.post("/vehicles/:id/restore", requireTrustedOrigin, async (re
       { returnDocument: "after" },
     );
     if (!updated) {
-      await releaseActiveVehicleSlot(carrierId);
+      await releaseActiveVehicleReservation(carrierId, reservation);
       throw new HttpError(404, "not_found", "Không tìm thấy xe đã lưu trữ để khôi phục.");
     }
+    await commitActiveVehicleSlot(carrierId, reservation);
     await recordSuccessfulAudit({
       action: "VEHICLE_RESTORED",
       actorId: carrierId,

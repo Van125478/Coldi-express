@@ -15,9 +15,6 @@ export function AccountPlanPage() {
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [notice, setNotice] = useState<string | null>(null);
   const [pendingCode, setPendingCode] = useState<string | null>(null);
-  const [contractPrice, setContractPrice] = useState("");
-  const [contractRate, setContractRate] = useState("");
-  const [contractCap, setContractCap] = useState("");
 
   function load() {
     return Promise.all([listPackageCatalog(), getMyPlan()]).then(([catalog, mine]) => {
@@ -40,17 +37,15 @@ export function AccountPlanPage() {
 
   async function activate(plan: PackagePlan) {
     setNotice(null);
+    if (plan.quoteRequired) {
+      setNotice("Gói theo hợp đồng cần điều khoản đã được máy chủ phê duyệt. Tài khoản không tự nhập giá, tỷ lệ hay trần xe.");
+      return;
+    }
     setPendingCode(plan.code);
     try {
-      const contract = plan.quoteRequired ? readContract(plan, contractPrice, contractRate, contractCap) : undefined;
-      if (plan.quoteRequired && !contract) {
-        setNotice("Nhập giá, tỷ lệ basis point và trần xe nếu gói yêu cầu. Không dùng mức giữa của khoảng giá.");
-        return;
-      }
       const result = await activateDemoPlan({
         planCode: plan.code,
         idempotencyKey: crypto.randomUUID(),
-        ...(contract ? { contract } : {}),
       });
       setNotice(result.label);
       await load();
@@ -137,27 +132,12 @@ export function AccountPlanPage() {
                 <p className="mt-1 text-sm text-muted">{plan.quoteRequired ? "Liên hệ báo giá" : plan.listPriceLabel}</p>
                 <p className="text-sm text-ink">Hoa hồng {plan.rateBps == null ? plan.rateLabel : formatRate(plan.rateBps)}</p>
                 {plan.vehicleCap != null ? <p className="text-sm text-ink">Tối đa {plan.vehicleCap} xe hoạt động</p> : null}
-                {plan.quoteRequired ? (
-                  <div className="mt-3 grid gap-2">
-                    <label className="text-sm text-ink">
-                      Giá hợp đồng (VND)
-                      <input className="mt-1 w-full rounded-xl border border-line px-3 py-2" inputMode="numeric" value={contractPrice} onChange={(event) => setContractPrice(event.target.value)} />
-                    </label>
-                    <label className="text-sm text-ink">
-                      Tỷ lệ basis point
-                      <input className="mt-1 w-full rounded-xl border border-line px-3 py-2" inputMode="numeric" value={contractRate} onChange={(event) => setContractRate(event.target.value)} />
-                    </label>
-                    {plan.code === "carrier-enterprise" ? (
-                      <label className="text-sm text-ink">
-                        Trần xe hợp đồng
-                        <input className="mt-1 w-full rounded-xl border border-line px-3 py-2" inputMode="numeric" value={contractCap} onChange={(event) => setContractCap(event.target.value)} />
-                      </label>
-                    ) : null}
-                  </div>
-                ) : null}
-                <Button type="button" className="mt-3" disabled={pendingCode !== null} onClick={() => void activate(plan)}>
-                  Kích hoạt bản Demo
-                </Button>
+                {plan.quoteRequired ? <p className="mt-3 text-sm text-ink">Liên hệ báo giá. Điều khoản hợp đồng không nhập từ màn hình này.</p> : null}
+                {plan.quoteRequired ? null : (
+                  <Button type="button" className="mt-3" disabled={pendingCode !== null} onClick={() => void activate(plan)}>
+                    Kích hoạt bản Demo
+                  </Button>
+                )}
               </li>
             ))}
           </ul>
@@ -176,16 +156,4 @@ function Fact({ term, value }: { term: string; value: string }) {
       <dd className="font-semibold text-ink">{value}</dd>
     </div>
   );
-}
-
-function readContract(plan: PackagePlan, price: string, rate: string, cap: string): { priceVnd: number; rateBps: number; vehicleCap?: number } | null {
-  const priceVnd = Number(price);
-  const rateBps = Number(rate);
-  if (!Number.isInteger(priceVnd) || !Number.isInteger(rateBps)) return null;
-  if (plan.code === "carrier-enterprise") {
-    const vehicleCap = Number(cap);
-    if (!Number.isInteger(vehicleCap)) return null;
-    return { priceVnd, rateBps, vehicleCap };
-  }
-  return { priceVnd, rateBps };
 }

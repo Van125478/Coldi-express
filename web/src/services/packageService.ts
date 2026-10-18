@@ -58,11 +58,7 @@ export function getMyPlan(): Promise<{ plan: PlanView; entitlements: Entitlement
   return apiRequest("/api/packages/my-plan");
 }
 
-export function activateDemoPlan(input: {
-  planCode: string;
-  idempotencyKey: string;
-  contract?: { priceVnd: number; rateBps: number; vehicleCap?: number };
-}): Promise<{ paymentCollected: false; label: string; entitlements: Entitlements }> {
+export function activateDemoPlan(input: { planCode: string; idempotencyKey: string }): Promise<{ paymentCollected: false; label: string; entitlements: Entitlements }> {
   return apiRequest("/api/packages/my-plan/demo-activate", { method: "POST", body: JSON.stringify(input) });
 }
 
