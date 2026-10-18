@@ -1,8 +1,8 @@
 # PKG-BIZ-01 — Transparent Business and Enterprise pricing
 
-Status: **PROPOSED**. **WAITING FOR PRODUCT OWNER APPROVAL**.
+Status: **SUPERSEDED BY APPROVAL**. The decision record is `PKG_BIZ_01_APPROVED_POLICY.md`. This proposal is kept as the pre-approval record and does not itself edit Business Documentation v2.10.
 
-This document does not change Business Documentation v2.10, the live package catalog, commission rates, vehicle caps, or the pricing UI. Public contract plans still display the published label `Liên hệ báo giá` until a later documentation version is approved and then implemented.
+This document does not change Business Documentation v2.10. At the time it was written, public contract plans still displayed `Liên hệ báo giá`. That presentation is replaced only by the approved policy record and the catalog implementation.
 
 No monthly price, yearly price, commission rate, or Enterprise vehicle cap is selected here. Midpoints of the current ranges are intentionally not used.
 

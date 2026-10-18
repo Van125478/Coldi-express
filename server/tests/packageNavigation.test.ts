@@ -69,17 +69,38 @@ test("catalog copy keeps approved prices, cycles, commission and the enterprise 
   assert.equal(carrierYear.priceVnd, 9_990_000);
   assert.equal(priceBlock(carrierYear).cycle, "Mỗi năm");
   assert.equal(vehicleCapText(plan("carrier-free")), "2 xe ACTIVE");
+  assert.equal(carrierBusiness.priceVnd, 2_990_000);
+  assert.equal(carrierBusiness.rateBps, 300);
+  assert.equal(carrierBusiness.billingCycle, "MONTH");
   assert.equal(carrierBusiness.vehicleCap, 30);
+  assert.equal(carrierBusiness.quoteRequired, false);
+  assert.equal(priceBlock(carrierBusiness).quoted, false);
+  assert.equal(priceBlock(carrierBusiness).amount, formatVnd(2_990_000));
+  assert.equal(priceBlock(carrierBusiness).cycle, "Mỗi tháng");
+  assert.equal(commissionText(carrierBusiness), "3%");
   assert.equal(vehicleCapText(carrierBusiness), "30 xe ACTIVE");
-  assert.equal(priceBlock(carrierBusiness).quoted, true);
-  assert.equal(priceBlock(carrierBusiness).amount, "Liên hệ báo giá");
 
-  assert.equal(carrierEnterprise.vehicleCap, null);
-  assert.equal(vehicleCapText(carrierEnterprise), "Trần xe theo hợp đồng");
-  assert.equal(priceBlock(carrierEnterprise).amount, "Liên hệ báo giá");
-  assert.equal(commissionText(carrierEnterprise), carrierEnterprise.rateLabel);
+  assert.equal(carrierEnterprise.priceVnd, 7_990_000);
+  assert.equal(carrierEnterprise.rateBps, 200);
+  assert.equal(carrierEnterprise.billingCycle, "MONTH");
+  assert.equal(carrierEnterprise.vehicleCap, 100);
+  assert.equal(carrierEnterprise.quoteRequired, false);
+  assert.equal(priceBlock(carrierEnterprise).amount, formatVnd(7_990_000));
+  assert.equal(priceBlock(carrierEnterprise).cycle, "Mỗi tháng");
+  assert.equal(commissionText(carrierEnterprise), "2%");
+  assert.equal(vehicleCapText(carrierEnterprise), "100 xe ACTIVE");
+
+  assert.equal(shipperEnterprise.priceVnd, 6_990_000);
+  assert.equal(shipperEnterprise.rateBps, 250);
+  assert.equal(shipperEnterprise.billingCycle, "MONTH");
+  assert.equal(shipperEnterprise.vehicleCap, null);
+  assert.equal(shipperEnterprise.quoteRequired, false);
+  assert.equal(priceBlock(shipperEnterprise).amount, formatVnd(6_990_000));
+  assert.equal(priceBlock(shipperEnterprise).cycle, "Mỗi tháng");
+  assert.equal(commissionText(shipperEnterprise), "2,5%");
   assert.equal(vehicleCapText(shipperEnterprise), null);
-  assert.equal(priceBlock(shipperEnterprise).quoted, true);
+  assert.equal(priceBlock(shipperEnterprise).quoted, false);
+  assert.equal(catalog.some((item) => item.code === "shipper-enterprise-annual"), false);
 
   assert.equal(isProPlan(shipperMonth), true);
   assert.equal(isProPlan(carrierEnterprise), false);

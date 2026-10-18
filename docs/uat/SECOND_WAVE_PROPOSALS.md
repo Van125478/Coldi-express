@@ -39,6 +39,6 @@ Proposed visual change, not applied in this patch:
 
 ## PKG-BIZ-01 — Public prices
 
-Status: **WAITING FOR PRODUCT OWNER APPROVAL.**
+Status: **APPROVED AND IMPLEMENTED.**
 
-Discussed numbers are not approved. The catalog remains `Liên hệ báo giá` for the contract tiers. See `PKG_BIZ_01_TRANSPARENT_PRICING_PROPOSAL.md`.
+Shipper Enterprise is 6.990.000 VND/tháng at 2,5% with no vehicle quota. Carrier Business is 2.990.000 VND/tháng at 3% with 30 ACTIVE vehicles. Carrier Enterprise is 7.990.000 VND/tháng at 2% with 100 ACTIVE vehicles. There is no annual Enterprise package. The pre-approval proposal remains `PKG_BIZ_01_TRANSPARENT_PRICING_PROPOSAL.md`. The versioned policy delta is `PKG_BIZ_01_APPROVED_POLICY.md`. Business Documentation v2.10 is unchanged.

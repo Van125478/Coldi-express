@@ -381,25 +381,33 @@ test("COM-T10 an expired carrier plan does not rewrite the claim snapshot", asyn
   });
 });
 
-test("an enterprise contract uses the approved rate rather than the midpoint", async () => {
+test("shipper enterprise uses the published 2.5 percent rate and keeps the locked fee", async () => {
   await withServer(async (baseUrl) => {
     const enterprise = planByCode("shipper-enterprise");
-    assert.equal(enterprise?.rateBps, null);
+    assert.equal(enterprise?.priceVnd, 6_990_000);
+    assert.equal(enterprise?.rateBps, 250);
+    assert.equal(enterprise?.vehicleCap, null);
     const user = await User.findOne({ email: shipperEnterpriseEmail });
     assert.ok(user);
+    await assert.rejects(
+      () => grantAuthorizedDemoContract(user._id.toString(), "shipper-enterprise", { priceVnd: 1_000_000, rateBps: 220 }),
+      (error: unknown) => error instanceof HttpError && error.status === 400,
+    );
     const cookie = await login(baseUrl, shipperEnterpriseEmail);
-    const missing = await activate(baseUrl, cookie, "shipper-enterprise", "enterprise-missing");
-    assert.equal(missing.status, 409);
-    assert.equal(missing.body.error?.code, "quote_required");
-    await grantAuthorizedDemoContract(user._id.toString(), "shipper-enterprise", { priceVnd: 1_000_000, rateBps: 220 });
     const activated = await activate(baseUrl, cookie, "shipper-enterprise", "enterprise-approved");
     assert.equal(activated.status, 200);
     const created = await publish(baseUrl, cookie, "Đơn hợp đồng", 10_000_000);
     assert.equal(created.status, 201);
-    const view = await commissionOf(baseUrl, cookie, String((created.body.shipment as Json).id));
-    assert.equal(view.body.shipment.rateBps, 220);
-    assert.equal(view.body.shipment.feeVnd, 220_000);
-    assert.notEqual(view.body.shipment.feeVnd, 250_000);
+    const shipmentId = String((created.body.shipment as Json).id);
+    const view = await commissionOf(baseUrl, cookie, shipmentId);
+    assert.equal(view.body.shipment.rateBps, 250);
+    assert.equal(view.body.shipment.feeVnd, 250_000);
+    const ledgerBefore = await CommissionLedgerEvent.countDocuments({ shipmentId });
+    await AccountSubscription.updateOne({ accountId: user._id }, { $set: { rateBps: 400, priceVnd: 799_000 } });
+    const stored = await Shipment.findById(shipmentId);
+    assert.equal(stored?.commission?.shipper?.rateBps, 250);
+    assert.equal(stored?.commission?.shipper?.calculatedFeeVnd, 250_000);
+    assert.equal(await CommissionLedgerEvent.countDocuments({ shipmentId }), ledgerBefore);
     await assert.rejects(() => quoteForAccount(adminId, 10_000_000), (error: unknown) => error instanceof HttpError && error.code === "commission_rate_unavailable");
   });
 });

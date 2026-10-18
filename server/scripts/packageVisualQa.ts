@@ -200,7 +200,7 @@ async function visual(page: PwPage) {
   await signIn(page, shipperEmail);
   await page.goto(`${webOrigin}/shipper/goi`, { waitUntil: "domcontentloaded" });
   await page.getByRole("heading", { name: "Free", exact: true }).waitFor();
-  await page.getByText("Liên hệ báo giá").first().waitFor();
+  await page.getByText(/6[.\s\u00a0\u202f]?990[.\s\u00a0\u202f]?000/).first().waitFor();
   await capture(page, "shipper-plan-desktop");
   await setSize(page, 390);
   await capture(page, "shipper-plan-mobile");
