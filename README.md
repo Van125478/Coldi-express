@@ -60,7 +60,7 @@ CURRENT v2.6 PRODUCT SCOPE. Bộ này là đặc tả, không phải bằng ch�
 
 ## Có mã, chưa phải đã xong MVP
 
-CURRENT IMPLEMENTED CODE trên baseline `7d07e941ace1d3490996c53a6bed36478a6d4836`: đăng đơn, sàn, nhận chuyến, phân công, lấy hàng, giao hàng, chat, GPS, đội xe, tài khoản tài xế. Bố cục trang chủ tài xế đã được chấp nhận. Các màn còn lại chưa được chấp nhận hình ảnh. Chuỗi bấm từ đăng đơn đến giao hàng chưa được ghi là PASS. Tile Mapbox chưa được chứng minh.
+CURRENT IMPLEMENTED CODE trên baseline `7d07e941ace1d3490996c53a6bed36478a6d4836`: đăng đơn, sàn, nhận chuyến, phân công, lấy hàng, giao hàng, chat, GPS, đội xe, tài khoản tài xế. Product Owner đã review và chấp nhận bố cục của Carrier Home, phần phân công chuyến của Nhà xe, Driver Home và cấu trúc Shipper/Carrier Chatbox. Đây là nghiệm thu bố cục trực quan, không phải nghiệm thu toàn bộ chức năng. Luồng E2E vận tải, chat lưu dữ liệu thực và Mapbox tiles/marker vẫn chưa được xác minh đầy đủ.
 
 Đặc tả v2.6 yêu cầu thêm quản lý gói, thông tin gói, quyền lợi, hạn mức, hoa hồng hai phía ở mức định hướng, cập nhật giá dầu thô thế giới và báo cáo sự cố. Các module đó chưa có trong code. Thanh toán online nằm sau MVP. Giá, tỷ lệ, hạn mức và luồng chi tiết trong v2.6 là PROPOSED hoặc OPEN cho tới khi Product Owner duyệt.
 

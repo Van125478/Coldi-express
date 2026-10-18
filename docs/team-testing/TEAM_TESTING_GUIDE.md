@@ -437,6 +437,6 @@ Việc bấm từng luồng nghiệp vụ nằm ở [USER_GUIDE_BEGINNERS.md](US
 | Browser inspected | Đã mở trình duyệt. Thường không ghi nghiệp vụ |
 | E2E pending | Chưa có biên bản bấm đủ đăng → nhận → phân công → lấy → GPS → giao |
 | Mapbox real rendering pending | Chưa chứng minh tile và marker |
-| User visual accepted | Chỉ bố cục trang chủ tài xế. Các màn khác chưa được chấp nhận hình ảnh |
+| User visual accepted | VISUAL LAYOUT ACCEPTED: Carrier Home (thẻ chuyến, ảnh phía trên), phân công xe và tài xế, Driver Home task-first, cấu trúc khung chat Shipper/Carrier. Không phải FUNCTIONAL UAT. E2E, chat lưu thật và Mapbox tile/marker chưa xác minh đầy đủ |
 
 Chi tiết và phương án B: [MVP_STATUS_2026-10-18.md](../mvp-review/MVP_STATUS_2026-10-18.md).

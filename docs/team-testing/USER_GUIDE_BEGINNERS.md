@@ -381,7 +381,7 @@ Phương án B đã được duyệt. Phương án B thay phương án A. MVP cu
 - GPS theo quyền ở trên.
 - Timeline các mốc đã ghi.
 
-E2E chưa có PASS. Tile Mapbox chưa có PASS. Chấp nhận hình ảnh mới có bố cục trang chủ tài xế.
+E2E chưa có PASS. Tile Mapbox chưa có PASS. Chat lưu dữ liệu thực chưa có biên bản. Product Owner đã chấp nhận bố cục Carrier Home, phần phân công chuyến của Nhà xe, Driver Home và cấu trúc khung chat Shipper/Carrier. Đây là nghiệm thu bố cục, không phải nghiệm thu chức năng.
 
 ### Bắt buộc theo phương án B nhưng chưa làm
 

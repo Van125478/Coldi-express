@@ -59,7 +59,7 @@
 - **Test cases:** Publish, chat persisted, claim đồng thời một người thắng, phân công, pickup, GPS, delivery, timeline, từ chối đọc chéo doanh nghiệp.
 - **Acceptance criteria:** Biên bản browser ghi SHA, shipment id, kết quả từng ca. Mapbox chỉ PASS khi tile và marker thật hiện với token `pk.`. 71 test backend cũ không thay biên bản này.
 - **BLOCKED:** QA-01, QA-02 cho môi trường. Phần logistics code không bị chặn bởi COM/PKG.
-- **Không được mở rộng:** Không bắt đầu Package, Commission, Oil, Incident. Không đánh dấu MVP hoàn thành. Không gọi là Product Owner đã nghiệm thu hình ảnh các màn ngoài trang chủ tài xế.
+- **Không được mở rộng:** Không bắt đầu Package, Commission, Oil, Incident. Không đánh dấu MVP hoàn thành. Nghiệm thu bố cục của Carrier Home, phần phân công chuyến, Driver Home và khung chat không phải FUNCTIONAL UAT. E2E, chat lưu thật và Mapbox vẫn chưa có biên bản.
 
 ## PKG-CAT — Package Catalog và Entitlements
 

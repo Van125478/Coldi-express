@@ -8,4 +8,4 @@
 
 Gói nhận ngày 17/10/2026 được giữ tại [COLDI_Docs_Update_2026-10-17](COLDI_Docs_Update_2026-10-17/README.md).
 
-Checklist ảnh FE-05A: [docs/frontend/FE-05A_Visual_Acceptance_and_Carrier_Backlog_2026-10-17.md](../frontend/FE-05A_Visual_Acceptance_and_Carrier_Backlog_2026-10-17.md). Chưa có workspace nào được nghiệm thu hình ảnh.
+Checklist ảnh FE-05A: [docs/frontend/FE-05A_Visual_Acceptance_and_Carrier_Backlog_2026-10-17.md](../frontend/FE-05A_Visual_Acceptance_and_Carrier_Backlog_2026-10-17.md). Checklist FE-05A ngày 17/10/2026 là hồ sơ review lịch sử. Sau các lượt review tiếp theo, một số bố cục đã được Product Owner chấp nhận: Carrier Home, phần phân công chuyến, Driver Home và cấu trúc Chatbox. Nghiệm thu E2E và Mapbox vẫn đang chờ.
