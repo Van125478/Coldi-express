@@ -35,8 +35,8 @@ export type IncidentView = {
   statusLabel: string;
   escalationStatus: EscalationStatus;
   priority: null;
-  attachments: [];
-  evidence: { upload: "blocked"; reason: string };
+  attachments: { id: string }[];
+  evidence: { upload: "optional"; maxCount: 5; reason: string };
   version: number;
   resolutionSummary: string | null;
   resolvedAt: string | null;
@@ -92,6 +92,7 @@ type IncidentSource = {
   resolvedAt?: Date | null;
   objectionReason?: string | null;
   objectedAt?: Date | null;
+  attachments?: { toString(): string }[];
   createdAt: Date;
   updatedAt: Date;
 };
@@ -110,7 +111,7 @@ type EventSource = {
   visibility: "PARTICIPANT" | "INTERNAL";
 };
 
-const evidenceReason = "Ảnh chứng cứ chưa mở vì chưa có kho riêng và bước kiểm tra nội dung.";
+const evidenceReason = "Ảnh chứng cứ là tùy chọn, tối đa 5 ảnh. Báo cáo không có ảnh vẫn được ghi nhận.";
 
 export function toIncidentView(incident: IncidentSource, shipment: ShipmentAccess & { label: string }, actor: Actor): IncidentView {
   return {
@@ -129,8 +130,8 @@ export function toIncidentView(incident: IncidentSource, shipment: ShipmentAcces
     statusLabel: incidentStatusLabels[incident.status],
     escalationStatus: incident.escalationStatus,
     priority: null,
-    attachments: [],
-    evidence: { upload: "blocked", reason: evidenceReason },
+    attachments: (incident.attachments ?? []).map((item) => ({ id: item.toString() })),
+    evidence: { upload: "optional", maxCount: 5, reason: evidenceReason },
     version: incident.version,
     resolutionSummary: incident.resolutionSummary ?? null,
     resolvedAt: incident.resolvedAt ? incident.resolvedAt.toISOString() : null,

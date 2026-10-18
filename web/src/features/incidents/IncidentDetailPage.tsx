@@ -10,6 +10,7 @@ import { DetailBlock, PageHeader } from "@/features/workspace/ui";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import type { BusinessRole } from "@/models/session";
 import { ApiError } from "@/services/apiClient";
+import { fetchIncidentEvidenceUrl } from "@/services/incidentEvidenceClient";
 import {
   acknowledgeIncident,
   commentIncident,
@@ -159,6 +160,7 @@ export function IncidentDetailPage() {
                   <IncidentFact term="Xảy ra lúc" value={formatWhen(incident.occurredAt)} />
                 </dl>
                 <p className="whitespace-pre-wrap text-base leading-7 text-ink">{incident.description}</p>
+                <EvidenceList images={incident.attachments} />
               </DetailBlock>
               {incident.resolutionSummary ? (
                 <DetailBlock title="Kết quả xử lý">
@@ -271,6 +273,46 @@ export function IncidentDetailPage() {
         </>
       ) : null}
     </section>
+  );
+}
+
+function EvidenceList({ images }: { images: { id: string }[] }) {
+  const [urls, setUrls] = useState<Record<string, string>>({});
+  const ids = images.map((image) => image.id).join(",");
+  useEffect(() => {
+    const list = ids.length === 0 ? [] : ids.split(",");
+    let cancelled = false;
+    const created: string[] = [];
+    for (const id of list) {
+      void fetchIncidentEvidenceUrl(id)
+        .then((url) => {
+          if (cancelled) {
+            URL.revokeObjectURL(url);
+            return;
+          }
+          created.push(url);
+          setUrls((current) => ({ ...current, [id]: url }));
+        })
+        .catch(() => undefined);
+    }
+    return () => {
+      cancelled = true;
+      for (const url of created) URL.revokeObjectURL(url);
+    };
+  }, [ids]);
+  if (images.length === 0) return <p className="text-sm leading-relaxed text-muted">Không có ảnh chứng cứ.</p>;
+  return (
+    <ul className="flex flex-wrap gap-2" aria-label="Ảnh chứng cứ">
+      {images.map((image, index) => (
+        <li key={image.id}>
+          {urls[image.id] ? (
+            <img src={urls[image.id]} alt={`Ảnh chứng cứ ${index + 1}`} className="h-24 w-32 rounded-lg border border-line object-cover" />
+          ) : (
+            <div className="h-24 w-32 rounded-lg border border-line bg-canvas" />
+          )}
+        </li>
+      ))}
+    </ul>
   );
 }
 

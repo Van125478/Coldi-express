@@ -94,6 +94,7 @@ export type IncidentDraft = {
   description: string;
   occurredAt: Date | null;
   idempotencyKey: string;
+  evidenceIds: string[];
 };
 
 export type DraftResult = { ok: true; draft: IncidentDraft } | { ok: false; code: string; message: string; fields: FieldErrors };
@@ -142,11 +143,13 @@ export function readIncidentDraft(body: unknown, headerKey: unknown, now = new D
 
   const occurred = readOccurredAt(record.occurredAt, now);
   if (!occurred.ok) fields.occurredAt = occurred.message;
+  const evidenceIds = readEvidenceIds(record.evidenceIds);
+  if (!evidenceIds.ok) fields.evidenceIds = evidenceIds.message;
 
   const key = readKey(record.idempotencyKey, headerKey);
   if (!key.ok) fields.idempotencyKey = "Thiếu mã idempotency hợp lệ.";
 
-  if (Object.keys(fields).length > 0 || !title.ok || !description.ok || !occurred.ok || !key.ok) {
+  if (Object.keys(fields).length > 0 || !title.ok || !description.ok || !occurred.ok || !evidenceIds.ok || !key.ok) {
     return { ok: false, code: "invalid_request", message: "Một số thông tin chưa hợp lệ.", fields };
   }
 
@@ -158,6 +161,7 @@ export function readIncidentDraft(body: unknown, headerKey: unknown, now = new D
       title: title.value,
       description: description.value,
       occurredAt: occurred.value,
+      evidenceIds: evidenceIds.value,
       idempotencyKey: key.value,
     },
   };
@@ -188,6 +192,21 @@ function readKey(bodyKey: unknown, headerKey: unknown): { ok: true; value: strin
   const value = typeof header === "string" ? header : bodyKey;
   if (typeof value !== "string" || !idempotencyPattern.test(value)) return { ok: false };
   return { ok: true, value };
+}
+
+function readEvidenceIds(value: unknown): { ok: true; value: string[] } | { ok: false; message: string } {
+  if (value === undefined) return { ok: true, value: [] };
+  if (!Array.isArray(value) || value.length > 5) return { ok: false, message: "Chỉ được đính kèm tối đa 5 ảnh chứng cứ." };
+  const ids: string[] = [];
+  const seen = new Set<string>();
+  for (const item of value) {
+    if (typeof item !== "string" || !/^[a-f0-9]{24}$/i.test(item) || seen.has(item)) {
+      return { ok: false, message: "Danh sách ảnh chứng cứ không hợp lệ." };
+    }
+    seen.add(item);
+    ids.push(item);
+  }
+  return { ok: true, value: ids };
 }
 
 function readOccurredAt(value: unknown, now: Date): { ok: true; value: Date | null } | { ok: false; message: string } {
