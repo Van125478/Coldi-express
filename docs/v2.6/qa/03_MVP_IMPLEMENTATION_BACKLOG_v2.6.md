@@ -4,7 +4,9 @@
 
 **Baseline:** `main` `7d07e941ace1d3490996c53a6bed36478a6d4836`. Không đặt deadline hay story point vì chưa có số liệu năng lực nhóm.
 
-**Quy tắc đọc:** APPROVED DIRECTION không biến bảng giá, công thức, hạn mức hay phân quyền chi tiết thành rule đã duyệt. Mục PROPOSED và OPEN trong [07_OPEN_DECISIONS_v2.6.md](../product/07_OPEN_DECISIONS_v2.6.md) vẫn chặn code của phần đó.
+> **Cập nhật v2.7:** bảng quyết định phía dưới ghi trạng thái lúc soạn backlog trên baseline `7d07e941`. PKG-01, PKG-02, PKG-03, PKG-06B, PKG-07 và COM-01 đến COM-07A đã được duyệt tại [v2.7](../../v2.7/01_DECISIONS_AND_SCOPE.md). Các dòng còn ghi OPEN cho những ID đó là lịch sử kế hoạch, không còn là điều kiện chặn. Quota đơn, Premium, hợp đồng Enterprise, nâng gói giữa kỳ, dầu OIL-02 đến OIL-04 và INC-01 đến INC-04 vẫn chặn code của phần đó. Chưa triển khai module.
+
+**Quy tắc đọc gốc lúc soạn backlog:** APPROVED DIRECTION không biến bảng giá, công thức, hạn mức hay phân quyền chi tiết thành rule đã duyệt. Câu đó đúng vào lúc v2.6. Nó không hủy các mục v2.7 đã ghi APPROVED.
 
 ## Phân loại nhanh so với source
 
@@ -66,7 +68,7 @@
 - **Task ID:** PKG-CAT
 - **Mục tiêu:** Có danh mục gói và quyền lợi để Shipper, Carrier xem đúng vai, sau khi bảng được duyệt.
 - **Business requirements:** [02_PRICING_PACKAGES_v2.6.md](../product/02_PRICING_PACKAGES_v2.6.md), [04_PACKAGE_WORKFLOWS_v2.6.md](../product/04_PACKAGE_WORKFLOWS_v2.6.md) mục xem danh mục.
-- **Điều kiện tiên quyết:** PKG-01 phải được duyệt trước khi công bố giá như bảng chính thức. Nếu chưa duyệt, UI chỉ được ghi nhãn đề xuất hoặc chưa công bố.
+- **Điều kiện tiên quyết:** PKG-01 đã được duyệt trong v2.7 làm baseline thương mại dự kiến. UI vẫn phải nói chưa mở bán online và chưa thu tiền. Câu gốc của dòng này nói nếu chưa duyệt thì chỉ được ghi nhãn đề xuất.
 - **Backend:** API đọc catalog theo vai. Không nhận giá từ client. Không tạo thanh toán.
 - **Frontend:** Tab Shipper và Carrier. Enterprise hiển thị báo giá khi rate là dải. Không vẽ nút cho quyền lợi chưa có code.
 - **Database/schema có thể cần:** Plan và PlanVersion. Schema chưa được duyệt. Không dùng `packageCount` của shipment.

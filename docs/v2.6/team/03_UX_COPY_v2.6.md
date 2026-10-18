@@ -1,10 +1,12 @@
 # COLDI v2.6 — UX text & empty/error states (DRAFT)
 
+> Câu "Bảng giá chưa duyệt" bên dưới là bản thảo lúc v2.6. PKG-01 đã duyệt baseline giá. Khi hiển thị, ghi đây là mức niêm yết dự kiến và **chưa phải tiền đã thu**. Demo/QA phải hiện nhãn mô phỏng theo [v2.7](../../v2.7/04_COMMISSION_POLICY_AND_LEDGER.md).
+
 Tất cả ví dụ dưới đây là **đề xuất câu chữ**, không chứng minh UI đã triển khai. Không gắn nhãn 'Đã thanh toán' khi chỉ xác nhận giao hàng.
 
 | Màn/Trạng thái | Câu hiển thị đề xuất |
 | --- | --- |
-| Bảng giá chưa duyệt | `Mức phí đang được COLDI dự kiến. Thông tin chính thức sẽ được cập nhật trước khi mở bán.` |
+| Bảng giá (baseline v2.7, chưa bán online) | `Mức phí niêm yết của COLDI. Chưa mở thanh toán trên website và chưa phải tiền đã thu.` |
 | Gói Enterprise chưa có rate | `Liên hệ COLDI để nhận báo giá và mức phí theo hợp đồng.` |
 | Shipper xem phí trước đăng đơn | `Cước niêm yết: {B}. Phí dịch vụ COLDI của bạn ({rate}%): {F_s}. Tổng dự kiến: {B+F_s}.` |
 | Carrier xem phí trước Claim | `Cước niêm yết: {B}. Phí dịch vụ COLDI của bạn ({rate}%): {F_c}. Giá trị ròng dự kiến: {B-F_c}.` |

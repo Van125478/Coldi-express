@@ -1,5 +1,7 @@
 # COLDI v2.6 — Báo cáo sự cố vận chuyển (Incident Reporting) DRAFT
 
+> INC-01 đến INC-04 vẫn OPEN trong [v2.7](../../v2.7/06_OPEN_OPERATIONS_OIL_INCIDENT.md). Không tự thêm luật báo cáo, và không để sự cố tự HOLD hoa hồng hoặc tự đổi trạng thái chuyến.
+
 **APPROVED scope:** Module báo cáo sự cố là MVP REQUIRED. **Chưa chốt** phân quyền chi tiết, loại sự cố, tác động đến chuyến, ảnh/file, deadline/SLA; toàn bộ chi tiết dưới đây là **đề xuất có thể duyệt/đổi**. Baseline code Shipment enum có `INCIDENT`, **không** có API/report lifecycle; không coi enum là feature.
 
 ## 1. Use cases

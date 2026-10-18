@@ -1,5 +1,7 @@
 # COLDI v2.4 — Product Decisions & Scope Addendum
 
+> **18/10/2026:** Chính sách thương mại hiện hành là [v2.7](../v2.7/README.md). Bảng quyết định bên dưới là biên bản ngày 17/10/2026 và được giữ nguyên. PD-16 nói subscription nằm sau FE-05A. v2.7 đã duyệt chính sách gói và hoa hồng ở mức tài liệu; các module đó vẫn chưa có trong code.
+
 > **Ngày tổng hợp:** 17/10/2026  
 > **Repository:** `Van125478/Coldi-express`  
 > **Nhánh bắt buộc khi đối chiếu:** `integration/coldi-v2.3-mvp` (không mặc định dùng `main`).  

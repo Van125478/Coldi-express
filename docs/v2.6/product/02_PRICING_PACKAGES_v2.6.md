@@ -1,6 +1,8 @@
-# COLDI v2.6 — Bảng giá gói & quyền lợi (PHƯƠNG ÁN ĐỀ XUẤT)
+# COLDI v2.6 — Bảng giá gói & quyền lợi
 
-**Nguồn:** 4 ảnh Shipper/Carrier do Product Owner gửi ngày 18/10/2026. **Chưa duyệt thành giá niêm yết chính thức, chưa cho phép tự động thu phí**. Những quyền lợi có trong ảnh nhưng chưa có code được ghi đúng là planned/conditional.
+> **Thay bởi [v2.7 — giá và gói](../../v2.7/02_PRICING_AND_PACKAGE.md).** PKG-01 đã duyệt các mức cố định làm baseline thương mại dự kiến chính thức. PKG-03 đã duyệt trần xe ACTIVE: Free 2, Pro tháng/năm 10, Business 30, Enterprise theo hợp đồng. Câu gốc lúc PR #4 nói bảng giá chưa duyệt và trần xe chỉ là gợi ý. Câu đó không còn là chính sách. Chưa có bán online và chưa có module gói trong code. Quyền lợi Premium chi tiết và quota đơn Shipper vẫn mở.
+
+**Nguồn:** 4 ảnh Shipper/Carrier do Product Owner gửi ngày 18/10/2026. Các mức cố định dưới đây khớp baseline v2.7. Chưa cho phép tự động thu phí. Những quyền lợi có trong ảnh nhưng chưa có code được ghi đúng là planned/conditional.
 
 ## 1. Bảng gói Shipper (4 tiers)
 
@@ -36,15 +38,15 @@
 | Đa chi nhánh, nhiều user/Organization, API/ERP | Chưa có schema tổ chức | Enterprise mô tả theo hợp đồng, **không bật feature giả** |
 | SLA/hỗ trợ ưu tiên | Cần định nghĩa dịch vụ vận hành | Chỉ công bố khi có nhân sự, kênh và thời hạn phản hồi thực |
 
-## 4. Cap và quota — DRAFT đề xuất, phải chốt
+## 4. Cap và quota
 
-Các dải `1–2`, `3–10`, `11–30`, `>30` trong ảnh là **quy mô gợi ý**, **chưa tự động là hard-limit**. Nếu Product Owner duyệt chúng là cap, đề xuất: Free <=2 xe, Pro <=10, Business <=30, Enterprise theo hợp đồng; không yêu cầu khách phải đủ 3 xe mới mua Pro hoặc đủ 11 xe mới mua Business.
+**Đã duyệt ở v2.7, PKG-03:** trần xe ACTIVE là Free 2, Pro tháng và Pro năm 10, Business 30, Enterprise theo hợp đồng. Không có số xe tối thiểu. Xe ARCHIVED không tính vào trần. Không lưu trữ xe đang gắn chuyến chưa xong. Đoạn gốc lúc merge gọi các dải `1–2`, `3–10`, `11–30`, `>30` chỉ là quy mô gợi ý chưa thành hard-limit. Đoạn đó đã bị thay.
 
 Shipper trong ảnh **không có quota số đơn/tháng**; không được tự đặt `5 đơn/tháng` hoặc số bất kỳ. Những tính năng lọc/tổng hợp/ưu tiên muốn phân tier phải có ranh giới định lượng được duyệt.
 
 ## 5. Tách hai loại phí
 
-- **Subscription fee:** 799k/999k theo tháng, gói năm, phí báo giá. **Chưa có thanh toán online.** Admin chỉ cấp gói sau khi có cơ chế xác nhận hợp lệ được phê duyệt.
+- **Subscription fee:** 799k/999k theo tháng, gói năm, phí báo giá. **Chưa có thanh toán online.** Kích hoạt gói trả phí tự động chỉ được phép trong Demo/QA theo PKG-06B. Production không dùng câu "Admin luôn phải duyệt mọi gói trả phí" của bản thảo v2.6. Câu đó là lịch sử lúc merge.
 - **Trip commission:** phí theo **một chuyến** có căn cứ xác nhận hoàn thành, riêng từng phía. Dùng hai mức rate độc lập theo gói và snapshot; xem [Commission Policy](03_COMMISSION_POLICY_v2.6.md).
 
 Không hiển thị phần trăm hoa hồng như tiền đã thu nếu chưa đối soát/thu tiền. Bảng giá không thay thế hợp đồng dịch vụ.

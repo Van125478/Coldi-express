@@ -1,5 +1,7 @@
 # COLDI v2.4 — Documentation handoff to Cursor
 
+> **Chính sách giá, gói và hoa hồng hiện hành:** [v2.7](../v2.7/README.md) và [CURRENT_POLICY_v2.7.md](CURRENT_POLICY_v2.7.md). File DOCX trong thư mục này không bị sửa. Quyết định vai trò bên dưới vẫn là hồ sơ v2.4.
+
 Ngày cập nhật: 17/10/2026. Bản v2.4 là bản sửa **tài liệu quyết định**, kế thừa bộ v2.3 và làm rõ 5 role mục tiêu / 4 role MVP. Không phải bằng chứng source đã triển khai tính năng mới.
 
 ## Danh mục

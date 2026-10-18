@@ -1,5 +1,7 @@
 # COLDI v2.6 — Cập nhật giá dầu thế giới (World Oil Price, MVP)
 
+> OIL-01 vẫn đúng trong [v2.7](../../v2.7/06_OPEN_OPERATIONS_OIL_INCIDENT.md): giá dầu thô thế giới, không phải tiêu hao xe. OIL-02, OIL-03 và OIL-04 vẫn mở. File này không bị thay bằng một nhà cung cấp tự chọn.
+
 **APPROVED scope clarification từ Product Owner:** CHỈ CẦN CẬP NHẬT GIÁ DẦU THẾ GIỚI. **Không** theo dõi đổ dầu, lít dầu, định mức, tiêu hao L/100 km, chi phí nhiên liệu theo xe/tài xế/chuyến. Các phiên bản tài liệu trước mô tả 'Fuel Statistics' theo hướng nhập dữ liệu nhiên liệu là **đã bị thay thế** bởi quyết định này.
 
 ## 1. Mục tiêu và giao diện tối thiểu
