@@ -34,6 +34,8 @@ import { DriverTrips } from "@/features/workspace/driver/DriverTrips";
 import { ShipperDashboard } from "@/features/workspace/shipper/ShipperDashboard";
 import { ShipperShipmentDetail } from "@/features/workspace/shipper/ShipperShipmentDetail";
 import { ShipperShipments } from "@/features/workspace/shipper/ShipperShipments";
+import { AccountPlanPage } from "@/features/packages/AccountPlanPage";
+import { PackageCatalogPage } from "@/features/packages/PackageCatalogPage";
 
 export const router = createBrowserRouter([
   { path: "/motion-lab", element: <MotionLabPage /> },
@@ -49,6 +51,7 @@ export const router = createBrowserRouter([
           { path: "/shipper/tao-don", element: <CreateShipmentPage /> },
           { path: "/shipper/don-hang", element: <ShipperShipments /> },
           { path: "/shipper/don-hang/:id", element: <ShipperShipmentDetail /> },
+          { path: "/shipper/goi", element: <AccountPlanPage /> },
         ],
       },
     ],
@@ -69,6 +72,7 @@ export const router = createBrowserRouter([
           { path: "/carrier/doi-xe/xe/:id/sua", element: <CarrierVehicleForm mode="edit" /> },
           { path: "/carrier/doi-xe/tai-xe", element: <CarrierDrivers /> },
           { path: "/carrier/doi-xe/tai-xe/:id", element: <CarrierDriverProfile /> },
+          { path: "/carrier/goi", element: <AccountPlanPage /> },
         ],
       },
     ],
@@ -108,6 +112,7 @@ export const router = createBrowserRouter([
       { path: "phien-ban-cu", element: <LegacyLandingPage /> },
       { path: "tim-chuyen-hang", element: <FindShipmentsPage /> },
       { path: "ve-chung-toi", element: <AboutPage /> },
+      { path: "goi-dich-vu", element: <PackageCatalogPage /> },
       { path: "giai-phap/:audience", element: <SolutionPage /> },
       { path: "nen-tang", element: <PlatformPage /> },
       { path: "*", element: <NotFoundPage /> },

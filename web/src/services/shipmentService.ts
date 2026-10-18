@@ -75,6 +75,14 @@ export function createCarrierVehicle(input: {
   return apiRequest("/api/carrier/fleet/vehicles", { method: "POST", body: JSON.stringify(input) });
 }
 
+export function archiveCarrierVehicle(id: string): Promise<{ vehicle: CarrierVehicle }> {
+  return apiRequest(`/api/carrier/fleet/vehicles/${id}/archive`, { method: "POST", body: JSON.stringify({}) });
+}
+
+export function restoreCarrierVehicle(id: string): Promise<{ vehicle: CarrierVehicle }> {
+  return apiRequest(`/api/carrier/fleet/vehicles/${id}/restore`, { method: "POST", body: JSON.stringify({}) });
+}
+
 export function updateCarrierVehicle(
   id: string,
   input: { label: string; plate: string; vehicleKind: string; temperatureGroup: string; capacityTon: number },

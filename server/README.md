@@ -1,6 +1,6 @@
 # COLDI API
 
-API Node.js cho bản team testing trên máy local. Không phải production. Không phải MVP đã hoàn thành. Package Management chưa có.
+API Node.js cho bản team testing trên máy local. Không phải production. Không phải MVP đã hoàn thành. Module gói có danh mục, quyền gói và kích hoạt Demo/QA. Chưa có sổ hoa hồng, báo cáo sự cố, giá dầu hay thanh toán thật.
 
 Người mới cài máy theo [hướng dẫn nhóm](../docs/team-testing/TEAM_TESTING_GUIDE.md). File này giải thích API. SHA hiện tại lấy bằng `git rev-parse HEAD` sau `git pull`. Đừng dùng SHA cũ trong mục lịch sử làm HEAD.
 
@@ -34,6 +34,12 @@ Sửa `.env` trước `npm run dev`. Biến bắt buộc, kiểm tra trong `src/
 | `FRONTEND_ORIGIN` | URL http hoặc https, không được `*` |
 | `NODE_ENV` | `development`, `test`, hoặc `production` |
 | `AUTH_SECRET` | Ít nhất 32 ký tự |
+| `APP_RUNTIME_MODE` | Không bắt buộc. Mặc định `development`, hoặc `production` khi `NODE_ENV=production`. `qa` và `demo` không được dùng khi process là production |
+| `PACKAGE_DEMO_SELF_ACTIVATION_ENABLED` | Mặc định tắt. Bật chỉ khi mode là `qa` hoặc `demo`, hai mã triển khai khớp nhau, và tên database chứa `test`, `qa` hoặc `demo` |
+| `PACKAGE_DEMO_DEPLOYMENT_ID` | Mã triển khai Demo/QA, ít nhất 8 ký tự, phải trùng mã được cấp phép |
+| `PACKAGE_DEMO_AUTHORIZED_DEPLOYMENT_ID` | Mã được cấp phép, đặt riêng với mã triển khai. Một biến boolean không đủ để biến production thành demo |
+
+`NODE_ENV` không tự bật kích hoạt gói. Production mà bật cờ demo, hoặc đặt mode `qa`/`demo`, sẽ dừng lúc khởi động. Database `coldi` không được dùng cho kích hoạt demo. Trần xe dùng một document đếm: `activeCount` là xe đã ghi nhận, `holds` là suất đang giữ. Đối soát chỉ xóa suất quá hạn rồi chỉnh `activeCount` khi không còn suất đang giữ. Nếu lệnh tạo hoặc khôi phục xe vẫn chạy sau khi suất quá hạn bị gỡ, xe chỉ được giữ khi tổng xe hoạt động còn trong trần. Đây không phải transaction nhiều collection; replica set không được giả định. Mỗi xe chỉ giữ một chuyến chưa hoàn thành. Lệnh gán là một cập nhật nguyên tử trên bản ghi xe; xe đang giữ chuyến khác thì bị từ chối. Xác nhận giao hàng gỡ đúng chuyến đó. Lúc khởi động, hệ thống gỡ giữ đã mất chuyến hoặc đã kết thúc, và giữ nguyên chuyến còn hiệu lực. Xe nào đang gắn nhiều chuyến chưa hoàn thành thì được ghi nhận, không bị xóa chuyến.
 
 Thiếu biến thì API không lên, báo `Missing required environment variable`. `AUTH_SECRET` ngắn hơn 32 ký tự báo `AUTH_SECRET must be at least 32 characters.`
 
@@ -112,7 +118,7 @@ Chưa có giới hạn số lần đăng nhập. Chưa đủ cho production.
 | `GET` | `/api/carrier/shipments` | CARRIER, đơn đang mở. Quét tối đa 500, trả tối đa 100 |
 | `POST` | `/api/carrier/shipments/:id/claim` | Một nhà xe thắng. Nhà xe thứ hai: 409 |
 | `GET` | `/api/carrier/shipments/claimed` | Chuyến nhà xe đã nhận |
-| `POST` | `/api/carrier/shipments/:id/assign` | Xe và tài xế thuộc nhà xe, đơn `MATCHED` chưa gán. Lần hai: 409 |
+| `POST` | `/api/carrier/shipments/:id/assign` | Xe và tài xế thuộc nhà xe, đơn `MATCHED` chưa gán. Một xe chỉ một chuyến chưa hoàn thành. Xe đang bận: 409 |
 | `GET` | `/api/carrier/shipments/:id/location` | Đúng `shipment.carrierId`. Sai hoặc không có: 404 |
 
 Giá lưu là số nguyên đồng, `listedPriceVnd`, chưa phải thanh toán. Nhãn `PUBLISHED` là “Đang tìm xe”. `MATCHED` chưa gán là “Đã có nhà xe nhận chuyến”. Đã gán xe và tài xế thì nhãn vận hành “Chờ lấy hàng”, mã trạng thái vẫn `MATCHED`.

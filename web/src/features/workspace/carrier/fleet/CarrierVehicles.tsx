@@ -1,16 +1,28 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { paths } from "@/app/paths";
+import { Button } from "@/components/ui/button";
 import { FleetNav } from "@/features/workspace/carrier/fleet/FleetNav";
 import { EmptyPanel, PageHeader } from "@/features/workspace/ui";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import type { CarrierVehicle } from "@/models/publishedShipment";
-import { listCarrierVehicles } from "@/services/shipmentService";
+import { ApiError } from "@/services/apiClient";
+import { archiveCarrierVehicle, listCarrierVehicles, restoreCarrierVehicle } from "@/services/shipmentService";
 
 export function CarrierVehicles() {
   usePageTitle("Đội xe");
   const [vehicles, setVehicles] = useState<CarrierVehicle[]>([]);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
+  const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [pendingId, setPendingId] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  function reload() {
+    return listCarrierVehicles().then((body) => {
+      setVehicles(body.vehicles);
+      setState("ready");
+    });
+  }
 
   useEffect(() => {
     let active = true;
@@ -28,6 +40,35 @@ export function CarrierVehicles() {
     };
   }, []);
 
+  async function archive(id: string) {
+    setPendingId(id);
+    setNotice(null);
+    try {
+      await archiveCarrierVehicle(id);
+      setConfirmId(null);
+      setNotice("Đã lưu trữ xe. Xe này không còn tính vào hạn mức.");
+      await reload();
+    } catch (error) {
+      setNotice(error instanceof ApiError ? error.message : "Không lưu trữ được xe.");
+    } finally {
+      setPendingId(null);
+    }
+  }
+
+  async function restore(id: string) {
+    setPendingId(id);
+    setNotice(null);
+    try {
+      await restoreCarrierVehicle(id);
+      setNotice("Đã khôi phục xe vào danh sách hoạt động.");
+      await reload();
+    } catch (error) {
+      setNotice(error instanceof ApiError ? error.message : "Không khôi phục được xe.");
+    } finally {
+      setPendingId(null);
+    }
+  }
+
   return (
     <section className="space-y-6">
       <PageHeader
@@ -40,6 +81,11 @@ export function CarrierVehicles() {
         }
       />
       <FleetNav current="vehicles" />
+      {notice ? (
+        <p role="status" className="text-sm text-ink">
+          {notice}
+        </p>
+      ) : null}
       {state === "loading" ? <p className="text-sm text-muted">Đang tải danh sách xe.</p> : null}
       {state === "error" ? (
         <p role="alert" className="text-sm text-ink">
@@ -62,6 +108,26 @@ export function CarrierVehicles() {
                     </Link>
                   </h2>
                   <p className="mt-2 font-mono text-sm font-semibold text-ink">{vehicle.plate ?? "Chưa ghi biển số"}</p>
+                  <p className="mt-2 text-sm font-semibold text-navy">{vehicle.statusLabel ?? "Đang hoạt động"}</p>
+                  {vehicle.status === "ARCHIVED" ? (
+                    <Button type="button" className="mt-4" variant="outline" disabled={pendingId !== null} onClick={() => void restore(vehicle.id)}>
+                      Khôi phục
+                    </Button>
+                  ) : confirmId === vehicle.id ? (
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <Button type="button" disabled={pendingId !== null || vehicle.canArchive === false} onClick={() => void archive(vehicle.id)}>
+                        Xác nhận lưu trữ
+                      </Button>
+                      <Button type="button" variant="outline" disabled={pendingId !== null} onClick={() => setConfirmId(null)}>
+                        Huỷ
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button type="button" className="mt-4" variant="outline" disabled={pendingId !== null || vehicle.canArchive === false} onClick={() => setConfirmId(vehicle.id)}>
+                      Lưu trữ
+                    </Button>
+                  )}
+                  {vehicle.archiveBlockReason ? <p className="mt-2 text-sm text-muted">{vehicle.archiveBlockReason}</p> : null}
                 </div>
                 <dl className="grid grid-cols-3 gap-3 border-t border-line pt-4 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
                   <Spec label="Loại" value={vehicle.vehicleKindLabel} />

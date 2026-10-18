@@ -59,6 +59,7 @@ export function CarrierVehicleDetail() {
             <FactLine term="Loại" value={vehicle.vehicleKindLabel ?? "Chưa có"} />
             <FactLine term="Nhóm nhiệt" value={vehicle.temperatureLabel ?? "Chưa có"} />
             <FactLine term="Tải trọng" value={vehicle.capacityTon == null ? "Chưa có" : `${vehicle.capacityTon} tấn`} />
+            <FactLine term="Trạng thái" value={vehicle.statusLabel ?? "Đang hoạt động"} />
           </DetailBlock>
           <p className="text-sm leading-relaxed text-muted">Thông tin này không chứng nhận đăng kiểm, bảo dưỡng hay tình trạng máy lạnh. Xe có thể được chọn khi phân công sau khi nhận chuyến.</p>
         </>

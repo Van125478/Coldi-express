@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      mongodb:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.runCommand({ ping: 1 })'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      NODE_ENV: test
+      MONGODB_URI: mongodb://127.0.0.1:27017/coldi_ci_test
+      AUTH_SECRET: ci-secret-that-is-at-least-32-characters
+      FRONTEND_ORIGIN: http://127.0.0.1:5173
+      APP_RUNTIME_MODE: qa
+      PACKAGE_DEMO_SELF_ACTIVATION_ENABLED: "true"
+      PACKAGE_DEMO_DEPLOYMENT_ID: ci-package-test
+      PACKAGE_DEMO_AUTHORIZED_DEPLOYMENT_ID: ci-package-test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            server/package-lock.json
+            web/package-lock.json
+      - name: Install server
+        working-directory: server
+        run: npm ci
+      - name: Typecheck server
+        working-directory: server
+        run: npm run typecheck
+      - name: Lint server
+        working-directory: server
+        run: npm run lint
+      - name: Test server
+        working-directory: server
+        run: npm test
+      - name: Install web
+        working-directory: web
+        run: npm ci
+      - name: Lint web
+        working-directory: web
+        run: npm run lint
+      - name: Build web
+        working-directory: web
+        run: npm run build

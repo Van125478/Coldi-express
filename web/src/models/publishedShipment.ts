@@ -73,6 +73,11 @@ export type CarrierVehicle = {
   temperatureGroup: "COOL" | "FROZEN" | "DEEP_FROZEN" | null;
   temperatureLabel: string | null;
   capacityTon: number | null;
+  status?: "ACTIVE" | "ARCHIVED";
+  statusLabel?: string;
+  canArchive?: boolean;
+  archiveBlockReason?: string | null;
+  availableForAssignment?: boolean;
 };
 
 export type CarrierDriver = {

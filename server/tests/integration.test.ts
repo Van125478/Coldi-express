@@ -18,7 +18,8 @@ const databaseName = "coldi_integration_test";
 const blockedNames = new Set(["coldi", "admin", "local", "config"]);
 const sourceUri = process.env.MONGODB_URI ?? "mongodb://127.0.0.1:27017/coldi";
 const sourceName = new URL(sourceUri).pathname.replace(/^\//, "");
-if (sourceName !== "coldi" && sourceName !== databaseName) {
+const disposableSource = /(test|qa|demo)/i.test(sourceName) && !blockedNames.has(sourceName);
+if (sourceName !== "coldi" && sourceName !== databaseName && !disposableSource) {
   throw new Error(`Refusing to derive an integration database from ${sourceName}.`);
 }
 if (blockedNames.has(databaseName) || databaseName.toLowerCase().includes("prod")) {

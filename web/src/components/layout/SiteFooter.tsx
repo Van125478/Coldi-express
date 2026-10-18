@@ -6,6 +6,7 @@ const explore = [
   { label: "Trang chủ", to: paths.home },
   { label: "Tìm chuyến hàng", to: paths.shipments },
   { label: "Về chúng tôi", to: paths.about },
+  { label: "Gói dịch vụ", to: paths.packages },
 ] as const;
 
 const solutions = [
