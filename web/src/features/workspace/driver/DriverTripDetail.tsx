@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { paths } from "@/app/paths";
+import { reportableShipmentStatuses, reportIncidentPath } from "@/features/incidents/incidentCopy";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/features/auth/useAuth";
 import { driverActionLabel } from "@/features/workspace/driver/driverLanes";
@@ -120,7 +121,17 @@ export function DriverTripDetail() {
         <>
           <div className="flex flex-wrap items-end justify-between gap-4">
             <PageHeader title={`${shipment.pickupLocation} → ${shipment.deliveryLocation}`} />
-            <StatusBadge tone={shipmentTone(shipment.status, shipment.vehicleId, shipment.driverId)}>{shipment.statusLabel}</StatusBadge>
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-3">
+                <StatusBadge tone={shipmentTone(shipment.status, shipment.vehicleId, shipment.driverId)}>{shipment.statusLabel}</StatusBadge>
+                {reportableShipmentStatuses.includes(shipment.status as (typeof reportableShipmentStatuses)[number]) ? (
+                  <Button asChild variant="outline">
+                    <Link to={reportIncidentPath("DRIVER", shipment.id)}>Báo sự cố</Link>
+                  </Button>
+                ) : null}
+              </div>
+              {shipment.status === "IN_TRANSIT" ? <p className="text-sm text-muted">Chỉ báo sự cố khi xe đã dừng an toàn.</p> : null}
+            </div>
           </div>
           <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.45fr)_minmax(18rem,0.75fr)]">
             <div className="order-2 space-y-4 lg:order-1">

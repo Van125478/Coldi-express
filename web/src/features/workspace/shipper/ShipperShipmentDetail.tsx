@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { paths } from "@/app/paths";
+import { Button } from "@/components/ui/button";
+import { reportableShipmentStatuses, reportIncidentPath } from "@/features/incidents/incidentCopy";
 import { useAuth } from "@/features/auth/useAuth";
 import { lostSession } from "@/features/workspace/sessionLoss";
 import { civil, money, shipmentTone, windowText } from "@/features/workspace/format";
@@ -78,6 +80,11 @@ export function ShipperShipmentDetail() {
             <p className="text-sm text-muted">
               Mã đơn <span className="font-medium text-ink">{shipment.id}</span>
             </p>
+            {reportableShipmentStatuses.includes(shipment.status as (typeof reportableShipmentStatuses)[number]) ? (
+              <Button asChild variant="outline">
+                <Link to={reportIncidentPath("SHIPPER", shipment.id)}>Báo sự cố</Link>
+              </Button>
+            ) : null}
           </div>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <FactTile label="Loại hàng" value={shipment.cargoDescription} />

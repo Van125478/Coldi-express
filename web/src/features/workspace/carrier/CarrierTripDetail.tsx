@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { assignmentPath, paths } from "@/app/paths";
+import { reportableShipmentStatuses, reportIncidentPath } from "@/features/incidents/incidentCopy";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/features/auth/useAuth";
 import { ClaimConfirm } from "@/features/shipments/ClaimConfirm";
@@ -123,7 +124,14 @@ export function CarrierTripDetail() {
         <>
           <div className="flex flex-wrap items-end justify-between gap-4">
             <PageHeader title={`${shipment.pickupLocation} → ${shipment.deliveryLocation}`} />
-            <StatusBadge tone={shipmentTone(shipment.status, shipment.vehicleId, shipment.driverId)}>{shipment.statusLabel}</StatusBadge>
+            <div className="flex flex-wrap items-center gap-3">
+              <StatusBadge tone={shipmentTone(shipment.status, shipment.vehicleId, shipment.driverId)}>{shipment.statusLabel}</StatusBadge>
+              {shipment.carrierId && reportableShipmentStatuses.includes(shipment.status as (typeof reportableShipmentStatuses)[number]) ? (
+                <Button asChild variant="outline">
+                  <Link to={reportIncidentPath("CARRIER", shipment.id)}>Báo sự cố</Link>
+                </Button>
+              ) : null}
+            </div>
           </div>
           <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(18rem,0.72fr)]">
             <div className="space-y-4">

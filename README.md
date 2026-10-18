@@ -2,14 +2,14 @@
 
 COLDI là website vận tải lạnh cho doanh nghiệp. Chủ hàng đăng đơn. Nhà xe tự nhận chuyến rồi phân công xe và tài xế. Tài xế được phân công xác nhận lấy hàng, sau đó xác nhận giao hàng. Xác nhận giao không phải thanh toán.
 
-**Tài liệu nghiệp vụ hiện hành là v2.10.** Bộ v2.7, v2.6 và hồ sơ v2.4 là tài liệu trước đó. Code trên nhánh này là **WIP / Team Testing**. Đây không phải bản phát hành ứng dụng v2.10 và không phải bản production. MVP chưa hoàn thành. Package Management đã có mã. Commission, Oil Price và Incident chưa được triển khai. Thanh toán production không hoạt động.
+**Tài liệu nghiệp vụ hiện hành là v2.10.** Bộ v2.7, v2.6 và hồ sơ v2.4 là tài liệu trước đó. Code trên nhánh này là **WIP / Team Testing**. Đây không phải bản phát hành ứng dụng v2.10 và không phải bản production. MVP chưa hoàn thành. Package Management đã có mã. Commission và Oil Price chưa được triển khai trên nhánh này. Incident reporting có bản MVP kỹ thuật, giao diện chưa được nghiệm thu. Thanh toán production không hoạt động.
 
 ## Người mới đọc theo thứ tự này
 
 1. [Cài đặt và chạy máy](docs/team-testing/TEAM_TESTING_GUIDE.md) — Git, Node.js, MongoDB, file cấu hình, mở website.
 2. [Cách dùng từng vai trò](docs/team-testing/USER_GUIDE_BEGINNERS.md) — chủ hàng, nhà xe, tài xế, chat, GPS, kịch bản thử từ đầu đến cuối.
 3. [Khi gặp lỗi](docs/team-testing/TROUBLESHOOTING.md) — triệu chứng, cách kiểm tra, cách xử lý an toàn.
-4. [Tài liệu nghiệp vụ v2.10](docs/v2.10/README.md) — Package đã có mã, backlog UAT và nghiệm thu desktop. Hoa hồng, sự cố và giá dầu đã duyệt nhưng chưa code.
+4. [Tài liệu nghiệp vụ v2.10](docs/v2.10/README.md) — Package đã có mã, backlog UAT và nghiệm thu desktop. Hoa hồng và giá dầu đã duyệt nhưng chưa code trên nhánh này. Báo cáo sự cố: [bàn giao kỹ thuật](docs/incident/MVP_HANDOFF.md).
 5. [Chính sách v2.7](docs/v2.7/README.md) — giá, gói và hoa hồng lúc PR #5. Trạng thái mới hơn nằm ở v2.10.
 6. [Tài liệu v2.6](docs/v2.6/README.md) — bộ đã merge trong PR #4. Chính sách giá và hoa hồng trong đó đã được v2.7 thay.
 7. [Trạng thái MVP 18/10/2026](docs/mvp-review/MVP_STATUS_2026-10-18.md) — ảnh chụp phần nào đã có mã tại baseline trước bộ v2.6. Không thay chính sách v2.10.
@@ -86,7 +86,7 @@ EARLIER DOCS. PR #4 đã merge bộ này. Các câu còn gọi giá là chưa du
 
 CURRENT IMPLEMENTED CODE trên baseline `7d07e941ace1d3490996c53a6bed36478a6d4836`: đăng đơn, sàn, nhận chuyến, phân công, lấy hàng, giao hàng, chat, GPS, đội xe, tài khoản tài xế. Product Owner đã review và chấp nhận bố cục của Carrier Home, phần phân công chuyến của Nhà xe, Driver Home và cấu trúc Shipper/Carrier Chatbox. Đây là nghiệm thu bố cục trực quan, không phải nghiệm thu toàn bộ chức năng. Luồng E2E vận tải, chat lưu dữ liệu thực và Mapbox tiles/marker vẫn chưa được xác minh đầy đủ.
 
-Package Management đã có mã sau PR #6, gồm trần xe, Demo/QA và một xe một chuyến chưa hoàn thành. Hoa hồng, giá dầu và báo cáo sự cố đã được duyệt nhưng chưa có module. Thanh toán online không hoạt động. Quota đơn Shipper, quyền lợi Premium, điều khoản Enterprise từng khách và nâng gói giữa kỳ vẫn mở.
+Package Management đã có mã sau PR #6, gồm trần xe, Demo/QA và một xe một chuyến chưa hoàn thành. Hoa hồng và giá dầu đã được duyệt nhưng chưa có module trên nhánh này. Báo cáo sự cố có MVP kỹ thuật trong [docs/incident/MVP_HANDOFF.md](docs/incident/MVP_HANDOFF.md): báo cáo chữ, RBAC, trạng thái đến kết quả xử lý, phản đối, audit và thông báo trong ứng dụng. Đóng sự cố, leo thang, ảnh chứng cứ, ưu tiên và nhắc việc vẫn khóa vì chính sách còn mở. Giao diện chưa được nghiệm thu. Thanh toán online không hoạt động. Quota đơn Shipper, quyền lợi Premium, điều khoản Enterprise từng khách và nâng gói giữa kỳ vẫn mở.
 
 FE-05B chưa bắt đầu.
 

@@ -3,6 +3,7 @@ import { createServer } from "node:http";
 import { createApp } from "./app.js";
 import { connectDatabase, disconnectDatabase } from "./config/database.js";
 import { getEnv } from "./config/env.js";
+import { reconcileIncidentArtifacts } from "./incidents/service.js";
 import { reconcileAllFleetCapacities } from "./packages/fleetCapacity.js";
 import { reconcileVehicleLeases } from "./packages/vehicleLease.js";
 
@@ -23,6 +24,11 @@ if (!connected) {
     await reconcileVehicleLeases();
   } catch (error) {
     console.error("Vehicle lease reconcile did not finish.", error);
+  }
+  try {
+    await reconcileIncidentArtifacts();
+  } catch (error) {
+    console.error("Incident reconcile did not finish.", error);
   }
 }
 
