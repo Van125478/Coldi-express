@@ -12,6 +12,7 @@ import { Shipment } from "../models/shipment.js";
 import { toShipmentView, toShipmentViews } from "../shipments/assignmentView.js";
 import { toTrackingDto } from "../gps/trackingView.js";
 import { attachTimeline } from "../shipments/shipmentEvents.js";
+import { attachReservedCargoImages, releaseCargoReservation, reserveCargoImages } from "../shipments/cargoImages.js";
 import { readPublishInput } from "../shipments/publishInput.js";
 
 export const shipmentRouter = Router();
@@ -24,28 +25,44 @@ shipmentRouter.post("/", requireTrustedOrigin, async (request, response, next) =
     const input = readPublishInput(request.body);
     const shipperId = request.authUser?.id;
     if (!shipperId) throw new HttpError(401, "unauthenticated", "Cần đăng nhập để tiếp tục.");
+    const reserved = await reserveCargoImages(shipperId, request.body);
     const occurredAt = new Date();
     const shipperSnapshot = getEnv().commissionSimulationAllowed
       ? await quoteForAccount(shipperId, input.listedPriceVnd, expectedPlanVersionId)
       : null;
-    const shipment = await Shipment.create({
-      ...input,
-      shipperId,
-      status: "PUBLISHED",
-      ...(shipperSnapshot
-        ? { commission: { shipper: shipperSnapshot, shipperStatus: "ESTIMATED", carrierStatus: "ABSENT" } }
-        : {}),
-      events: [
-        {
-          type: "PUBLISHED",
-          occurredAt,
-          actorId: shipperId,
-          actorRole: "SHIPPER",
-          statusAfter: "PUBLISHED",
-          sequence: 1,
-        },
-      ],
-    });
+    const shipment = await (async () => {
+      try {
+        const created = await Shipment.create({
+          ...input,
+          cargoImageIds: reserved.ids,
+          shipperId,
+          status: "PUBLISHED",
+          ...(shipperSnapshot
+            ? { commission: { shipper: shipperSnapshot, shipperStatus: "ESTIMATED", carrierStatus: "ABSENT" } }
+            : {}),
+          events: [
+            {
+              type: "PUBLISHED",
+              occurredAt,
+              actorId: shipperId,
+              actorRole: "SHIPPER",
+              statusAfter: "PUBLISHED",
+              sequence: 1,
+            },
+          ],
+        });
+        try {
+          await attachReservedCargoImages(shipperId, created._id, reserved.token, reserved.ids);
+          return created;
+        } catch (error) {
+          await Shipment.deleteOne({ _id: created._id });
+          throw error;
+        }
+      } catch (error) {
+        await releaseCargoReservation(shipperId, reserved.token);
+        throw error;
+      }
+    })();
     if (shipperSnapshot) await rememberEstimated(shipment._id.toString(), shipperSnapshot);
     await recordSuccessfulAudit({
       action: "SHIPMENT_PUBLISHED",

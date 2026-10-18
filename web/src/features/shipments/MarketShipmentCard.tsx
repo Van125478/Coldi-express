@@ -4,6 +4,7 @@ import { paths } from "@/app/paths";
 import { Button } from "@/components/ui/button";
 import { civil, money, shipmentTone, windowText } from "@/features/workspace/format";
 import { StatusBadge } from "@/features/workspace/ui";
+import { CargoImageGallery } from "@/features/shipments/CargoImageGallery";
 import type { CarrierShipment } from "@/models/publishedShipment";
 
 export function MarketShipmentCard({
@@ -47,6 +48,7 @@ export function MarketShipmentCard({
             <span className="text-muted"> · {shipment.cargoDescription}</span>
           </span>
         </p>
+        <CargoImageGallery images={shipment.cargoImages} compact />
         <h2 className="mt-3 text-xl font-extrabold leading-snug tracking-tight text-ink">
           <Link to={detail} className="rounded-sm hover:text-navy focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-navy">
             {shipment.pickupLocation} <span aria-hidden="true">→</span> {shipment.deliveryLocation}

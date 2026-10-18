@@ -50,7 +50,7 @@ export function LoginPage() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (email.trim().length === 0 || password.length === 0) {
-      setError("Nhập email và mật khẩu.");
+      setError("Nhập email hoặc tên đăng nhập và mật khẩu.");
       return;
     }
     setPending(true);
@@ -105,11 +105,11 @@ export function LoginPage() {
                 ) : null}
                 <form className="mt-8 space-y-6" onSubmit={(event) => void handleSubmit(event)} noValidate>
                   <div className="space-y-2">
-                    <Label htmlFor="login-email">Email</Label>
+                    <Label htmlFor="login-email">Email hoặc tên đăng nhập</Label>
                     <Input
                       id="login-email"
                       name="email"
-                      type="email"
+                      type="text"
                       autoComplete="username"
                       placeholder="ten@congty.vn"
                       value={email}
@@ -164,7 +164,7 @@ export function LoginPage() {
   );
 }
 
-function SignedIn({ user, onLogout }: { user: { email: string; role: BusinessRole; mustChangePassword?: boolean }; onLogout: () => void }) {
+function SignedIn({ user, onLogout }: { user: { email: string; username?: string | null; role: BusinessRole; mustChangePassword?: boolean }; onLogout: () => void }) {
   return (
     <div>
       <p className="text-xs font-semibold tracking-[0.14em] text-navy">PHIÊN ĐANG MỞ</p>
@@ -172,7 +172,7 @@ function SignedIn({ user, onLogout }: { user: { email: string; role: BusinessRol
       <p className="mt-2 text-base leading-relaxed text-muted">{roleWork[user.role]}</p>
       <div className="mt-8 rounded-2xl border border-line bg-surface p-5">
         <p className="text-sm text-muted">Tài khoản</p>
-        <p className="mt-1 text-lg font-bold text-ink">{user.email}</p>
+        <p className="mt-1 text-lg font-bold text-ink">{user.username || user.email}</p>
         <p className="mt-3 text-sm text-muted">Vai trò</p>
         <p className="mt-1 text-base font-semibold text-navy">{roleLabels[user.role]}</p>
       </div>

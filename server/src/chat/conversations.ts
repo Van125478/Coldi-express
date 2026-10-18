@@ -48,6 +48,30 @@ export async function openCarrierConversation(shipmentId: string, carrierId: str
   }
 }
 
+export async function openShipperConversation(shipmentId: string, shipperId: string): Promise<ConversationDto> {
+  const shipment = await ownShipment(shipmentId, shipperId);
+  if (!shipment.carrierId) {
+    throw new HttpError(409, "claim_required", "Chỉ nhắn tin với nhà xe đã nhận đơn.");
+  }
+  const carrierId = shipment.carrierId.toString();
+  const existing = await Conversation.findOne({ shipmentId: shipment._id, carrierId });
+  if (existing) return toConversationDto(existing, chatWritable(shipment, carrierId), await carrierLabel(carrierId));
+  try {
+    const created = await Conversation.create({
+      shipmentId: shipment._id,
+      shipperId: shipment.shipperId,
+      carrierId,
+      nextSequence: 0,
+    });
+    return toConversationDto(created, chatWritable(shipment, carrierId), await carrierLabel(carrierId));
+  } catch (error) {
+    if (!isDuplicateKey(error)) throw error;
+    const again = await Conversation.findOne({ shipmentId: shipment._id, carrierId });
+    if (!again) throw error;
+    return toConversationDto(again, chatWritable(shipment, carrierId), await carrierLabel(carrierId));
+  }
+}
+
 export async function listShipperConversations(shipmentId: string, shipperId: string): Promise<ConversationDto[]> {
   const shipment = await ownShipment(shipmentId, shipperId);
   const conversations = await Conversation.find({ shipmentId: shipment._id, shipperId }).sort({ updatedAt: -1, _id: 1 });

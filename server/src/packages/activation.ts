@@ -16,13 +16,13 @@ export type ContractInput = {
 };
 
 type AuditEntry = {
-  action: "DEMO_ACTIVATED" | "DOWNGRADE_SCHEDULED";
+  action: "DEMO_ACTIVATED" | "DOWNGRADE_SCHEDULED" | "DEMO_ENDED";
   idempotencyKey: string;
   actorId: string;
   actorRole: "SHIPPER" | "CARRIER";
   planCode: string;
   planVersionId: Types.ObjectId;
-  activationSource: "DEMO_QA" | "SCHEDULED_DOWNGRADE";
+  activationSource: "DEMO_QA" | "SCHEDULED_DOWNGRADE" | "DEMO_ENDED";
   paymentCollected: false;
   recordedAt: Date;
 };
@@ -163,6 +163,47 @@ export async function scheduleDowngradeToFree(accountId: string, idempotencyKey:
   }
   await projectAudit(accountId, audit);
   if (!(await hasAudit(accountId, key, "DOWNGRADE_SCHEDULED"))) {
+    throw new HttpError(503, "audit_unavailable", "Chưa ghi được nhật ký gói. Hãy thử lại cùng mã idempotency.");
+  }
+  return activationPayload(await resolveAccountEntitlements(accountId, now));
+}
+
+export async function endDemoPlanNow(accountId: string, idempotencyKey: string, now = new Date()) {
+  assertDemoOpen();
+  const key = readIdempotencyKey(idempotencyKey);
+  const user = await User.findById(accountId).select("role");
+  if (!user || (user.role !== "SHIPPER" && user.role !== "CARRIER")) {
+    throw new HttpError(403, "forbidden", "Chỉ chủ hàng hoặc nhà xe mới kết thúc gói Demo của chính mình.");
+  }
+  if (await hasAudit(accountId, key, "DEMO_ENDED")) {
+    await repairPlanAudits(accountId);
+    return activationPayload(await resolveAccountEntitlements(accountId, now));
+  }
+
+  const existing = await AccountSubscription.findOne({ accountId });
+  if (!existing || !isEffectivePaid(existing, now)) {
+    return activationPayload(await resolveAccountEntitlements(accountId, now));
+  }
+
+  const audit = auditEntry("DEMO_ENDED", key, accountId, user.role, existing.planCode, existing.planVersionId, "DEMO_ENDED", now);
+  const updated = await AccountSubscription.findOneAndUpdate(
+    { _id: existing._id, revision: existing.revision, "audits.idempotencyKey": { $ne: key } },
+    { $set: { endAt: now, downgradeToFreeAt: null, lastIdempotencyKey: key }, $inc: { revision: 1 }, $push: { audits: audit } },
+    { returnDocument: "after" },
+  );
+  if (!updated) {
+    if (await hasAudit(accountId, key, "DEMO_ENDED")) {
+      await repairPlanAudits(accountId);
+      return activationPayload(await resolveAccountEntitlements(accountId, now));
+    }
+    const current = await AccountSubscription.findOne({ accountId });
+    if (!current || !isEffectivePaid(current, now)) {
+      return activationPayload(await resolveAccountEntitlements(accountId, now));
+    }
+    throw new HttpError(409, "plan_activation_conflict", "Gói vừa thay đổi. Hãy tải lại trước khi kết thúc bản Demo.");
+  }
+  await projectAudit(accountId, audit);
+  if (!(await hasAudit(accountId, key, "DEMO_ENDED"))) {
     throw new HttpError(503, "audit_unavailable", "Chưa ghi được nhật ký gói. Hãy thử lại cùng mã idempotency.");
   }
   return activationPayload(await resolveAccountEntitlements(accountId, now));

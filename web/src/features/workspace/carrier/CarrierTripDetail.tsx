@@ -4,6 +4,7 @@ import { assignmentPath, paths } from "@/app/paths";
 import { reportableShipmentStatuses, reportIncidentPath } from "@/features/incidents/incidentCopy";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/features/auth/useAuth";
+import { CargoImageGallery } from "@/features/shipments/CargoImageGallery";
 import { ClaimConfirm } from "@/features/shipments/ClaimConfirm";
 import { lostSession } from "@/features/workspace/sessionLoss";
 import { assignedDriverLine, cargoMeasures, stopFacts } from "@/features/workspace/carrier/carrierCopy";
@@ -160,6 +161,7 @@ export function CarrierTripDetail() {
               </DetailBlock>
               <DetailBlock title="Hàng hóa">
                 <p className="text-lg font-bold leading-snug text-ink">{shipment.cargoDescription}</p>
+                <CargoImageGallery images={shipment.cargoImages} />
                 <p className="text-sm leading-relaxed text-ink">{shipment.temperatureLabel}</p>
                 <p className="text-sm leading-relaxed text-ink">{cargoMeasures(shipment.cargoWeightTon, shipment.cargoVolumeM3, shipment.packageCount)}</p>
                 <p className="text-sm leading-relaxed text-ink">

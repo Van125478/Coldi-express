@@ -1,3 +1,4 @@
+import { withRequiredCargoImage } from "./support/cargoImage.js";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { once } from "node:events";
@@ -105,7 +106,7 @@ async function publish(baseUrl: string, cookie: string) {
   const response = await fetch(`${baseUrl}/api/shipments`, {
     method: "POST",
     headers: headers(cookie, { "x-request-id": "security-publish-1" }),
-    body: JSON.stringify(order),
+    body: JSON.stringify(await withRequiredCargoImage(baseUrl, cookie, order)),
   });
   assert.equal(response.status, 201);
   const body = (await response.json()) as { shipment: Json };

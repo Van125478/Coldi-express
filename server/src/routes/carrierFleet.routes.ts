@@ -190,7 +190,7 @@ carrierFleetRouter.post("/vehicles/:id/restore", requireTrustedOrigin, async (re
 carrierFleetRouter.get("/drivers", async (request, response, next) => {
   try {
     const carrierId = carrier(request.authUser?.id);
-    const drivers = await User.find({ role: "DRIVER", carrierId }).sort({ displayName: 1, _id: 1 }).select("email displayName accountStatus mustChangePassword");
+    const drivers = await User.find({ role: "DRIVER", carrierId }).sort({ displayName: 1, _id: 1 }).select("email username displayName accountStatus mustChangePassword");
     response.status(200).json({ drivers: drivers.map(toDriverRosterDto) });
   } catch (error) {
     next(error);
@@ -223,7 +223,7 @@ carrierFleetRouter.patch("/drivers/:id", requireTrustedOrigin, async (request, r
       { _id: routeId(request.params.id), role: "DRIVER", carrierId },
       { displayName },
       { returnDocument: "after" },
-    ).select("email displayName accountStatus mustChangePassword");
+    ).select("email username displayName accountStatus mustChangePassword");
     if (!updated) throw new HttpError(404, "not_found", "Không tìm thấy tài xế này.");
     await recordSuccessfulAudit({
       action: "DRIVER_PROFILE_UPDATED",
@@ -263,9 +263,8 @@ carrierFleetRouter.post("/drivers/:id/unlock", requireTrustedOrigin, async (requ
 
 carrierFleetRouter.post("/drivers/:id/reset-password", requireTrustedOrigin, async (request, response, next) => {
   try {
-    rejectDriverCommand(request.body);
-    const reset = await resetDriverPassword(carrier(request.authUser?.id), routeId(request.params.id), request.headers["x-request-id"]);
-    response.status(200).json(reset);
+    const driver = await resetDriverPassword(carrier(request.authUser?.id), routeId(request.params.id), request.body, request.headers["x-request-id"]);
+    response.status(200).json({ driver });
   } catch (error) {
     next(error);
   }
@@ -289,7 +288,7 @@ async function ownedVehicle(carrierId: string, rawId: string | string[] | undefi
 }
 
 async function linkedDriver(carrierId: string, rawId: string | string[] | undefined) {
-  const driver = await User.findOne({ _id: routeId(rawId), role: "DRIVER", carrierId }).select("email displayName accountStatus mustChangePassword");
+  const driver = await User.findOne({ _id: routeId(rawId), role: "DRIVER", carrierId }).select("email username displayName accountStatus mustChangePassword");
   if (!driver) throw new HttpError(404, "not_found", "Không tìm thấy tài xế này.");
   return driver;
 }

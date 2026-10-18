@@ -6,6 +6,7 @@ import { reportableShipmentStatuses, reportIncidentPath } from "@/features/incid
 import { useAuth } from "@/features/auth/useAuth";
 import { lostSession } from "@/features/workspace/sessionLoss";
 import { civil, money, shipmentTone, windowText } from "@/features/workspace/format";
+import { CargoImageGallery } from "@/features/shipments/CargoImageGallery";
 import { ShipperChat } from "@/features/workspace/chat/ShipperChat";
 import { CommissionPanel } from "@/features/commission/CommissionPanel";
 import { ShipmentLocation } from "@/features/workspace/gps/ShipmentLocation";
@@ -89,6 +90,9 @@ export function ShipperShipmentDetail() {
           </div>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <FactTile label="Loại hàng" value={shipment.cargoDescription} />
+            <div className="sm:col-span-2 xl:col-span-4">
+              <CargoImageGallery images={shipment.cargoImages} />
+            </div>
             <FactTile label="Tải trọng" value={shipment.cargoWeightTon === null ? "Chưa có" : `${shipment.cargoWeightTon} tấn`} />
             <FactTile label="Yêu cầu xe" value={shipment.vehicleRequirement} />
             <FactTile label="Nhóm nhiệt" value={shipment.temperatureLabel} />
@@ -137,7 +141,7 @@ export function ShipperShipmentDetail() {
           <div id="vi-tri" className="scroll-mt-24">
             <ShipmentLocation shipmentId={shipment.id} />
           </div>
-          <ShipperChat shipmentId={shipment.id} route={`${shipment.pickupLocation} → ${shipment.deliveryLocation}`} />
+          <ShipperChat shipmentId={shipment.id} claimed={shipment.carrierId != null} route={`${shipment.pickupLocation} → ${shipment.deliveryLocation}`} />
           <ShipmentTimeline timeline={shipment.timeline} />
         </>
       ) : null}

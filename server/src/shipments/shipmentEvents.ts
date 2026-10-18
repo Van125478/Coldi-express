@@ -244,10 +244,21 @@ function storedName(value: string | null | undefined): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
+export function assignmentDetail(vehicleLabel: string | null, driverName: string | null): string {
+  return `${presentLabel(vehicleLabel, "Xe", "Xe đã phân công")}. ${presentLabel(driverName, "Tài xế", "Tài xế đã phân công")}.`;
+}
+
+function presentLabel(value: string | null, prefix: string, fallback: string): string {
+  const trimmed = value?.trim() ?? "";
+  if (trimmed.length === 0) return fallback;
+  const folded = trimmed.toLocaleLowerCase("vi-VN");
+  const token = prefix.toLocaleLowerCase("vi-VN");
+  if (folded === token || folded.startsWith(`${token} `)) return trimmed;
+  return `${prefix} ${trimmed}`;
+}
+
 function eventDetail(type: ShipmentEventType, vehicleLabel: string | null, driverName: string | null): string | null {
-  if (type === "ASSIGNED") {
-    return `Xe ${vehicleLabel ?? "đã phân công"}. Tài xế ${driverName ?? "đã phân công"}.`;
-  }
+  if (type === "ASSIGNED") return assignmentDetail(vehicleLabel, driverName);
   if (type === "DELIVERY_CONFIRMED") return "Xác nhận giao hàng chưa phải thanh toán.";
   return null;
 }

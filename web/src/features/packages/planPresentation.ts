@@ -60,6 +60,11 @@ export function vehicleCapText(plan: Pick<CatalogPlan, "audience" | "vehicleCap"
   return `${plan.vehicleCap} xe ACTIVE`;
 }
 
+export function operatingVehicleText(activeVehicleCount: number, vehicleCap: number | null): string {
+  if (vehicleCap == null) return `${activeVehicleCount} xe đang hoạt động · trần theo hợp đồng`;
+  return `${activeVehicleCount}/${vehicleCap} xe đang hoạt động`;
+}
+
 export function activeVehicleText(activeVehicleCount: number, vehicleCap: number | null): string {
   if (vehicleCap == null) return `${activeVehicleCount} xe ACTIVE · trần theo hợp đồng`;
   return `${activeVehicleCount} / ${vehicleCap} xe ACTIVE`;

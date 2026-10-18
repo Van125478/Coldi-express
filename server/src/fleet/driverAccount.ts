@@ -1,6 +1,6 @@
 import { isValidObjectId } from "mongoose";
 import { readCorrelationId, recordSuccessfulAudit } from "../audit/recordAudit.js";
-import { assertAcceptablePassword, generateTemporaryPassword, hashPassword } from "../auth/password.js";
+import { assertAcceptablePassword, hashPassword } from "../auth/password.js";
 import { HttpError } from "../middlewares/errorHandler.js";
 import { Shipment } from "../models/shipment.js";
 import { User } from "../models/user.js";
@@ -15,14 +15,16 @@ const activeTripStatuses = ["MATCHED", "IN_TRANSIT"] as const;
 export type DriverRosterDto = {
   id: string;
   displayName: string | null;
-  email: string;
+  username: string | null;
+  email: string | null;
   accountStatus: "ACTIVE" | "LOCKED";
   mustChangePassword: boolean;
 };
 
 type DriverRecord = {
   _id: { toString(): string };
-  email: string;
+  email?: string | null;
+  username?: string | null;
   displayName?: string | null;
   accountStatus?: string | null;
   mustChangePassword?: boolean | null;
@@ -42,7 +44,8 @@ export function toDriverRosterDto(driver: DriverRecord): DriverRosterDto {
   return {
     id: driver._id.toString(),
     displayName,
-    email: driver.email,
+    username: driver.username?.trim() || null,
+    email: driver.email?.trim() || null,
     accountStatus: driver.accountStatus === "LOCKED" ? "LOCKED" : "ACTIVE",
     mustChangePassword: driver.mustChangePassword === true,
   };
@@ -68,25 +71,24 @@ export async function releaseDriverHold(driverId: string, shipmentId: string): P
   await User.updateOne({ _id: driverId }, { $pull: { heldShipmentIds: shipmentId } });
 }
 
-export async function createDriverAccount(carrierId: string, body: unknown, correlationHeader: unknown): Promise<{ driver: DriverRosterDto; temporaryPassword: string }> {
+export async function createDriverAccount(carrierId: string, body: unknown, correlationHeader: unknown): Promise<{ driver: DriverRosterDto }> {
   const input = readCreateInput(body);
   const parent = await User.findOne({ _id: carrierId, role: "CARRIER" });
   if (!parent || parent.accountStatus === "LOCKED") {
     throw new HttpError(401, "unauthenticated", "Cần đăng nhập để tiếp tục.");
   }
-  const temporaryPassword = generateTemporaryPassword();
-  const passwordHash = await hashPassword(temporaryPassword);
-  const taken = await User.exists({ email: input.email });
-  if (taken) throw new HttpError(409, "conflict", "Email này đã được dùng.");
+  const passwordHash = await hashPassword(input.password);
+  const taken = await User.exists({ username: input.username });
+  if (taken) throw new HttpError(409, "conflict", "Tên đăng nhập này đã được dùng.", { username: "Tên đăng nhập này đã được dùng." });
   try {
     const driver = await User.create({
-      email: input.email,
+      username: input.username,
       displayName: input.displayName,
       passwordHash,
       role: "DRIVER",
       carrierId,
       accountStatus: "ACTIVE",
-      mustChangePassword: true,
+      mustChangePassword: false,
       sessionVersion: 0,
     });
     await recordSuccessfulAudit({
@@ -96,12 +98,12 @@ export async function createDriverAccount(carrierId: string, body: unknown, corr
       resourceType: "driver",
       resourceId: driver._id.toString(),
       relatedCarrierId: carrierId,
-      fields: ["displayName", "email"],
+      fields: ["displayName", "username"],
       correlationId: readCorrelationId(correlationHeader),
     });
-    return { driver: toDriverRosterDto(driver), temporaryPassword };
+    return { driver: toDriverRosterDto(driver) };
   } catch (error) {
-    if (isDuplicate(error)) throw new HttpError(409, "conflict", "Email này đã được dùng.");
+    if (isDuplicate(error)) throw new HttpError(409, "conflict", "Tên đăng nhập này đã được dùng.", { username: "Tên đăng nhập này đã được dùng." });
     throw error;
   }
 }
@@ -115,7 +117,7 @@ export async function lockDriverAccount(carrierId: string, rawId: string, correl
     { _id: driverId, role: "DRIVER", carrierId, $and: [activeAccount, holdFree] } as object,
     { $set: { accountStatus: "LOCKED" }, $inc: { sessionVersion: 1 } },
     { returnDocument: "after" },
-  ).select("email displayName accountStatus mustChangePassword");
+  ).select("email username displayName accountStatus mustChangePassword");
   if (!updated) {
     if (await hasActiveTrip(driverId)) throw new HttpError(409, "conflict", "Không khóa được tài xế đang phụ trách chuyến chưa kết thúc.");
     throw new HttpError(409, "conflict", "Không khóa được tài xế đang phụ trách chuyến chưa kết thúc.");
@@ -143,7 +145,7 @@ export async function unlockDriverAccount(carrierId: string, rawId: string, corr
     { _id: driverId, role: "DRIVER", carrierId, accountStatus: "LOCKED" },
     { $set: { accountStatus: "ACTIVE" } },
     { returnDocument: "after" },
-  ).select("email displayName accountStatus mustChangePassword");
+  ).select("email username displayName accountStatus mustChangePassword");
   if (!updated) throw new HttpError(409, "conflict", "Tài khoản tài xế đang mở.");
   await recordSuccessfulAudit({
     action: "DRIVER_ACCOUNT_UNLOCKED",
@@ -160,17 +162,17 @@ export async function unlockDriverAccount(carrierId: string, rawId: string, corr
   return toDriverRosterDto(updated);
 }
 
-export async function resetDriverPassword(carrierId: string, rawId: string, correlationHeader: unknown): Promise<{ driver: DriverRosterDto; temporaryPassword: string }> {
+export async function resetDriverPassword(carrierId: string, rawId: string, body: unknown, correlationHeader: unknown): Promise<DriverRosterDto> {
   const driverId = routeDriverId(rawId);
   await ownedDriver(carrierId, driverId);
   if (await hasActiveTrip(driverId)) throw new HttpError(409, "conflict", "Không đặt lại mật khẩu cho tài xế đang phụ trách chuyến chưa kết thúc.");
-  const temporaryPassword = generateTemporaryPassword();
-  const passwordHash = await hashPassword(temporaryPassword);
+  const password = readPasswordPair(body);
+  const passwordHash = await hashPassword(password);
   const updated = await User.findOneAndUpdate(
     { _id: driverId, role: "DRIVER", carrierId, $and: [holdFree] } as object,
-    { $set: { passwordHash, mustChangePassword: true }, $inc: { sessionVersion: 1 } },
+    { $set: { passwordHash, mustChangePassword: false }, $inc: { sessionVersion: 1 } },
     { returnDocument: "after" },
-  ).select("email displayName accountStatus mustChangePassword");
+  ).select("email username displayName accountStatus mustChangePassword");
   if (!updated) throw new HttpError(409, "conflict", "Không đặt lại mật khẩu cho tài xế đang phụ trách chuyến chưa kết thúc.");
   await recordSuccessfulAudit({
     action: "DRIVER_PASSWORD_RESET",
@@ -179,26 +181,66 @@ export async function resetDriverPassword(carrierId: string, rawId: string, corr
     resourceType: "driver",
     resourceId: updated._id.toString(),
     relatedCarrierId: carrierId,
-    fields: ["mustChangePassword"],
+    fields: ["credentials"],
     correlationId: readCorrelationId(correlationHeader),
   });
-  return { driver: toDriverRosterDto(updated), temporaryPassword };
+  return toDriverRosterDto(updated);
 }
 
-function readCreateInput(body: unknown): { displayName: string; email: string } {
+const createFields = new Set(["displayName", "username", "password", "confirmPassword"]);
+
+function readCreateInput(body: unknown): { displayName: string; username: string; password: string } {
   if (typeof body !== "object" || body === null || Array.isArray(body)) {
     throw new HttpError(400, "invalid_request", "Hồ sơ tài xế không hợp lệ.");
   }
   const record = body as Record<string, unknown>;
-  if (Object.keys(record).some((key) => key !== "displayName" && key !== "email")) {
+  if (Object.keys(record).some((key) => !createFields.has(key))) {
     throw new HttpError(400, "invalid_request", "Yêu cầu chứa trường không được phép.");
   }
-  if (typeof record.displayName !== "string") throw new HttpError(400, "invalid_request", "Tên hiển thị cần từ 1 đến 80 ký tự.");
-  const displayName = record.displayName.trim();
-  if (displayName.length < 1 || displayName.length > 80) {
-    throw new HttpError(400, "invalid_request", "Tên hiển thị cần từ 1 đến 80 ký tự.");
+  const fields: Record<string, string> = {};
+  const displayName = typeof record.displayName === "string" ? record.displayName.trim() : "";
+  if (displayName.length < 1 || displayName.length > 80) fields.displayName = "Tên hiển thị cần từ 1 đến 80 ký tự.";
+  const username = normalizeUsername(record.username);
+  if (typeof username !== "string") fields.username = username.message;
+  const password = typeof record.password === "string" ? record.password : "";
+  if (password.length < 8 || password.length > 72) fields.password = "Mật khẩu cần từ 8 đến 72 ký tự.";
+  if (typeof record.confirmPassword !== "string" || record.confirmPassword !== record.password) {
+    fields.confirmPassword = "Mật khẩu nhập lại chưa khớp.";
   }
-  return { displayName, email: normalizeLoginEmail(record.email) };
+  if (Object.keys(fields).length > 0) {
+    throw new HttpError(400, "invalid_request", "Một số thông tin tài xế chưa hợp lệ.", fields);
+  }
+  if (typeof username !== "string") throw new HttpError(400, "invalid_request", "Tên đăng nhập chưa hợp lệ.");
+  return { displayName, username, password };
+}
+
+export function normalizeUsername(value: unknown): string | { message: string } {
+  if (typeof value !== "string") return { message: "Tên đăng nhập dùng 3 đến 32 ký tự chữ thường, số, dấu chấm, gạch dưới hoặc gạch ngang." };
+  const username = value.trim().toLowerCase();
+  if (!/^[a-z0-9][a-z0-9._-]{2,31}$/.test(username)) {
+    return { message: "Tên đăng nhập dùng 3 đến 32 ký tự chữ thường, số, dấu chấm, gạch dưới hoặc gạch ngang." };
+  }
+  return username;
+}
+
+function readPasswordPair(body: unknown): string {
+  if (typeof body !== "object" || body === null || Array.isArray(body)) {
+    throw new HttpError(400, "invalid_request", "Mật khẩu chưa hợp lệ.");
+  }
+  const record = body as Record<string, unknown>;
+  if (Object.keys(record).some((key) => key !== "password" && key !== "confirmPassword")) {
+    throw new HttpError(400, "invalid_request", "Yêu cầu chứa trường không được phép.");
+  }
+  const fields: Record<string, string> = {};
+  const password = typeof record.password === "string" ? record.password : "";
+  if (password.length < 8 || password.length > 72) fields.password = "Mật khẩu cần từ 8 đến 72 ký tự.";
+  if (typeof record.confirmPassword !== "string" || record.confirmPassword !== record.password) {
+    fields.confirmPassword = "Mật khẩu nhập lại chưa khớp.";
+  }
+  if (Object.keys(fields).length > 0) {
+    throw new HttpError(400, "invalid_request", "Một số thông tin mật khẩu chưa hợp lệ.", fields);
+  }
+  return password;
 }
 
 function routeDriverId(rawId: string): string {
@@ -207,7 +249,7 @@ function routeDriverId(rawId: string): string {
 }
 
 async function ownedDriver(carrierId: string, driverId: string) {
-  const driver = await User.findOne({ _id: driverId, role: "DRIVER", carrierId }).select("email displayName accountStatus mustChangePassword");
+  const driver = await User.findOne({ _id: driverId, role: "DRIVER", carrierId }).select("email username displayName accountStatus mustChangePassword");
   if (!driver) throw new HttpError(404, "not_found", "Không tìm thấy tài xế này.");
   return driver;
 }

@@ -34,6 +34,17 @@ export const errorHandler: ErrorRequestHandler = (error, _request, response, _ne
         : "Internal server error."
       : "Internal server error.";
 
+  if (!known && isPayloadTooLarge(error)) {
+    response.status(413).json({
+      error: {
+        code: "payload_too_large",
+        message: "Ảnh hàng hóa vượt quá 2 MB.",
+        fields: { cargoImages: "Mỗi ảnh hàng hóa phải lớn hơn 0 và không quá 2 MB." },
+      },
+    });
+    return;
+  }
+
   if (!known) {
     console.error(error);
   }
@@ -43,3 +54,7 @@ export const errorHandler: ErrorRequestHandler = (error, _request, response, _ne
 
   response.status(status).json({ error: body });
 };
+
+function isPayloadTooLarge(error: unknown): boolean {
+  return typeof error === "object" && error !== null && "type" in error && (error as { type?: unknown }).type === "entity.too.large";
+}

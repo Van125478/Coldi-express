@@ -1,3 +1,4 @@
+import { withRequiredCargoImage } from "./support/cargoImage.js";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { once } from "node:events";
@@ -7,6 +8,7 @@ import { hashPassword } from "../src/auth/password.js";
 import { grantAuthorizedDemoContract, repairPlanAudits } from "../src/packages/activation.js";
 import { commitActiveVehicleSlot, reconcileFleetCapacity, releaseActiveVehicleReservation, reserveActiveVehicleSlot, settleReservedVehicle } from "../src/packages/fleetCapacity.js";
 import { AccountSubscription, DemoContractGrant, FleetCapacity, PlanAuditEvent, PlanVersion, ContractTerms } from "../src/models/package.js";
+import { CommissionLedgerEvent } from "../src/models/commissionLedger.js";
 import { Shipment } from "../src/models/shipment.js";
 import { User } from "../src/models/user.js";
 import { Vehicle } from "../src/models/vehicle.js";
@@ -86,7 +88,7 @@ async function publish(baseUrl: string, cookie: string) {
   const response = await fetch(`${baseUrl}/api/shipments`, {
     method: "POST",
     headers: headers(cookie, true),
-    body: JSON.stringify({
+    body: JSON.stringify(await withRequiredCargoImage(baseUrl, cookie, {
       cargoDescription: "Hàng kiểm tra gói",
       pickupLocation: "Cái Bè, Tiền Giang",
       deliveryLocation: "Thủ Đức, TP. Hồ Chí Minh",
@@ -108,7 +110,7 @@ async function publish(baseUrl: string, cookie: string) {
       cargoWeightTon: 2,
       cargoVolumeM3: 8,
       packageCount: 10,
-    }),
+    })),
   });
   assert.equal(response.status, 201);
   return ((await response.json()) as Json).shipment as Json;
@@ -732,6 +734,53 @@ test("activation records the latest published revision without changing the fixe
     assert.equal(subscription?.planVersionId?.toString(), revision.id);
     assert.equal(subscription?.priceVnd, 799000);
     assert.equal(subscription?.rateBps, 400);
+  });
+});
+
+test("immediate demo end keeps history and does not touch vehicles or the commission ledger", async () => {
+  await resetDisposable();
+  await withServer(async (baseUrl) => {
+    const carrier = await login(baseUrl, carrierEmail);
+    const ledgerBefore = await CommissionLedgerEvent.countDocuments();
+    const activated = await fetch(`${baseUrl}/api/packages/my-plan/demo-activate`, {
+      method: "POST",
+      headers: headers(carrier, true),
+      body: JSON.stringify({ planCode: "carrier-pro-monthly", idempotencyKey: "end-demo-activate" }),
+    });
+    assert.equal(activated.status, 200);
+    const vehicleResponse = await createVehicle(baseUrl, carrier, "51C-100.77");
+    assert.equal(vehicleResponse.status, 201);
+    const vehicle = ((await vehicleResponse.json()) as Json).vehicle as Json;
+    const scheduled = await fetch(`${baseUrl}/api/packages/my-plan/schedule-downgrade`, {
+      method: "POST",
+      headers: headers(carrier, true),
+      body: JSON.stringify({ idempotencyKey: "end-demo-schedule" }),
+    });
+    assert.equal(scheduled.status, 200);
+    const ended = await fetch(`${baseUrl}/api/packages/my-plan/demo-end`, {
+      method: "POST",
+      headers: headers(carrier, true),
+      body: JSON.stringify({ idempotencyKey: "end-demo-now-001" }),
+    });
+    assert.equal(ended.status, 200);
+    const body = (await ended.json()) as Json;
+    assert.equal((body.entitlements as Json).planCode, "carrier-free");
+    assert.equal((body.entitlements as Json).vehicleCap, 2);
+    const subscription = await AccountSubscription.findOne({ accountId: carrierId });
+    assert.ok(subscription);
+    assert.equal(subscription.downgradeToFreeAt, null);
+    assert.equal(subscription.audits.some((entry) => entry.action === "DEMO_ENDED"), true);
+    assert.equal(subscription.audits.some((entry) => entry.action === "DEMO_ACTIVATED"), true);
+    const storedVehicle = await Vehicle.findById(String(vehicle.id));
+    assert.equal(storedVehicle?.status ?? "ACTIVE", "ACTIVE");
+    const replay = await fetch(`${baseUrl}/api/packages/my-plan/demo-end`, {
+      method: "POST",
+      headers: headers(carrier, true),
+      body: JSON.stringify({ idempotencyKey: "end-demo-now-001" }),
+    });
+    assert.equal(replay.status, 200);
+    assert.equal(await CommissionLedgerEvent.countDocuments(), ledgerBefore);
+    assert.equal(await Shipment.countDocuments({ status: "CANCELLED", carrierId }), 0);
   });
 });
 

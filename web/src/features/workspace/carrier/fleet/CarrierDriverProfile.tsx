@@ -3,8 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { paths } from "@/app/paths";
 import { Button } from "@/components/ui/button";
 import { fieldClass } from "@/features/workspace/carrier/fleet/FleetNav";
-import { accountStatusLabel, activationLabel } from "@/features/auth/driverAccess";
-import { OneTimeCredential } from "@/features/workspace/carrier/fleet/OneTimeCredential";
+import { accountStatusLabel, activationLabel, driverDraftErrors } from "@/features/auth/driverAccess";
 import { DetailBlock, FactLine, PageHeader } from "@/features/workspace/ui";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import type { CarrierDriver } from "@/models/publishedShipment";
@@ -20,7 +19,10 @@ export function CarrierDriverProfile() {
   const [pending, setPending] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<"lock" | "unlock" | "reset" | null>(null);
-  const [temporaryPassword, setTemporaryPassword] = useState<string | null>(null);
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [nameError, setNameError] = useState<string | null>(null);
+  const [passwordErrors, setPasswordErrors] = useState<Partial<Record<"password" | "confirmPassword", string>>>({});
 
   useEffect(() => {
     if (!id) return;
@@ -43,6 +45,13 @@ export function CarrierDriverProfile() {
 
   async function save() {
     if (!id) return;
+    const trimmed = name.trim();
+    if (trimmed.length < 1 || trimmed.length > 80) {
+      setNameError("Tên hiển thị cần từ 1 đến 80 ký tự.");
+      document.getElementById("driver-display-name")?.focus();
+      return;
+    }
+    setNameError(null);
     setPending(true);
     setNotice(null);
     try {
@@ -51,6 +60,11 @@ export function CarrierDriverProfile() {
       setName(body.driver.displayName ?? "");
       setNotice("Đã lưu tên hiển thị.");
     } catch (error) {
+      if (error instanceof ApiError && error.fields?.displayName) {
+        setNameError(error.fields.displayName);
+        document.getElementById("driver-display-name")?.focus();
+        return;
+      }
       setNotice(error instanceof ApiError ? error.message : "Không lưu được tên.");
     } finally {
       setPending(false);
@@ -71,12 +85,34 @@ export function CarrierDriverProfile() {
         setDriver(body.driver);
         setNotice("Đã mở khóa tài khoản.");
       } else {
-        const body = await resetCarrierDriverPassword(id);
+        const fieldErrors = driverDraftErrors({ displayName: name || "Tài xế", username: "taixe.hop.le", password, confirmPassword });
+        const nextErrors: Partial<Record<"password" | "confirmPassword", string>> = {};
+        if (fieldErrors.password) nextErrors.password = fieldErrors.password;
+        if (fieldErrors.confirmPassword) nextErrors.confirmPassword = fieldErrors.confirmPassword;
+        if (Object.keys(nextErrors).length > 0) {
+          setPasswordErrors(nextErrors);
+          document.getElementById(nextErrors.password ? "reset-password" : "reset-confirm")?.focus();
+          setPending(false);
+          return;
+        }
+        const body = await resetCarrierDriverPassword(id, { password, confirmPassword });
         setDriver(body.driver);
-        setTemporaryPassword(body.temporaryPassword);
+        setPassword("");
+        setConfirmPassword("");
+        setNotice("Đã đặt mật khẩu mới. Mật khẩu không hiện lại.");
       }
       setConfirming(null);
     } catch (error) {
+      if (confirming === "reset" && error instanceof ApiError && error.fields) {
+        const nextErrors: Partial<Record<"password" | "confirmPassword", string>> = {};
+        if (error.fields.password) nextErrors.password = error.fields.password;
+        if (error.fields.confirmPassword) nextErrors.confirmPassword = error.fields.confirmPassword;
+        if (Object.keys(nextErrors).length > 0) {
+          setPasswordErrors(nextErrors);
+          document.getElementById(nextErrors.password ? "reset-password" : "reset-confirm")?.focus();
+          return;
+        }
+      }
       setNotice(error instanceof ApiError ? error.message : "Không thực hiện được thao tác.");
     } finally {
       setPending(false);
@@ -93,13 +129,13 @@ export function CarrierDriverProfile() {
       {state === "error" ? <p className="text-sm text-ink">Không tải được hồ sơ.</p> : null}
       {state === "ready" && driver ? (
         <>
-          <PageHeader title={driver.displayName ?? "Chưa có tên"} summary="Tài khoản thuộc nhà xe đang đăng nhập. Mật khẩu không hiện lại sau khi đóng." />
-          {temporaryPassword ? <OneTimeCredential password={temporaryPassword} onClose={() => setTemporaryPassword(null)} /> : null}
+          <PageHeader title={driver.displayName ?? "Chưa có tên"} summary="Tài khoản thuộc nhà xe đang đăng nhập. Mật khẩu không hiện lại sau khi đặt." />
           <DetailBlock title="Hồ sơ">
-            <FactLine term="Email" value={driver.email ?? ""} />
+            <FactLine term="Tên đăng nhập" value={driver.username ?? "Tài khoản cũ dùng email"} />
+            <FactLine term="Email" value={driver.email ?? "Không dùng email"} />
             <FactLine term="Trạng thái" value={accountStatusLabel(driver.accountStatus)} />
             <FactLine term="Kích hoạt" value={activationLabel(driver.mustChangePassword)} />
-            <FactLine term="Phân công" value={driver.accountStatus === "LOCKED" || driver.mustChangePassword ? "Chưa thể nhận chuyến." : "Có thể nhận chuyến khi tài khoản đang mở và đã đổi mật khẩu."} />
+            <FactLine term="Phân công" value={driver.accountStatus === "LOCKED" || driver.mustChangePassword ? "Chưa thể nhận chuyến." : "Có thể nhận chuyến khi tài khoản đang mở."} />
             <form
               className="space-y-3"
               onSubmit={(event) => {
@@ -109,7 +145,20 @@ export function CarrierDriverProfile() {
             >
               <label className="block space-y-2 text-sm font-semibold text-ink">
                 Tên hiển thị
-                <input className={fieldClass} value={name} onChange={(event) => setName(event.target.value)} />
+                <input
+                  id="driver-display-name"
+                  aria-invalid={nameError !== null}
+                  aria-describedby={nameError ? "driver-display-name-error" : undefined}
+                  className={`${fieldClass} ${nameError ? "border-danger" : ""}`}
+                  value={name}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    setName(value);
+                    const trimmed = value.trim();
+                    if (nameError && trimmed.length >= 1 && trimmed.length <= 80) setNameError(null);
+                  }}
+                />
+                {nameError ? <p id="driver-display-name-error" className="text-sm font-normal text-ink">{nameError}</p> : null}
               </label>
               <Button type="submit" disabled={pending}>
                 {pending ? "Đang lưu" : "Lưu tên hiển thị"}
@@ -146,8 +195,41 @@ export function CarrierDriverProfile() {
                 <p className="mt-3 text-sm leading-relaxed text-ink">
                   {confirming === "lock" ? "Tài xế không đăng nhập được cho đến khi mở khóa. Chuyến đang chạy sẽ chặn thao tác này." : null}
                   {confirming === "unlock" ? "Mở khóa không đổi chuyến hàng và không hiện lại mật khẩu cũ." : null}
-                  {confirming === "reset" ? "Mật khẩu tạm mới chỉ hiện một lần. Phiên đang đăng nhập sẽ hết hiệu lực." : null}
+                  {confirming === "reset" ? "Nhà xe đặt mật khẩu mới. Mật khẩu không được lưu lại trên màn hình và phiên đang đăng nhập sẽ hết hiệu lực." : null}
                 </p>
+                {confirming === "reset" ? (
+                  <div className="mt-4 space-y-3">
+                    <label className="block space-y-2 text-sm font-semibold text-ink" htmlFor="reset-password">
+                      Mật khẩu mới
+                      <input id="reset-password" type="password" autoComplete="new-password" aria-invalid={passwordErrors.password !== undefined} aria-describedby={passwordErrors.password ? "reset-password-error" : undefined} className={`${fieldClass} ${passwordErrors.password ? "border-danger" : ""}`} value={password} onChange={(event) => {
+                        const value = event.target.value;
+                        setPassword(value);
+                        const fieldErrors = driverDraftErrors({ displayName: name || "Tài xế", username: "taixe.hop.le", password: value, confirmPassword });
+                        setPasswordErrors((current) => {
+                          const next = { ...current };
+                          if (!fieldErrors.password) delete next.password;
+                          if (!fieldErrors.confirmPassword) delete next.confirmPassword;
+                          return next;
+                        });
+                      }} />
+                      {passwordErrors.password ? <p id="reset-password-error" className="text-sm font-normal text-ink">{passwordErrors.password}</p> : null}
+                    </label>
+                    <label className="block space-y-2 text-sm font-semibold text-ink" htmlFor="reset-confirm">
+                      Nhập lại mật khẩu
+                      <input id="reset-confirm" type="password" autoComplete="new-password" aria-invalid={passwordErrors.confirmPassword !== undefined} aria-describedby={passwordErrors.confirmPassword ? "reset-confirm-error" : undefined} className={`${fieldClass} ${passwordErrors.confirmPassword ? "border-danger" : ""}`} value={confirmPassword} onChange={(event) => {
+                        const value = event.target.value;
+                        setConfirmPassword(value);
+                        const fieldErrors = driverDraftErrors({ displayName: name || "Tài xế", username: "taixe.hop.le", password, confirmPassword: value });
+                        setPasswordErrors((current) => {
+                          const next = { ...current };
+                          if (!fieldErrors.confirmPassword) delete next.confirmPassword;
+                          return next;
+                        });
+                      }} />
+                      {passwordErrors.confirmPassword ? <p id="reset-confirm-error" className="text-sm font-normal text-ink">{passwordErrors.confirmPassword}</p> : null}
+                    </label>
+                  </div>
+                ) : null}
                 <div className="mt-5 flex flex-wrap gap-2">
                   <Button type="button" variant="outline" disabled={pending} onClick={() => setConfirming(null)}>
                     Hủy

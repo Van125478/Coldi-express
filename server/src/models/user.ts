@@ -10,7 +10,8 @@ export type AccountStatus = (typeof accountStatuses)[number];
 
 const userSchema = new Schema(
   {
-    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+    email: { type: String, lowercase: true, trim: true },
+    username: { type: String, lowercase: true, trim: true },
     passwordHash: { type: String, required: true },
     role: { type: String, required: true, enum: userRoles },
     carrierId: { type: Schema.Types.ObjectId, ref: "User", index: true },
@@ -22,5 +23,8 @@ const userSchema = new Schema(
   },
   { timestamps: true },
 );
+
+userSchema.index({ email: 1 }, { unique: true, sparse: true });
+userSchema.index({ username: 1 }, { unique: true, sparse: true });
 
 export const User = model("User", userSchema);

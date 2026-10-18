@@ -4,6 +4,7 @@ import { once } from "node:events";
 import test, { before, after } from "node:test";
 import mongoose from "mongoose";
 import { hashPassword } from "../src/auth/password.js";
+import { withRequiredCargoImage } from "./support/cargoImage.js";
 import { reconcileIncidentArtifacts } from "../src/incidents/service.js";
 import { evaluateReminder } from "../src/incidents/lifecycle.js";
 import { CommissionLedgerEvent } from "../src/models/commissionLedger.js";
@@ -87,7 +88,7 @@ function request(baseUrl: string, path: string, cookie: string | null, method = 
 }
 
 async function publish(baseUrl: string, cookie: string, cargoDescription: string) {
-  const response = await request(baseUrl, "/api/shipments", cookie, "POST", {
+  const response = await request(baseUrl, "/api/shipments", cookie, "POST", await withRequiredCargoImage(baseUrl, cookie, {
     cargoDescription,
     pickupLocation: "Cái Bè, Tiền Giang",
     deliveryLocation: "Thủ Đức, TP. Hồ Chí Minh",
@@ -109,7 +110,7 @@ async function publish(baseUrl: string, cookie: string, cargoDescription: string
     cargoWeightTon: 2.5,
     cargoVolumeM3: 12,
     packageCount: 180,
-  });
+  }));
   assert.equal(response.status, 201);
   return ((await response.json()) as { shipment: Json }).shipment;
 }

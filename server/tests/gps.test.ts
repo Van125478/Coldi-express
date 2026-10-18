@@ -1,3 +1,4 @@
+import { withRequiredCargoImage } from "./support/cargoImage.js";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { once } from "node:events";
@@ -64,11 +65,11 @@ async function login(baseUrl: string, email: string): Promise<string> {
   return cookie.split(";")[0] ?? "";
 }
 
-function publish(baseUrl: string, cookie: string) {
+async function publish(baseUrl: string, cookie: string) {
   return fetch(`${baseUrl}/api/shipments`, {
     method: "POST",
     headers: { "content-type": "application/json", origin: "http://127.0.0.1:5173", cookie },
-    body: JSON.stringify({
+    body: JSON.stringify(await withRequiredCargoImage(baseUrl, cookie, {
       cargoDescription: "Hàng kiểm tra GPS",
       pickupLocation: "Cái Bè, Tiền Giang",
       deliveryLocation: "Thủ Đức, TP. Hồ Chí Minh",
@@ -91,7 +92,7 @@ function publish(baseUrl: string, cookie: string) {
       cargoWeightTon: 2.5,
       cargoVolumeM3: 12,
       packageCount: 180,
-    }),
+    })),
   });
 }
 

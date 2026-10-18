@@ -4,6 +4,7 @@ import { once } from "node:events";
 import test, { before, after } from "node:test";
 import mongoose from "mongoose";
 import { hashPassword } from "../src/auth/password.js";
+import { withRequiredCargoImage } from "./support/cargoImage.js";
 import { AuditLog } from "../src/models/auditLog.js";
 import { Shipment } from "../src/models/shipment.js";
 import { User } from "../src/models/user.js";
@@ -74,7 +75,7 @@ async function send(baseUrl: string, path: string, cookie: string | undefined, m
 }
 
 async function publishAndClaim(baseUrl: string, shipper: string, carrier: string) {
-  const published = await send(baseUrl, "/api/shipments", shipper, "POST", {
+  const published = await send(baseUrl, "/api/shipments", shipper, "POST", await withRequiredCargoImage(baseUrl, shipper, {
     cargoDescription: "Hàng kiểm tra tài khoản tài xế",
     pickupLocation: "Kho A, Cái Bè",
     deliveryLocation: "Kho B, Thủ Đức",
@@ -96,7 +97,7 @@ async function publishAndClaim(baseUrl: string, shipper: string, carrier: string
     cargoWeightTon: 1,
     cargoVolumeM3: 2,
     packageCount: 10,
-  });
+  }));
   assert.equal(published.status, 201);
   const id = String((published.body.shipment as Json).id);
   const claimed = await send(baseUrl, `/api/carrier/shipments/${id}/claim`, carrier, "POST", {});
@@ -143,67 +144,70 @@ test("a carrier creates a driver from the session and a forged parent is rejecte
     });
     assert.equal(created.status, 400);
 
+    const blank = await send(baseUrl, "/api/carrier/fleet/drivers", carrier, "POST", { displayName: "", username: "", password: "", confirmPassword: "khac" });
+    assert.equal(blank.status, 400);
+    const blankFields = (blank.body.error as Json).fields as Json;
+    assert.equal(typeof blankFields.displayName, "string");
+    assert.equal(typeof blankFields.username, "string");
+    assert.equal(typeof blankFields.password, "string");
+    assert.equal(typeof blankFields.confirmPassword, "string");
+
+    const chosenPassword = "carrier-set-password";
     const accepted = await send(baseUrl, "/api/carrier/fleet/drivers", carrier, "POST", {
       displayName: "Tài xế mới",
-      email: "  New.Driver-Account@Coldi.Local ",
+      username: "  TaiXe.Moi ",
+      password: chosenPassword,
+      confirmPassword: chosenPassword,
     });
     assert.equal(accepted.status, 201);
-    const temporaryPassword = String(accepted.body.temporaryPassword);
+    assert.equal("temporaryPassword" in accepted.body, false);
     const rosterDriver = accepted.body.driver as Json;
     assert.equal(rosterDriver.role, undefined);
-    const stored = await User.findOne({ email: "new.driver-account@coldi.local" });
+    assert.equal(rosterDriver.username, "taixe.moi");
+    const stored = await User.findOne({ username: "taixe.moi" });
     assert.ok(stored);
     assert.equal(stored.role, "DRIVER");
+    assert.equal(stored.email, undefined);
     assert.equal(stored.carrierId?.toString(), String((await User.findOne({ email: carrierEmail }))?._id));
-    assert.equal(stored.mustChangePassword, true);
-    assert.notEqual(stored.passwordHash, temporaryPassword);
+    assert.equal(stored.mustChangePassword, false);
+    assert.notEqual(stored.passwordHash, chosenPassword);
     assert.match(stored.passwordHash, /^\$2[aby]\$/);
 
-    const duplicate = await send(baseUrl, "/api/carrier/fleet/drivers", carrier, "POST", { displayName: "Trùng", email: "new.driver-account@coldi.local" });
+    const duplicate = await send(baseUrl, "/api/carrier/fleet/drivers", carrier, "POST", {
+      displayName: "Trùng",
+      username: "taixe.moi",
+      password: chosenPassword,
+      confirmPassword: chosenPassword,
+    });
     assert.equal(duplicate.status, 409);
-    const invalid = await send(baseUrl, "/api/carrier/fleet/drivers", carrier, "POST", { displayName: "Sai", email: "khong-dung" });
+    const invalid = await send(baseUrl, "/api/carrier/fleet/drivers", carrier, "POST", {
+      displayName: "Sai",
+      username: "khong hop le",
+      password: "short",
+      confirmPassword: "other-password",
+    });
     assert.equal(invalid.status, 400);
-    assert.equal((await send(baseUrl, "/api/carrier/fleet/drivers", shipper, "POST", { displayName: "X", email: "x.driver-account@coldi.local" })).status, 403);
-    assert.equal((await send(baseUrl, "/api/carrier/fleet/drivers", driver, "POST", { displayName: "X", email: "y.driver-account@coldi.local" })).status, 403);
-    assert.equal((await send(baseUrl, "/api/carrier/fleet/drivers", admin, "POST", { displayName: "X", email: "z.driver-account@coldi.local" })).status, 403);
+    assert.equal((await send(baseUrl, "/api/carrier/fleet/drivers", shipper, "POST", { displayName: "X", username: "shipper.driver", password: chosenPassword, confirmPassword: chosenPassword })).status, 403);
+    assert.equal((await send(baseUrl, "/api/carrier/fleet/drivers", driver, "POST", { displayName: "X", username: "driver.driver", password: chosenPassword, confirmPassword: chosenPassword })).status, 403);
+    assert.equal((await send(baseUrl, "/api/carrier/fleet/drivers", admin, "POST", { displayName: "X", username: "admin.driver", password: chosenPassword, confirmPassword: chosenPassword })).status, 403);
 
     const roster = await send(baseUrl, "/api/carrier/fleet/drivers", carrier, "GET");
     const detail = await send(baseUrl, `/api/carrier/fleet/drivers/${stored._id.toString()}`, carrier, "GET");
     const audits = await AuditLog.find({ resourceId: stored._id }).lean();
-    const leaked = JSON.stringify({ roster, detail, audits });
-    assert.equal(leaked.includes(temporaryPassword), false);
+    const leaked = JSON.stringify({ roster, detail, audits, accepted: accepted.body });
+    assert.equal(leaked.includes(chosenPassword), false);
     assert.equal(leaked.includes(stored.passwordHash), false);
-    assert.equal((await send(baseUrl, "/api/carrier/fleet/drivers", other, "GET")).body.drivers instanceof Array, true);
-    const otherNames = ((await send(baseUrl, "/api/carrier/fleet/drivers", other, "GET")).body.drivers as Json[]).map((item) => item.email);
-    assert.equal(otherNames.includes("new.driver-account@coldi.local"), false);
+    const otherNames = ((await send(baseUrl, "/api/carrier/fleet/drivers", other, "GET")).body.drivers as Json[]).map((item) => item.username);
+    assert.equal(otherNames.includes("taixe.moi"), false);
     assert.equal((await send(baseUrl, `/api/carrier/fleet/drivers/${stored._id.toString()}`, other, "GET")).status, 404);
 
-    const vehicle = await Vehicle.findOne({ label: "Xe tài khoản" });
-    assert.ok(vehicle);
-    const pendingId = await publishAndClaim(baseUrl, shipper, carrier);
-    const tooSoon = await send(baseUrl, `/api/carrier/shipments/${pendingId}/assign`, carrier, "POST", {
-      vehicleId: vehicle._id.toString(),
-      driverId: stored._id.toString(),
-    });
-    assert.equal(tooSoon.status, 409);
-
-    const limited = await login(baseUrl, "new.driver-account@coldi.local", temporaryPassword);
-    assert.equal(limited.status, 200);
-    assert.equal((limited.body.user as Json).mustChangePassword, true);
-    const blocked = await send(baseUrl, "/api/driver/shipments", limited.cookie, "GET");
-    assert.equal(blocked.status, 403);
-    assert.equal((blocked.body.error as Json).code, "password_change_required");
-
-    const changed = await send(baseUrl, "/api/auth/change-required-password", limited.cookie, "POST", { newPassword: "replacement-password" });
-    assert.equal(changed.status, 200);
-    assert.equal((changed.body.user as Json).mustChangePassword, false);
-    const oldCookie = await send(baseUrl, "/api/driver/shipments", limited.cookie, "GET");
-    assert.equal(oldCookie.status, 401);
-    const oldPassword = await login(baseUrl, "new.driver-account@coldi.local", temporaryPassword);
-    assert.equal(oldPassword.status, 401);
-    const activated = await login(baseUrl, "new.driver-account@coldi.local", "replacement-password");
+    const legacy = await login(baseUrl, driverEmail);
+    assert.equal(legacy.status, 200);
+    const activated = await login(baseUrl, "taixe.moi", chosenPassword);
     assert.equal(activated.status, 200);
+    assert.equal((activated.body.user as Json).mustChangePassword, false);
     assert.equal((await send(baseUrl, "/api/driver/shipments", activated.cookie, "GET")).status, 200);
+    assert.equal((await login(baseUrl, carrierEmail, chosenPassword)).status, 401);
   });
 });
 
@@ -212,31 +216,38 @@ test("lock, unlock, reset and active trips stay on the owning carrier", async ()
     const carrier = (await login(baseUrl, carrierEmail)).cookie;
     const other = (await login(baseUrl, otherCarrierEmail)).cookie;
     const shipper = (await login(baseUrl, shipperEmail)).cookie;
-    const created = await send(baseUrl, "/api/carrier/fleet/drivers", carrier, "POST", { displayName: "Tài xế khóa", email: "idle.driver-account@coldi.local" });
+    const chosenPassword = "idle-driver-password";
+    const created = await send(baseUrl, "/api/carrier/fleet/drivers", carrier, "POST", {
+      displayName: "Tài xế khóa",
+      username: "taixe.khoa",
+      password: chosenPassword,
+      confirmPassword: chosenPassword,
+    });
     const idleId = String((created.body.driver as Json).id);
-    const temporaryPassword = String(created.body.temporaryPassword);
-    const session = await login(baseUrl, "idle.driver-account@coldi.local", temporaryPassword);
+    const session = await login(baseUrl, "taixe.khoa", chosenPassword);
 
     const locked = await send(baseUrl, `/api/carrier/fleet/drivers/${idleId}/lock`, carrier, "POST", {});
     assert.equal(locked.status, 200);
     assert.equal((locked.body.driver as Json).accountStatus, "LOCKED");
-    assert.equal((await login(baseUrl, "idle.driver-account@coldi.local", temporaryPassword)).status, 403);
+    assert.equal((await login(baseUrl, "taixe.khoa", chosenPassword)).status, 403);
     assert.equal((await send(baseUrl, "/api/auth/me", session.cookie, "GET")).status, 401);
     const unlocked = await send(baseUrl, `/api/carrier/fleet/drivers/${idleId}/unlock`, carrier, "POST", {});
     assert.equal(unlocked.status, 200);
-    assert.equal((await login(baseUrl, "idle.driver-account@coldi.local", temporaryPassword)).status, 200);
+    assert.equal((await login(baseUrl, "taixe.khoa", chosenPassword)).status, 200);
 
-    const reset = await send(baseUrl, `/api/carrier/fleet/drivers/${idleId}/reset-password`, carrier, "POST", {});
+    const nextPassword = "reset-driver-password";
+    const reset = await send(baseUrl, `/api/carrier/fleet/drivers/${idleId}/reset-password`, carrier, "POST", { password: nextPassword, confirmPassword: nextPassword });
     assert.equal(reset.status, 200);
+    assert.equal(JSON.stringify(reset.body).includes(nextPassword), false);
     assert.equal(JSON.stringify(reset.body).includes("passwordHash"), false);
-    const nextPassword = String(reset.body.temporaryPassword);
-    assert.notEqual(nextPassword, temporaryPassword);
-    assert.equal((await login(baseUrl, "idle.driver-account@coldi.local", temporaryPassword)).status, 401);
+    assert.equal((reset.body.driver as Json).mustChangePassword, false);
+    assert.equal((await login(baseUrl, "taixe.khoa", chosenPassword)).status, 401);
     assert.equal((await send(baseUrl, "/api/auth/me", session.cookie, "GET")).status, 401);
-    const resetLogin = await login(baseUrl, "idle.driver-account@coldi.local", nextPassword);
+    const resetLogin = await login(baseUrl, "taixe.khoa", nextPassword);
     assert.equal(resetLogin.status, 200);
-    assert.equal((await send(baseUrl, "/api/driver/shipments", resetLogin.cookie, "GET")).status, 403);
-    assert.equal((await send(baseUrl, `/api/carrier/fleet/drivers/${idleId}/reset-password`, other, "POST", {})).status, 404);
+    assert.equal((resetLogin.body.user as Json).mustChangePassword, false);
+    assert.equal((await send(baseUrl, "/api/driver/shipments", resetLogin.cookie, "GET")).status, 200);
+    assert.equal((await send(baseUrl, `/api/carrier/fleet/drivers/${idleId}/reset-password`, other, "POST", { password: nextPassword, confirmPassword: nextPassword })).status, 404);
 
     const ready = await User.findById(idleId);
     assert.ok(ready);
@@ -251,8 +262,8 @@ test("lock, unlock, reset and active trips stay on the owning carrier", async ()
     const matchedLock = await send(baseUrl, `/api/carrier/fleet/drivers/${idleId}/lock`, carrier, "POST", {});
     assert.equal(matchedLock.status, 409);
     assert.equal((await User.findById(idleId))?.accountStatus, "ACTIVE");
-    assert.equal((await login(baseUrl, "idle.driver-account@coldi.local")).status, 200);
-    const driverCookie = (await login(baseUrl, "idle.driver-account@coldi.local")).cookie;
+    assert.equal((await login(baseUrl, "taixe.khoa")).status, 200);
+    const driverCookie = (await login(baseUrl, "taixe.khoa")).cookie;
     assert.equal((await send(baseUrl, `/api/driver/shipments/${matchedId}/pickup`, driverCookie, "POST", {})).status, 200);
     assert.equal((await send(baseUrl, `/api/carrier/fleet/drivers/${idleId}/lock`, carrier, "POST", {})).status, 409);
     assert.equal((await send(baseUrl, `/api/carrier/fleet/drivers/${idleId}/reset-password`, carrier, "POST", {})).status, 409);

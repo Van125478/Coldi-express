@@ -10,7 +10,7 @@ import { requireAuth } from "../middlewares/requireAuth.js";
 import { requireTrustedOrigin } from "../middlewares/requireOrigin.js";
 import { User } from "../models/user.js";
 
-const INVALID_CREDENTIALS = "Email hoặc mật khẩu không đúng.";
+const INVALID_CREDENTIALS = "Email, tên đăng nhập hoặc mật khẩu không đúng.";
 
 export const authRouter = Router();
 
@@ -18,19 +18,21 @@ authRouter.post("/login", requireTrustedOrigin, async (request, response, next) 
   try {
     const body: unknown = request.body;
     if (typeof body !== "object" || body === null) {
-      throw new HttpError(400, "invalid_request", "Nhập email và mật khẩu.");
+      throw new HttpError(400, "invalid_request", "Nhập email hoặc tên đăng nhập và mật khẩu.");
     }
     const record = body as Record<string, unknown>;
-    const email = typeof record.email === "string" ? record.email.trim().toLowerCase() : "";
+    const identifier = typeof record.email === "string" ? record.email.trim().toLowerCase() : "";
     const password = typeof record.password === "string" ? record.password : "";
-    if (email.length === 0 || password.length === 0 || !email.includes("@")) {
-      throw new HttpError(400, "invalid_request", "Nhập email và mật khẩu.");
+    if (identifier.length === 0 || password.length === 0) {
+      throw new HttpError(400, "invalid_request", "Nhập email hoặc tên đăng nhập và mật khẩu.");
     }
     if (password.length > 72) {
       throw new HttpError(400, "invalid_request", "Mật khẩu không hợp lệ.");
     }
 
-    const user = await User.findOne({ email });
+    const user = identifier.includes("@")
+      ? await User.findOne({ email: identifier })
+      : await User.findOne({ username: identifier, role: "DRIVER" });
     const matches = user ? await verifyPassword(password, user.passwordHash) : false;
     if (!user || !matches) {
       throw new HttpError(401, "invalid_credentials", INVALID_CREDENTIALS);
