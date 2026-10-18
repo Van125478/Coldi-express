@@ -30,10 +30,12 @@ export const paths = {
   carrierPlan: "/carrier/goi",
   carrierIncidents: "/carrier/su-co",
   carrierCommission: "/carrier/hoa-hong",
+  carrierFuel: "/carrier/thi-truong-nhien-lieu",
   driverHome: "/driver",
   driverTrips: "/driver/chuyen",
   driverPassword: "/driver/doi-mat-khau",
   driverIncidents: "/driver/su-co",
+  driverFuel: "/driver/thi-truong-nhien-lieu",
   adminHome: "/admin",
 } as const;
 

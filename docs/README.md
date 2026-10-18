@@ -67,7 +67,7 @@ Cài đặt Windows đầy đủ: [TEAM_TESTING_GUIDE](team-testing/TEAM_TESTING
 - [API](../server/README.md)
 - [Ảnh chụp trạng thái 18/10/2026](mvp-review/MVP_STATUS_2026-10-18.md) — báo cáo tại baseline, không phải nghiệm thu v2.6
 
-`server/src/app.ts` gắn health, auth, shipment, chat, carrier shipment, carrier conversation, fleet, driver shipment, gói, hoa hồng, sự cố và `GET /api/market/oil-prices`. Handoff kỹ thuật: [hoa hồng](commission/MVP_HANDOFF.md), [sự cố](incident/MVP_HANDOFF.md), [giá dầu](oil/MVP_HANDOFF.md).
+`server/src/app.ts` gắn health, auth, shipment, chat, carrier shipment, carrier conversation, fleet, driver shipment, gói, hoa hồng, sự cố, `GET /api/market/oil-prices` và `GET /api/market/fuel`. Handoff kỹ thuật: [hoa hồng](commission/MVP_HANDOFF.md), [sự cố](incident/MVP_HANDOFF.md), [giá dầu](oil/MVP_HANDOFF.md), [thị trường nhiên liệu](fuel/MVP_HANDOFF.md).
 
 ## Lịch sử — giữ nguyên
 

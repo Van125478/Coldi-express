@@ -518,7 +518,7 @@ export function PublishShipmentPage({ email }: { email: string }) {
                 id="cargo-images"
                 buttonLabel="Chọn ảnh hàng hóa"
                 hintId="cargo-images-hint"
-                hint={`Đã chọn ${images.length}/5. Giới hạn kỹ thuật tạm thời: JPG, PNG hoặc WebP, tối đa 2 MB mỗi ảnh.`}
+                hint={`Bắt buộc 1–5 ảnh. Đã chọn ${images.length}/5. Giới hạn kỹ thuật tạm thời: JPG, PNG hoặc WebP, tối đa 2 MB mỗi ảnh.`}
                 disabled={pending || uploading || images.length >= 5}
                 describedBy={errors.cargoImages ? "cargo-images-error" : "cargo-images-hint"}
                 invalid={errors.cargoImages !== undefined}

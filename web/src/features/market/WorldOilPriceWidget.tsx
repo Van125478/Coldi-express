@@ -81,8 +81,8 @@ function BenchmarkCard({ item, compact }: { item: OilBenchmarkView; compact: boo
   );
 }
 
-export function WorldOilPriceWidget({ variant }: { variant: "landing" | "compact" }) {
-  const compact = variant === "compact";
+export function WorldOilPriceWidget({ variant }: { variant: "landing" | "compact" | "embedded" }) {
+  const compact = variant !== "landing";
   const [reloadKey, setReloadKey] = useState(0);
   const [state, setState] = useState<WidgetState>({ kind: "loading" });
 
@@ -106,10 +106,13 @@ export function WorldOilPriceWidget({ variant }: { variant: "landing" | "compact
   }, [reloadKey]);
 
   const heading = "Giá dầu thô thế giới";
-  const shellClass = compact
-    ? "rounded-2xl border border-line bg-surface p-5 text-ink"
-    : "border-t border-[#e2e8f0] bg-white text-[#1e293b]";
-  const innerClass = compact ? "" : "guest-frame py-10 sm:py-12";
+  const shellClass =
+    variant === "embedded"
+      ? "text-ink"
+      : compact
+        ? "rounded-2xl border border-line bg-surface p-5 text-ink"
+        : "border-t border-[#e2e8f0] bg-white text-[#1e293b]";
+  const innerClass = variant === "landing" ? "guest-frame py-10 sm:py-12" : "";
   const benchmarks = state.kind === "ready" ? state.body.benchmarks : null;
   const disclaimer = state.kind === "ready" ? state.body.disclaimer : fallbackDisclaimer;
 

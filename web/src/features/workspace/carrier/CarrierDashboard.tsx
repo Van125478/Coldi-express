@@ -5,7 +5,6 @@ import { useAuth } from "@/features/auth/useAuth";
 import { lostSession } from "@/features/workspace/sessionLoss";
 import { MarketShipmentCard } from "@/features/shipments/MarketShipmentCard";
 import { civil, money, primaryLinkClass, shipmentTone } from "@/features/workspace/format";
-import { WorldOilPriceWidget } from "@/features/market/WorldOilPriceWidget";
 import { PageHeader, StatusBadge } from "@/features/workspace/ui";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { Button } from "@/components/ui/button";
@@ -154,7 +153,6 @@ export function CarrierDashboard() {
           </section>
         </>
       ) : null}
-      <WorldOilPriceWidget variant="compact" />
     </section>
   );
 }

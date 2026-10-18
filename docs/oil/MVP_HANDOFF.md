@@ -102,7 +102,7 @@ Until a reviewed calendar is stored with `verified: true`, a cached price is sho
 
 ## Widget
 
-`WorldOilPriceWidget` is mounted on `/` after the pilot section and before the FAQ, on `/shipper` below the shipment tasks, and on `/carrier` below the trip tasks. Driver home is unchanged.
+`WorldOilPriceWidget` is embedded inside the fuel-market panel. Landing and Shipper Home show diesel then Brent/WTI. Carrier and Driver open a dedicated fuel page from the sidebar. Carrier Home no longer mounts a large oil widget.
 
 The widget shows Brent and WTI independently, the observation date, the COLDI fetch time, an EIA link limited to `https://www.eia.gov` or `https://api.eia.gov`, the freshness label, and the disclaimer. Retry calls COLDI again. A failed request shows the unavailable state inside the widget and does not replace the surrounding page.
 

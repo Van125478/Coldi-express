@@ -149,4 +149,27 @@ test("package entry points stay in the header, landing page, footer and role sid
   const driverNav = layout.slice(layout.indexOf("DRIVER:", navigationStart), layout.indexOf("ADMIN:", navigationStart));
   assert.equal(driverNav.includes("Plan"), false);
   assert.equal(driverNav.includes("goi"), false);
+  assert.match(layout, /carrierFuel/);
+  assert.match(layout, /driverFuel/);
+  assert.match(driverNav, /Thị trường nhiên liệu/);
+});
+
+test("fuel market sits on landing, shipper home, and dedicated carrier and driver pages", () => {
+  const root = new URL("../../web/src/", import.meta.url);
+  const landing = readFileSync(new URL("features/guest/cinematic/CinematicLanding.tsx", root), "utf8");
+  const shipper = readFileSync(new URL("features/workspace/shipper/ShipperDashboard.tsx", root), "utf8");
+  const carrier = readFileSync(new URL("features/workspace/carrier/CarrierDashboard.tsx", root), "utf8");
+  const driver = readFileSync(new URL("features/workspace/driver/DriverHome.tsx", root), "utf8");
+  const router = readFileSync(new URL("app/router.tsx", root), "utf8");
+  const gallery = readFileSync(new URL("shared/components/media/AuthenticatedImageGallery.tsx", root), "utf8");
+  assert.match(landing, /FuelMarketPanel variant="landing"/);
+  assert.match(shipper, /FuelMarketPanel variant="compact"/);
+  assert.ok(shipper.indexOf("<FuelMarketPanel") < shipper.indexOf("Đang tải đơn của bạn"));
+  assert.equal(carrier.includes("WorldOilPriceWidget"), false);
+  assert.equal(carrier.includes("FuelMarketPanel"), false);
+  assert.equal(driver.includes("FuelMarketPanel"), false);
+  assert.match(router, /\/carrier\/thi-truong-nhien-lieu/);
+  assert.match(router, /\/driver\/thi-truong-nhien-lieu/);
+  assert.match(gallery, /aspect-\[16\/10\] w-full object-cover/);
+  assert.match(gallery, /Xem lớn/);
 });
