@@ -242,8 +242,7 @@ carrierShipmentRouter.post("/:id/assign", requireTrustedOrigin, async (request, 
         { returnDocument: "after", updatePipeline: true },
       );
     } catch (error) {
-      await releaseDriverHold(input.driverId, id);
-      await releaseVehicleReservation(carrierId, input.vehicleId, id);
+      await releaseReservationUnlessAssigned(carrierId, input.vehicleId, input.driverId, id);
       throw error;
     }
     if (!shipment) {
@@ -277,3 +276,21 @@ carrierShipmentRouter.post("/:id/assign", requireTrustedOrigin, async (request, 
     next(error);
   }
 });
+
+const endedAssignment = new Set<string>(["DELIVERY_CONFIRMED", "COMPLETED", "CANCELLED"]);
+
+async function releaseReservationUnlessAssigned(carrierId: string, vehicleId: string, driverId: string, shipmentId: string): Promise<void> {
+  let existing;
+  try {
+    existing = await Shipment.findById(shipmentId).select("vehicleId driverId status");
+  } catch {
+    return;
+  }
+  const keepsVehicle = existing?.vehicleId?.toString() === vehicleId && !endedAssignment.has(existing.status);
+  if (keepsVehicle) {
+    if (existing?.driverId?.toString() !== driverId) await releaseDriverHold(driverId, shipmentId);
+    return;
+  }
+  if (existing?.driverId?.toString() !== driverId) await releaseDriverHold(driverId, shipmentId);
+  await releaseVehicleReservation(carrierId, vehicleId, shipmentId);
+}

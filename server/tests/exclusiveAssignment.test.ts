@@ -220,6 +220,89 @@ test("a failed assign rolls back only the lease it took", async () => {
   });
 });
 
+test("a slow assign keeps the vehicle after the grace period", async () => {
+  await resetFixtures();
+  await withServer(async (baseUrl) => {
+    const shipper = await login(baseUrl, shipperEmail);
+    const carrier = await login(baseUrl, carrierEmail);
+    const slowId = await claimShipment(baseUrl, shipper, carrier, "Hàng gán chậm");
+    const otherId = await claimShipment(baseUrl, shipper, carrier, "Hàng xin xe khi lease đã già");
+    const vehicle = await createVehicle("Xe gán chậm");
+    const driverId = await driver();
+    let releaseWrite = () => {};
+    const writeGate = new Promise<void>((resolve) => {
+      releaseWrite = resolve;
+    });
+    const original = Shipment.findOneAndUpdate.bind(Shipment);
+    const delayedWrite = mock.method(Shipment, "findOneAndUpdate", async (...args: unknown[]) => {
+      const filter = args[0] as { _id?: unknown };
+      if (String(filter?._id) === slowId) await writeGate;
+      return original(...(args as Parameters<typeof Shipment.findOneAndUpdate>));
+    });
+    const slowAssign = assign(baseUrl, carrier, slowId, vehicle.id, driverId);
+    try {
+      await waitForLease(vehicle.id, slowId);
+      await Vehicle.updateOne(
+        { _id: vehicle.id },
+        { $set: { leaseAcquiredAt: new Date(Date.now() - leaseGraceMs - 1_000) } },
+      );
+      const rival = await assign(baseUrl, carrier, otherId, vehicle.id, driverId);
+      const rivalBody = (await rival.json()) as { error: Json };
+      assert.equal(rival.status, 409);
+      assert.equal(rivalBody.error.code, "vehicle_busy");
+      assert.deepEqual((await Vehicle.findById(vehicle.id))?.leasedShipmentIds?.map((id) => id.toString()), [slowId]);
+      releaseWrite();
+      const completed = await slowAssign;
+      assert.equal(completed.status, 200);
+    } finally {
+      releaseWrite();
+      delayedWrite.mock.restore();
+      await slowAssign.catch(() => undefined);
+    }
+
+    const openTrips = await Shipment.find({
+      vehicleId: vehicle.id,
+      status: { $in: ["DRAFT", "MATCHED", "PICKUP_CONFIRMED", "IN_TRANSIT", "INCIDENT"] },
+    });
+    assert.deepEqual(openTrips.map((trip) => trip.id), [slowId]);
+    assert.equal((await Shipment.findById(otherId))?.vehicleId ?? null, null);
+    assert.deepEqual((await Vehicle.findById(vehicle.id))?.leasedShipmentIds?.map((id) => id.toString()), [slowId]);
+  });
+});
+
+test("a lost assign acknowledgement keeps the lease when the shipment write landed", async () => {
+  await resetFixtures();
+  await withServer(async (baseUrl) => {
+    const shipper = await login(baseUrl, shipperEmail);
+    const carrier = await login(baseUrl, carrierEmail);
+    const writtenId = await claimShipment(baseUrl, shipper, carrier, "Hàng đã ghi nhưng mất xác nhận");
+    const otherId = await claimShipment(baseUrl, shipper, carrier, "Hàng không được lấy xe đã ghi");
+    const vehicle = await createVehicle("Xe mất xác nhận");
+    const driverId = await driver();
+    const original = Shipment.findOneAndUpdate.bind(Shipment);
+    const lostAck = mock.method(Shipment, "findOneAndUpdate", async (...args: unknown[]) => {
+      const filter = args[0] as { _id?: unknown };
+      const written = await original(...(args as Parameters<typeof Shipment.findOneAndUpdate>));
+      if (String(filter?._id) === writtenId) throw new Error("assign acknowledgement lost");
+      return written;
+    });
+    try {
+      const failed = await assign(baseUrl, carrier, writtenId, vehicle.id, driverId);
+      assert.equal(failed.status, 500);
+    } finally {
+      lostAck.mock.restore();
+    }
+
+    assert.equal((await Shipment.findById(writtenId))?.vehicleId?.toString(), vehicle.id);
+    assert.deepEqual((await Vehicle.findById(vehicle.id))?.leasedShipmentIds?.map((id) => id.toString()), [writtenId]);
+    const rival = await assign(baseUrl, carrier, otherId, vehicle.id, driverId);
+    assert.equal(rival.status, 409);
+    assert.equal(((await rival.json()) as { error: Json }).error.code, "vehicle_busy");
+    assert.equal((await Shipment.findById(otherId))?.vehicleId ?? null, null);
+    assert.deepEqual((await Vehicle.findById(vehicle.id))?.leasedShipmentIds?.map((id) => id.toString()), [writtenId]);
+  });
+});
+
 test("legacy trips that share a vehicle are reported and left in place", async () => {
   await resetFixtures();
   const carrierUser = await requiredUser(carrierEmail);
@@ -353,6 +436,16 @@ test("startup recovery releases only a stranded lease", async () => {
   assert.equal(cleared?.leasedShipmentIds?.length ?? 0, 0);
   assert.equal(cleared?.leaseAcquiredAt ?? null, null);
 });
+
+async function waitForLease(vehicleId: string, shipmentId: string) {
+  const started = Date.now();
+  while (Date.now() - started < 5_000) {
+    const vehicle = await Vehicle.findById(vehicleId);
+    if (vehicle?.leasedShipmentIds?.some((id) => id.toString() === shipmentId)) return;
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  }
+  throw new Error("The in-flight lease was not acquired.");
+}
 
 async function withServer(run: (baseUrl: string) => Promise<void>) {
   const server = createServer(createApp());

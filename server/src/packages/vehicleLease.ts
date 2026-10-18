@@ -26,11 +26,11 @@ type LeaseSnapshot = {
  * The winning request is the findOneAndUpdate whose filter still sees an empty lease,
  * or the same single shipment id on a retry. A second shipment id does not match.
  * A legacy array with more than one id also does not match, so it is left unchanged.
+ * An in-flight lease stays in place while that assign can still write, including after
+ * the grace period. Startup reconcile is what releases a leftover lease once the
+ * process that took it is no longer running.
  */
 export async function reserveVehicleForShipment(carrierId: string, vehicleId: string, shipmentId: string) {
-  const acquired = await tryReserve(carrierId, vehicleId, shipmentId);
-  if (acquired) return acquired;
-  await releaseStrandedLeases(carrierId, vehicleId);
   return tryReserve(carrierId, vehicleId, shipmentId);
 }
 
