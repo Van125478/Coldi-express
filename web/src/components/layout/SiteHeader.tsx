@@ -3,6 +3,7 @@ import { Link, NavLink, useLocation } from "react-router-dom";
 import { authPath, paths } from "@/app/paths";
 import { useAuth } from "@/features/auth/useAuth";
 import { guestAccountAction } from "@/features/guest/guestHeaderAccount";
+import { publicPackageNav } from "@/features/packages/packageNavigation";
 import { cn } from "@/lib/cn";
 import { Icon } from "@/components/ui/Icon";
 import { Logo } from "@/components/ui/Logo";
@@ -77,7 +78,9 @@ export function SiteHeader() {
   const menuId = useId();
   const cinematic = location.pathname === paths.home;
   const { snapshot } = useAuth();
-  const account = guestAccountAction(snapshot.status === "authenticated" ? snapshot.user.role : null);
+  const role = snapshot.status === "authenticated" ? snapshot.user.role : null;
+  const account = guestAccountAction(role);
+  const packageNav = publicPackageNav(role);
   const accountClass = cn(
     "hidden min-h-11 items-center px-3 text-sm font-semibold min-[1200px]:inline-flex",
     account.kind === "workspace" ? "rounded-full border" : "",
@@ -124,6 +127,7 @@ export function SiteHeader() {
           <NavItem to={paths.shipments} cinematic={cinematic}>
             Tìm chuyến hàng
           </NavItem>
+          {packageNav ? <NavItem to={packageNav.href} cinematic={cinematic}>{packageNav.label}</NavItem> : null}
           <PublishLink
             className={cn(
               "whitespace-nowrap rounded-lg px-2.5 py-2 text-sm font-medium",
@@ -186,6 +190,13 @@ export function SiteHeader() {
                 </MobileLink>
               </li>
             ))}
+            {packageNav ? (
+              <li>
+                <MobileLink to={packageNav.href} cinematic={cinematic}>
+                  {packageNav.label}
+                </MobileLink>
+              </li>
+            ) : null}
             <li>
               <PublishLink
                 className={cn(
