@@ -4,9 +4,9 @@ These notes do not change the product. They are not included as behavior in the 
 
 ## INC-IMG-01 — Incident evidence upload
 
-Status: **WAITING FOR PRODUCT OWNER APPROVAL.**
+Status: **APPROVED as optional evidence. Retention period remains a technical proposal.**
 
-The incident MVP blocks evidence upload because storage and content checks were not ready. Cargo images for a new shipment (IMG-01) are a different rule and do not apply here.
+The Product Owner approved optional incident evidence photos. A report with no image is still valid. Cargo images for a new shipment remain a separate rule.
 
 Proposed later behavior, if approved:
 
