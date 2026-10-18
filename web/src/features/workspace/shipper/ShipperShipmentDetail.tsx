@@ -7,6 +7,7 @@ import { useAuth } from "@/features/auth/useAuth";
 import { lostSession } from "@/features/workspace/sessionLoss";
 import { civil, money, shipmentTone, windowText } from "@/features/workspace/format";
 import { ShipperChat } from "@/features/workspace/chat/ShipperChat";
+import { CommissionPanel } from "@/features/commission/CommissionPanel";
 import { ShipmentLocation } from "@/features/workspace/gps/ShipmentLocation";
 import { ShipmentTimeline } from "@/features/workspace/ShipmentTimeline";
 import { DetailBlock, FactLine, PageHeader, StatusBadge } from "@/features/workspace/ui";
@@ -116,6 +117,7 @@ export function ShipperShipmentDetail() {
                 <p className="text-2xl font-extrabold text-navy">{money(shipment.listedPriceVnd)}</p>
                 <p className="text-sm text-muted">Giá chủ hàng nhập khi đăng đơn. Chưa phải thanh toán.</p>
               </DetailBlock>
+              <CommissionPanel shipmentId={shipment.id} />
               <DetailBlock title="Phân công">
                 {shipment.vehicleId !== null && shipment.driverId !== null ? (
                   <>

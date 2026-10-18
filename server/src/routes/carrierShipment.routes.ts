@@ -2,6 +2,8 @@ import { Router } from "express";
 import { readCorrelationId, recordSuccessfulAudit } from "../audit/recordAudit.js";
 import { isValidObjectId } from "mongoose";
 import { claimDriverForAssignment, releaseDriverHold } from "../fleet/driverAccount.js";
+import { quoteForAccount, readExpectedPlanVersion, rememberEstimated } from "../commission/record.js";
+import { getEnv } from "../config/env.js";
 import { assertCarrierMayClaim } from "../packages/entitlements.js";
 import { releaseVehicleReservation, reserveVehicleForShipment, vehicleBusyMessage } from "../packages/vehicleLease.js";
 import { activeVehicleFilter, unfinishedShipmentStatuses } from "../packages/vehicleStatus.js";
@@ -19,7 +21,7 @@ import { compareMarketplaceShipments, marketplaceFilter, readMarketplaceQuery } 
 import { toTrackingDto } from "../gps/trackingView.js";
 import { attachTimeline, shipmentEventUpdate } from "../shipments/shipmentEvents.js";
 
-const forbiddenFields = ["carrierId", "status", "shipperId", "vehicleId", "driverId", "role", "tenantId", "senderId"] as const;
+const forbiddenFields = ["carrierId", "status", "shipperId", "vehicleId", "driverId", "role", "tenantId", "senderId", "rateBps", "calculatedFeeVnd", "planVersionId", "payerAccountId", "commission", "paymentCollected"] as const;
 
 export const carrierShipmentRouter = Router();
 
@@ -114,6 +116,13 @@ carrierShipmentRouter.post("/:id/claim", requireTrustedOrigin, async (request, r
 
     const occurredAt = new Date();
     await assertCarrierMayClaim(carrierId, occurredAt);
+    const expectedPlanVersionId = readExpectedPlanVersion(request.body);
+    const openShipment = getEnv().commissionSimulationAllowed
+      ? await Shipment.findById(id).select("listedPriceVnd")
+      : null;
+    const carrierSnapshot = openShipment
+      ? await quoteForAccount(carrierId, openShipment.listedPriceVnd, expectedPlanVersionId)
+      : null;
     const shipment = await Shipment.findOneAndUpdate(
       {
         _id: id,
@@ -121,7 +130,11 @@ carrierShipmentRouter.post("/:id/claim", requireTrustedOrigin, async (request, r
         $or: [{ carrierId: { $exists: false } }, { carrierId: null }],
       },
       shipmentEventUpdate(
-        { status: "MATCHED", carrierId },
+        {
+          status: "MATCHED",
+          carrierId,
+          ...(carrierSnapshot ? { "commission.carrier": carrierSnapshot, "commission.carrierStatus": "ESTIMATED" } : {}),
+        },
         {
           type: "CLAIMED",
           occurredAt,
@@ -138,6 +151,7 @@ carrierShipmentRouter.post("/:id/claim", requireTrustedOrigin, async (request, r
       if (!existing) throw new HttpError(404, "not_found", "Không tìm thấy đơn.");
       throw new HttpError(409, "conflict", "Đơn này đã có nhà xe nhận. Chuyến không còn mở.");
     }
+    if (carrierSnapshot) await rememberEstimated(shipment._id.toString(), carrierSnapshot);
 
     await recordSuccessfulAudit({
       action: "SHIPMENT_CLAIMED",

@@ -1,6 +1,6 @@
 # COLDI API
 
-API Node.js cho bản team testing trên máy local. Không phải production. Không phải MVP đã hoàn thành. Module gói có danh mục, quyền gói và kích hoạt Demo/QA. Chưa có sổ hoa hồng, báo cáo sự cố, giá dầu hay thanh toán thật.
+API Node.js cho bản team testing trên máy local. Không phải production. Không phải MVP đã hoàn thành. Module gói có danh mục, quyền gói và kích hoạt Demo/QA. Hoa hồng có snapshot và sổ cái mô phỏng, chỉ khi guard Demo/QA bật. Chưa có báo cáo sự cố, giá dầu hay thanh toán thật.
 
 Người mới cài máy theo [hướng dẫn nhóm](../docs/team-testing/TEAM_TESTING_GUIDE.md). File này giải thích API. SHA hiện tại lấy bằng `git rev-parse HEAD` sau `git pull`. Đừng dùng SHA cũ trong mục lịch sử làm HEAD.
 
@@ -38,6 +38,9 @@ Sửa `.env` trước `npm run dev`. Biến bắt buộc, kiểm tra trong `src/
 | `PACKAGE_DEMO_SELF_ACTIVATION_ENABLED` | Mặc định tắt. Bật chỉ khi mode là `qa` hoặc `demo`, hai mã triển khai khớp nhau, và tên database chứa `test`, `qa` hoặc `demo` |
 | `PACKAGE_DEMO_DEPLOYMENT_ID` | Mã triển khai Demo/QA, ít nhất 8 ký tự, phải trùng mã được cấp phép |
 | `PACKAGE_DEMO_AUTHORIZED_DEPLOYMENT_ID` | Mã được cấp phép, đặt riêng với mã triển khai. Một biến boolean không đủ để biến production thành demo |
+| `COMMISSION_SIMULATION_ENABLED` | Mặc định tắt. Bật chỉ khi mode là `qa` hoặc `demo`, hai mã triển khai khớp nhau, và tên database chứa `test`, `qa` hoặc `demo` |
+| `COMMISSION_SIMULATION_DEPLOYMENT_ID` | Mã môi trường ghi vào snapshot, ít nhất 8 ký tự, phải trùng mã được cấp phép |
+| `COMMISSION_SIMULATION_AUTHORIZED_DEPLOYMENT_ID` | Mã được cấp phép cho mô phỏng hoa hồng. Header hoặc query từ client không bật được cờ này |
 
 `NODE_ENV` không tự bật kích hoạt gói. Production mà bật cờ demo, hoặc đặt mode `qa`/`demo`, sẽ dừng lúc khởi động. Database `coldi` không được dùng cho kích hoạt demo. Trần xe dùng một document đếm: `activeCount` là xe đã ghi nhận, `holds` là suất đang giữ. Đối soát chỉ xóa suất quá hạn rồi chỉnh `activeCount` khi không còn suất đang giữ. Nếu lệnh tạo hoặc khôi phục xe vẫn chạy sau khi suất quá hạn bị gỡ, xe chỉ được giữ khi tổng xe hoạt động còn trong trần. Đây không phải transaction nhiều collection; replica set không được giả định. Mỗi xe chỉ giữ một chuyến chưa hoàn thành. Lệnh gán là một cập nhật nguyên tử trên bản ghi xe; xe đang giữ chuyến khác thì bị từ chối. Xác nhận giao hàng gỡ đúng chuyến đó. Lúc khởi động, hệ thống gỡ giữ đã mất chuyến hoặc đã kết thúc, và giữ nguyên chuyến còn hiệu lực. Xe nào đang gắn nhiều chuyến chưa hoàn thành thì được ghi nhận, không bị xóa chuyến.
 

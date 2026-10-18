@@ -6,6 +6,7 @@ import mongoose from "mongoose";
 import { hashPassword } from "../src/auth/password.js";
 import { reconcileIncidentArtifacts } from "../src/incidents/service.js";
 import { evaluateReminder } from "../src/incidents/lifecycle.js";
+import { CommissionLedgerEvent } from "../src/models/commissionLedger.js";
 import { Incident } from "../src/models/incident.js";
 import { IncidentEvent } from "../src/models/incidentEvent.js";
 import { IncidentNotification } from "../src/models/incidentNotification.js";
@@ -592,7 +593,8 @@ test("incident reporting http", { concurrency: false }, async (t) => {
       assert.equal(during?.vehicleId?.toString(), vehicleId);
       assert.equal(await Vehicle.countDocuments(), vehiclesBefore);
       assert.equal(await PlanAuditEvent.countDocuments(), auditsBefore);
-      assert.equal(mongoose.modelNames().some((name) => name.toLowerCase().includes("commission")), false);
+      assert.equal(during?.commission, undefined);
+      assert.equal(await CommissionLedgerEvent.countDocuments({ shipmentId }), 0);
 
       const second = await publish(baseUrl, shipperCookie, "Hàng thứ hai cùng xe");
       assert.equal((await request(baseUrl, `/api/carrier/shipments/${String(second.id)}/claim`, carrierCookie, "POST", {})).status, 200);
@@ -614,6 +616,8 @@ test("incident reporting http", { concurrency: false }, async (t) => {
       const delivered = await Shipment.findById(shipmentId);
       assert.equal(delivered?.status, "DELIVERY_CONFIRMED");
       assert.equal(delivered?.listedPriceVnd, 6200000);
+      assert.equal(delivered?.commission, undefined);
+      assert.equal(await CommissionLedgerEvent.countDocuments({ shipmentId }), 0);
       assert.equal((await Incident.findById(incidentId))?.status, "OPEN");
       const late = await createCase(baseUrl, shipperCookie, shipmentId, "OTHER");
       assert.equal(late.response.status, 409);

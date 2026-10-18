@@ -18,21 +18,32 @@ export const paths = {
   shipperShipments: "/shipper/don-hang",
   shipperPlan: "/shipper/goi",
   shipperIncidents: "/shipper/su-co",
+  shipperCommission: "/shipper/hoa-hong",
   packages: "/goi-dich-vu",
   carrierHome: "/carrier",
   carrierFind: "/carrier/tim-chuyen",
   carrierTrips: "/carrier/chuyen-cua-toi",
+  carrierTrip: "/carrier/chuyen",
   carrierFleet: "/carrier/doi-xe",
   carrierFleetNew: "/carrier/doi-xe/xe/moi",
   carrierDrivers: "/carrier/doi-xe/tai-xe",
   carrierPlan: "/carrier/goi",
   carrierIncidents: "/carrier/su-co",
+  carrierCommission: "/carrier/hoa-hong",
   driverHome: "/driver",
   driverTrips: "/driver/chuyen",
   driverPassword: "/driver/doi-mat-khau",
   driverIncidents: "/driver/su-co",
   adminHome: "/admin",
 } as const;
+
+export function shipperShipmentPath(shipmentId: string): string {
+  return `${paths.shipperShipments}/${shipmentId}`;
+}
+
+export function carrierTripPath(shipmentId: string): string {
+  return `${paths.carrierTrip}/${shipmentId}`;
+}
 
 export function carrierVehiclePath(vehicleId: string): string {
   return `${paths.carrierFleet}/xe/${vehicleId}`;

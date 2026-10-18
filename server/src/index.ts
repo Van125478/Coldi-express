@@ -3,6 +3,7 @@ import { createServer } from "node:http";
 import { createApp } from "./app.js";
 import { connectDatabase, disconnectDatabase } from "./config/database.js";
 import { getEnv } from "./config/env.js";
+import { reconcileCommissionOutbox } from "./commission/record.js";
 import { reconcileIncidentArtifacts } from "./incidents/service.js";
 import { reconcileAllFleetCapacities } from "./packages/fleetCapacity.js";
 import { reconcileVehicleLeases } from "./packages/vehicleLease.js";
@@ -24,6 +25,13 @@ if (!connected) {
     await reconcileVehicleLeases();
   } catch (error) {
     console.error("Vehicle lease reconcile did not finish.", error);
+  }
+  if (env.commissionSimulationAllowed) {
+    try {
+      await reconcileCommissionOutbox();
+    } catch (error) {
+      console.error("Commission outbox reconcile did not finish.", error instanceof Error ? error.name : "error");
+    }
   }
   try {
     await reconcileIncidentArtifacts();

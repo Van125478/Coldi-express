@@ -1,6 +1,8 @@
 import { Router } from "express";
 import { readCorrelationId, recordSuccessfulAudit } from "../audit/recordAudit.js";
 import { isValidObjectId } from "mongoose";
+import { quoteForAccount, readExpectedPlanVersion, rememberEstimated } from "../commission/record.js";
+import { getEnv } from "../config/env.js";
 import { HttpError } from "../middlewares/errorHandler.js";
 import { requireAuth } from "../middlewares/requireAuth.js";
 import { requireOperationalSession } from "../middlewares/requireOperational.js";
@@ -18,14 +20,21 @@ shipmentRouter.use(requireAuth, requireOperationalSession, requireRole("SHIPPER"
 
 shipmentRouter.post("/", requireTrustedOrigin, async (request, response, next) => {
   try {
+    const expectedPlanVersionId = readExpectedPlanVersion(request.body);
     const input = readPublishInput(request.body);
     const shipperId = request.authUser?.id;
     if (!shipperId) throw new HttpError(401, "unauthenticated", "Cần đăng nhập để tiếp tục.");
     const occurredAt = new Date();
+    const shipperSnapshot = getEnv().commissionSimulationAllowed
+      ? await quoteForAccount(shipperId, input.listedPriceVnd, expectedPlanVersionId)
+      : null;
     const shipment = await Shipment.create({
       ...input,
       shipperId,
       status: "PUBLISHED",
+      ...(shipperSnapshot
+        ? { commission: { shipper: shipperSnapshot, shipperStatus: "ESTIMATED", carrierStatus: "ABSENT" } }
+        : {}),
       events: [
         {
           type: "PUBLISHED",
@@ -37,6 +46,7 @@ shipmentRouter.post("/", requireTrustedOrigin, async (request, response, next) =
         },
       ],
     });
+    if (shipperSnapshot) await rememberEstimated(shipment._id.toString(), shipperSnapshot);
     await recordSuccessfulAudit({
       action: "SHIPMENT_PUBLISHED",
       actorId: shipperId,

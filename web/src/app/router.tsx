@@ -38,6 +38,7 @@ import { IncidentDetailPage } from "@/features/incidents/IncidentDetailPage";
 import { IncidentListPage } from "@/features/incidents/IncidentListPage";
 import { ReportIncidentPage } from "@/features/incidents/ReportIncidentPage";
 import { AccountPlanPage } from "@/features/packages/AccountPlanPage";
+import { CommissionHistoryPage } from "@/features/commission/CommissionHistoryPage";
 import { PackageCatalogPage } from "@/features/packages/PackageCatalogPage";
 
 export const router = createBrowserRouter([
@@ -57,6 +58,7 @@ export const router = createBrowserRouter([
           { path: "/shipper/su-co", element: <IncidentListPage /> },
           { path: "/shipper/su-co/moi", element: <ReportIncidentPage /> },
           { path: "/shipper/su-co/:id", element: <IncidentDetailPage /> },
+          { path: "/shipper/hoa-hong", element: <CommissionHistoryPage /> },
           { path: "/shipper/goi", element: <AccountPlanPage /> },
         ],
       },
@@ -75,6 +77,7 @@ export const router = createBrowserRouter([
           { path: "/carrier/su-co", element: <IncidentListPage /> },
           { path: "/carrier/su-co/moi", element: <ReportIncidentPage /> },
           { path: "/carrier/su-co/:id", element: <IncidentDetailPage /> },
+          { path: "/carrier/hoa-hong", element: <CommissionHistoryPage /> },
           { path: "/carrier/doi-xe", element: <CarrierVehicles /> },
           { path: "/carrier/doi-xe/xe/moi", element: <CarrierVehicleForm mode="create" /> },
           { path: "/carrier/doi-xe/xe/:id", element: <CarrierVehicleDetail /> },

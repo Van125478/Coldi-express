@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { AlertTriangle, ClipboardList, Container, Layers, LayoutDashboard, PackagePlus, Route, Search, Truck, Users } from "lucide-react";
+import { AlertTriangle, ClipboardList, Container, Layers, LayoutDashboard, PackagePlus, Receipt, Route, Search, Truck, Users } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 import { paths } from "@/app/paths";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ const navigation: Record<BusinessRole, readonly { to: string; label: string; ico
     { to: paths.shipperCreate, label: "Tạo đơn", icon: PackagePlus },
     { to: paths.shipperShipments, label: "Quản lý đơn", icon: ClipboardList },
     { to: paths.shipperIncidents, label: "Sự cố", icon: AlertTriangle },
+    { to: paths.shipperCommission, label: "Hoa hồng", icon: Receipt },
     { to: paths.shipperPlan, label: "Gói dịch vụ", icon: Layers },
   ],
   CARRIER: [
@@ -29,6 +30,7 @@ const navigation: Record<BusinessRole, readonly { to: string; label: string; ico
     { to: paths.carrierFind, label: "Tìm chuyến", icon: Search },
     { to: paths.carrierTrips, label: "Chuyến của tôi", icon: Route },
     { to: paths.carrierIncidents, label: "Sự cố", icon: AlertTriangle },
+    { to: paths.carrierCommission, label: "Hoa hồng", icon: Receipt },
     { to: paths.carrierFleet, label: "Đội xe", icon: Container },
     { to: paths.carrierDrivers, label: "Tài xế", icon: Users },
     { to: paths.carrierPlan, label: "Gói dịch vụ", icon: Layers },

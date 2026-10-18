@@ -2,17 +2,19 @@
 
 COLDI là website vận tải lạnh cho doanh nghiệp. Chủ hàng đăng đơn. Nhà xe tự nhận chuyến rồi phân công xe và tài xế. Tài xế được phân công xác nhận lấy hàng, sau đó xác nhận giao hàng. Xác nhận giao không phải thanh toán.
 
-**Tài liệu nghiệp vụ hiện hành là v2.10.** Bộ v2.7, v2.6 và hồ sơ v2.4 là tài liệu trước đó. Code trên nhánh này là **WIP / Team Testing**. Đây không phải bản phát hành ứng dụng v2.10 và không phải bản production. MVP chưa hoàn thành. Package Management đã có mã. Commission và Oil Price chưa được triển khai trên nhánh này. Incident reporting có bản MVP kỹ thuật, giao diện chưa được nghiệm thu. Thanh toán production không hoạt động.
+**Tài liệu nghiệp vụ hiện hành là v2.10.** Bộ v2.7, v2.6 và hồ sơ v2.4 là tài liệu trước đó. Code trên nhánh này là **WIP / Team Testing**. Đây không phải bản phát hành ứng dụng v2.10 và không phải bản production. MVP chưa hoàn thành. Package Management đã có mã. Commission Management MVP là mô phỏng Demo/QA: khóa tỷ lệ lúc đăng hoặc nhận chuyến, ghi nhận khi giao hàng, không thu tiền. Incident reporting có bản MVP kỹ thuật, giao diện chưa được nghiệm thu. Oil Price chưa được triển khai. Thanh toán production không hoạt động.
 
 ## Người mới đọc theo thứ tự này
 
 1. [Cài đặt và chạy máy](docs/team-testing/TEAM_TESTING_GUIDE.md) — Git, Node.js, MongoDB, file cấu hình, mở website.
 2. [Cách dùng từng vai trò](docs/team-testing/USER_GUIDE_BEGINNERS.md) — chủ hàng, nhà xe, tài xế, chat, GPS, kịch bản thử từ đầu đến cuối.
 3. [Khi gặp lỗi](docs/team-testing/TROUBLESHOOTING.md) — triệu chứng, cách kiểm tra, cách xử lý an toàn.
-4. [Tài liệu nghiệp vụ v2.10](docs/v2.10/README.md) — Package đã có mã, backlog UAT và nghiệm thu desktop. Hoa hồng và giá dầu đã duyệt nhưng chưa code trên nhánh này. Báo cáo sự cố: [bàn giao kỹ thuật](docs/incident/MVP_HANDOFF.md).
-5. [Chính sách v2.7](docs/v2.7/README.md) — giá, gói và hoa hồng lúc PR #5. Trạng thái mới hơn nằm ở v2.10.
-6. [Tài liệu v2.6](docs/v2.6/README.md) — bộ đã merge trong PR #4. Chính sách giá và hoa hồng trong đó đã được v2.7 thay.
-7. [Trạng thái MVP 18/10/2026](docs/mvp-review/MVP_STATUS_2026-10-18.md) — ảnh chụp phần nào đã có mã tại baseline trước bộ v2.6. Không thay chính sách v2.10.
+4. [Tài liệu nghiệp vụ v2.10](docs/v2.10/README.md) — chính sách hiện hành. Package đã có mã. Hoa hồng mô phỏng và báo cáo sự cố có bàn giao kỹ thuật riêng, không sửa chính sách v2.10.
+5. [Handoff hoa hồng mô phỏng](docs/commission/MVP_HANDOFF.md) — snapshot, sổ cái, API, guard Demo/QA và phần còn OPEN.
+6. [Bàn giao sự cố](docs/incident/MVP_HANDOFF.md) — báo cáo, trạng thái và phần còn bị chặn.
+7. [Chính sách v2.7](docs/v2.7/README.md) — giá, gói và hoa hồng lúc PR #5. Trạng thái mới hơn nằm ở v2.10.
+8. [Tài liệu v2.6](docs/v2.6/README.md) — bộ đã merge trong PR #4. Chính sách giá và hoa hồng trong đó đã được v2.7 thay.
+9. [Trạng thái MVP 18/10/2026](docs/mvp-review/MVP_STATUS_2026-10-18.md) — ảnh chụp phần nào đã có mã tại baseline trước bộ v2.6. Không thay chính sách v2.10.
 
 Chi tiết API nằm ở [server/README.md](server/README.md). Biến môi trường kỹ thuật của đợt Core 08 nằm ở [docs/core-08/01-thiet-lap.md](docs/core-08/01-thiet-lap.md). File Core 08 là hồ sơ kỹ thuật, không thay hướng dẫn cài đặt ở trên.
 
