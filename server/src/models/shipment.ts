@@ -117,6 +117,7 @@ const shipmentSchema = new Schema(
     temperatureGroup: { type: String, required: true, enum: temperatureGroups },
     vehicleRequirement: { type: String, required: true, trim: true },
     listedPriceVnd: { type: Number, required: true },
+    cargoImageIds: [{ type: Schema.Types.ObjectId, ref: "CargoImage" }],
     status: { type: String, required: true, enum: shipmentStatuses },
     carrierId: { type: Schema.Types.ObjectId, ref: "User" },
     vehicleId: { type: Schema.Types.ObjectId, ref: "Vehicle" },

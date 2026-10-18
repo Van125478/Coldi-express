@@ -27,6 +27,7 @@ export type ShipmentDto = {
   temperatureLabel: string;
   vehicleRequirement: string;
   listedPriceVnd: number;
+  cargoImages: { id: string }[];
   status: ShipmentStatus;
   statusLabel: string;
   carrierId: string | null;
@@ -78,6 +79,7 @@ export type ShipmentRecord = {
   temperatureGroup: TemperatureGroup;
   vehicleRequirement: string;
   listedPriceVnd: number;
+  cargoImageIds?: { toString(): string }[] | null;
   status: ShipmentStatus;
   carrierId?: { toString(): string } | null;
   vehicleId?: { toString(): string } | null;
@@ -144,6 +146,7 @@ export function toShipmentDto(
     temperatureLabel: temperatureLabels[shipment.temperatureGroup],
     vehicleRequirement: shipment.vehicleRequirement,
     listedPriceVnd: shipment.listedPriceVnd,
+    cargoImages: (shipment.cargoImageIds ?? []).map((id) => ({ id: id.toString() })),
     status: shipment.status,
     statusLabel: shipmentStatusLabel(shipment.status, assigned),
     carrierId: idOrNull(shipment.carrierId),
@@ -182,6 +185,7 @@ export type CarrierShipmentDto = {
   temperatureLabel: string;
   vehicleRequirement: string;
   listedPriceVnd: number;
+  cargoImages: { id: string }[];
   status: ShipmentStatus;
   statusLabel: string;
   carrierId: string | null;
@@ -224,6 +228,7 @@ export function toCarrierShipmentDto(
     temperatureLabel: dto.temperatureLabel,
     vehicleRequirement: dto.vehicleRequirement,
     listedPriceVnd: dto.listedPriceVnd,
+    cargoImages: dto.cargoImages,
     status: dto.status,
     statusLabel: dto.statusLabel,
     carrierId: dto.carrierId,

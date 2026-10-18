@@ -4,6 +4,7 @@ import { paths } from "@/app/paths";
 import { reportableShipmentStatuses, reportIncidentPath } from "@/features/incidents/incidentCopy";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/features/auth/useAuth";
+import { CargoImageGallery } from "@/features/shipments/CargoImageGallery";
 import { driverActionLabel } from "@/features/workspace/driver/driverLanes";
 import { lostSession } from "@/features/workspace/sessionLoss";
 import { money, shipmentTone, windowText } from "@/features/workspace/format";
@@ -153,6 +154,7 @@ export function DriverTripDetail() {
               </DetailBlock>
               <DetailBlock title="Hàng hóa và xe">
                 <p className="text-lg font-bold leading-snug text-ink">{shipment.cargoDescription}</p>
+                <CargoImageGallery images={shipment.cargoImages} />
                 <p className="text-sm leading-relaxed text-ink">
                   {shipment.temperatureLabel}
                   {" · "}

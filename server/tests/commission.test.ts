@@ -1,3 +1,4 @@
+import { withRequiredCargoImage } from "./support/cargoImage.js";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { once } from "node:events";
@@ -135,7 +136,7 @@ async function publish(baseUrl: string, cookie: string, cargo: string, price = 1
   const response = await fetch(`${baseUrl}/api/shipments`, {
     method: "POST",
     headers: headers(cookie, true),
-    body: JSON.stringify(shipmentBody(cargo, price, extra)),
+    body: JSON.stringify(await withRequiredCargoImage(baseUrl, cookie, shipmentBody(cargo, price, extra))),
   });
   const body = (await response.json()) as Json & { error?: { code?: string } };
   return { status: response.status, body };
@@ -655,7 +656,7 @@ test("COM-T27 and a disabled simulation flag do not open a payment path", async 
       const bypass = await fetch(`${baseUrl}/api/shipments?commissionSimulation=true`, {
         method: "POST",
         headers: headers(shipper, true, { "x-commission-simulation": "true" }),
-        body: JSON.stringify(shipmentBody("Đơn header bỏ qua", 10_000_000)),
+        body: JSON.stringify(await withRequiredCargoImage(baseUrl, shipper, shipmentBody("Đơn header bỏ qua", 10_000_000))),
       });
       assert.equal(bypass.status, 201);
       const bypassBody = (await bypass.json()) as { shipment: { id: string } };

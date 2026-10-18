@@ -7,6 +7,8 @@ import { EmptyPanel, PageHeader } from "@/features/workspace/ui";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import type { CarrierVehicle } from "@/models/publishedShipment";
 import { ApiError } from "@/services/apiClient";
+import { operatingVehicleText } from "@/features/packages/planPresentation";
+import { getMyPlan, type Entitlements } from "@/services/packageService";
 import { archiveCarrierVehicle, listCarrierVehicles, restoreCarrierVehicle } from "@/services/shipmentService";
 
 export function CarrierVehicles() {
@@ -16,22 +18,28 @@ export function CarrierVehicles() {
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [plan, setPlan] = useState<Entitlements | null>(null);
+  const [planState, setPlanState] = useState<"loading" | "ready" | "error">("loading");
 
   function reload() {
-    return listCarrierVehicles().then((body) => {
+    const vehiclesTask = listCarrierVehicles().then((body) => {
       setVehicles(body.vehicles);
       setState("ready");
     });
+    const planTask = getMyPlan()
+      .then((body) => {
+        setPlan(body.entitlements);
+        setPlanState("ready");
+      })
+      .catch(() => {
+        setPlanState("error");
+      });
+    return Promise.all([vehiclesTask, planTask]);
   }
 
   useEffect(() => {
     let active = true;
-    listCarrierVehicles()
-      .then((body) => {
-        if (!active) return;
-        setVehicles(body.vehicles);
-        setState("ready");
-      })
+    reload()
       .catch(() => {
         if (active) setState("error");
       });
@@ -81,6 +89,17 @@ export function CarrierVehicles() {
         }
       />
       <FleetNav current="vehicles" />
+      {planState === "ready" && plan ? (
+        <article className="rounded-2xl border border-line bg-surface px-5 py-4">
+          <p className="text-sm font-semibold text-navy">{plan.planName ?? "Gói hiện tại"}</p>
+          <p className="mt-1 text-lg font-extrabold text-ink">{operatingVehicleText(plan.activeVehicleCount, plan.vehicleCap)}</p>
+          {plan.overLimit ? <p className="mt-2 text-sm font-semibold text-ink">OVER_LIMIT. Không thêm xe hoạt động mới cho đến khi số xe nằm trong trần.</p> : null}
+          <Link to={paths.carrierPlan} className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-navy underline-offset-4 hover:underline">
+            Xem hoặc quản lý gói
+          </Link>
+        </article>
+      ) : null}
+      {planState === "error" ? <p role="alert" className="text-sm text-ink">Không tải được hạn mức xe từ máy chủ.</p> : null}
       {notice ? (
         <p role="status" className="text-sm text-ink">
           {notice}

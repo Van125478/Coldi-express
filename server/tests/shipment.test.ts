@@ -4,6 +4,7 @@ import { once } from "node:events";
 import test, { before, after } from "node:test";
 import mongoose from "mongoose";
 import { hashPassword } from "../src/auth/password.js";
+import { withRequiredCargoImage } from "./support/cargoImage.js";
 import { Shipment } from "../src/models/shipment.js";
 import { User } from "../src/models/user.js";
 
@@ -87,7 +88,7 @@ async function publish(baseUrl: string, cookie: string | null, body: unknown, or
       origin,
       ...(cookie ? { cookie } : {}),
     },
-    body: JSON.stringify(body),
+    body: JSON.stringify(await withRequiredCargoImage(baseUrl, cookie, body)),
   });
 }
 

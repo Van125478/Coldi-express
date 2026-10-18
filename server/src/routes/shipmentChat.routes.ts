@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { isValidObjectId } from "mongoose";
-import { appendMessage, listShipperConversations, readAfter, readMessages } from "../chat/conversations.js";
+import { appendMessage, listShipperConversations, openShipperConversation, readAfter, readMessages } from "../chat/conversations.js";
 import { readMessageBody } from "../chat/messageInput.js";
 import { HttpError } from "../middlewares/errorHandler.js";
 import { requireAuth } from "../middlewares/requireAuth.js";
@@ -11,6 +11,21 @@ import { requireRole } from "../middlewares/requireRole.js";
 export const shipmentChatRouter = Router();
 
 shipmentChatRouter.use(requireAuth, requireOperationalSession, requireRole("SHIPPER"));
+
+shipmentChatRouter.post("/:id/conversations", requireTrustedOrigin, async (request, response, next) => {
+  try {
+    const shipperId = request.authUser?.id;
+    if (!shipperId) throw new HttpError(401, "unauthenticated", "Cần đăng nhập để tiếp tục.");
+    const body = request.body;
+    if (body != null && (typeof body !== "object" || Array.isArray(body) || Object.keys(body as object).length > 0)) {
+      throw new HttpError(400, "invalid_request", "Yêu cầu chứa trường không được phép.");
+    }
+    const conversation = await openShipperConversation(routeId(request.params.id, "Không tìm thấy đơn này."), shipperId);
+    response.status(200).json({ conversation });
+  } catch (error) {
+    next(error);
+  }
+});
 
 shipmentChatRouter.get("/:id/conversations", async (request, response, next) => {
   try {

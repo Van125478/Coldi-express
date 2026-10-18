@@ -5,7 +5,7 @@ import { requireAuth } from "../middlewares/requireAuth.js";
 import { requireOperationalSession } from "../middlewares/requireOperational.js";
 import { requireTrustedOrigin } from "../middlewares/requireOrigin.js";
 import { requireRole } from "../middlewares/requireRole.js";
-import { activateDemoPlan, scheduleDowngradeToFree } from "../packages/activation.js";
+import { activateDemoPlan, endDemoPlanNow, scheduleDowngradeToFree } from "../packages/activation.js";
 import { planCatalog, toCatalogDto } from "../packages/catalog.js";
 import { resolveAccountEntitlements } from "../packages/entitlements.js";
 import { ensurePublishedCatalog } from "../packages/publishCatalog.js";
@@ -60,6 +60,20 @@ if (getEnv().demoSelfActivationAllowed) {
       const planCode = body.planCode;
       if (typeof planCode !== "string") throw new HttpError(400, "invalid_request", "Thiếu mã gói.");
       const result = await activateDemoPlan(accountId(request.authUser?.id), planCode, readKey(body));
+      response.status(200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  packageRouter.post("/my-plan/demo-end", requireAuth, requireOperationalSession, requireTrustedOrigin, requireRole("SHIPPER", "CARRIER"), async (request, response, next) => {
+    try {
+      if (!getEnv().demoSelfActivationAllowed) {
+        throw new HttpError(403, "demo_activation_unavailable", "Môi trường này không được tự kết thúc gói Demo.");
+      }
+      const body = readObject(request.body);
+      rejectClientCommercialFields(body, ["idempotencyKey"]);
+      const result = await endDemoPlanNow(accountId(request.authUser?.id), readKey(body));
       response.status(200).json(result);
     } catch (error) {
       next(error);

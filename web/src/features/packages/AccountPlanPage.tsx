@@ -8,7 +8,7 @@ import { PageHeader } from "@/features/workspace/ui";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { cn } from "@/lib/cn";
 import { ApiError } from "@/services/apiClient";
-import { activateDemoPlan, getMyPlan, listPackageCatalog, scheduleDowngrade, type Entitlements, type PackagePlan, type PlanView } from "@/services/packageService";
+import { activateDemoPlan, endDemoPlan, getMyPlan, listPackageCatalog, scheduleDowngrade, type Entitlements, type PackagePlan, type PlanView } from "@/services/packageService";
 
 type Notice = { tone: "status" | "alert"; text: string };
 
@@ -20,6 +20,7 @@ export function AccountPlanPage() {
   const [notice, setNotice] = useState<Notice | null>(null);
   const [pendingCode, setPendingCode] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const [confirmEnd, setConfirmEnd] = useState(false);
 
   function load() {
     return Promise.all([listPackageCatalog(), getMyPlan()]).then(([catalog, mine]) => {
@@ -61,6 +62,21 @@ export function AccountPlanPage() {
     }
   }
 
+  async function endDemo() {
+    setNotice(null);
+    setPendingCode("end-demo");
+    try {
+      const result = await endDemoPlan(crypto.randomUUID());
+      setConfirmEnd(false);
+      setNotice({ tone: "status", text: `Đã kết thúc gói Demo và về Free. ${result.label}.` });
+      await load();
+    } catch (error) {
+      setNotice({ tone: "alert", text: error instanceof ApiError ? error.message : "Không kết thúc được gói Demo." });
+    } finally {
+      setPendingCode(null);
+    }
+  }
+
   async function downgrade() {
     setNotice(null);
     setPendingCode("downgrade");
@@ -79,6 +95,8 @@ export function AccountPlanPage() {
   const carrier = entitlements?.role === "CARRIER";
   const [viewedAt] = useState(() => Date.now());
   const term = current ? termCopy(current.plan.endsAt, new Date(viewedAt)) : null;
+  const paidInTerm = Boolean(current?.plan.demo) && term?.tone === "open";
+  const downgradeScheduled = Boolean(current?.plan.scheduledDowngradeAt);
 
   return (
     <section className="space-y-6">
@@ -132,9 +150,19 @@ export function AccountPlanPage() {
             <Link to={paths.packages} className={cn("inline-flex min-h-11 items-center text-sm font-semibold underline-offset-4 hover:underline", entitlements.overLimit || term.tone === "expired" ? "text-navy" : "text-white")}>
               Bảng giá công khai
             </Link>
-            {current.plan.demo ? (
+            {paidInTerm && downgradeScheduled ? (
+              <p className={cn("inline-flex min-h-11 items-center text-sm font-semibold", entitlements.overLimit ? "text-ink" : "text-white")}>
+                Đã đặt lịch về Free · {formatWhen(current.plan.scheduledDowngradeAt ?? "")}
+              </p>
+            ) : null}
+            {paidInTerm && !downgradeScheduled ? (
               <Button type="button" variant="outline" className={entitlements.overLimit || term.tone === "expired" ? "" : "border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white"} disabled={pendingCode !== null} onClick={() => void downgrade()}>
                 Đặt lịch về Free cuối kỳ
+              </Button>
+            ) : null}
+            {entitlements.demoActivationAvailable && paidInTerm ? (
+              <Button type="button" variant="outline" className={entitlements.overLimit ? "" : "border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white"} disabled={pendingCode !== null} onClick={() => setConfirmEnd(true)}>
+                Kết thúc gói Demo và về Free ngay
               </Button>
             ) : null}
           </div>
@@ -146,21 +174,24 @@ export function AccountPlanPage() {
           <p className="max-w-2xl text-sm leading-relaxed text-muted">Demo — không phát sinh thanh toán. Đổi gói trả phí giữa kỳ chưa được hỗ trợ. Nút bên dưới chỉ đổi gói trên môi trường Demo được cấp phép.</p>
           <ul className="grid gap-3 lg:grid-cols-2">
             {plans.filter((plan) => !plan.code.endsWith("-free")).map((plan) => {
-              const active = current?.plan.code === plan.code;
+              const active = current?.plan.code === plan.code && paidInTerm;
+              const blocked = paidInTerm && !active;
               const price = priceBlock(plan);
               const vehicles = vehicleCapText(plan);
               return (
                 <li key={plan.code} className={cn("rounded-2xl border bg-surface p-4", active ? "border-navy" : "border-line")}>
                   <div className="flex items-start justify-between gap-3">
                     <h3 className="font-bold text-ink">{planTitle(plan)}</h3>
-                    {active ? <span className="rounded-full bg-navy px-3 py-1 text-xs font-semibold text-white">Đang dùng</span> : null}
+                    {active ? <span className="rounded-full bg-navy px-3 py-1 text-xs font-semibold text-white">Đang sử dụng</span> : null}
+                    {blocked ? <span className="rounded-full border border-line px-3 py-1 text-xs font-semibold text-ink">Chưa hỗ trợ đổi giữa kỳ</span> : null}
                   </div>
                   <p className="mt-2 text-lg font-extrabold text-navy">{price.amount}</p>
                   <p className="text-sm text-muted">{price.cycle}</p>
                   <p className="mt-2 text-sm font-semibold text-ink">Hoa hồng {commissionText(plan)}</p>
                   {vehicles ? <p className="text-sm text-ink">{vehicles}</p> : null}
                   {plan.quoteRequired ? <p className="mt-3 text-sm leading-relaxed text-ink">Liên hệ báo giá. Điều khoản hợp đồng không nhập từ màn hình này.</p> : null}
-                  {plan.quoteRequired || active ? null : (
+                  {blocked ? <p className="mt-3 text-sm leading-relaxed text-ink">Đổi giữa hai gói trả phí trong kỳ hạn chưa được duyệt. Có thể đặt lịch về Free khi hết kỳ.</p> : null}
+                  {plan.quoteRequired || active || blocked ? null : (
                     <Button type="button" className="mt-3" disabled={pendingCode !== null} onClick={() => void activate(plan)}>
                       Kích hoạt bản Demo
                     </Button>
@@ -172,6 +203,18 @@ export function AccountPlanPage() {
         </div>
       ) : state === "ready" ? (
         <p className="text-sm text-muted">Môi trường này không mở tự kích hoạt gói trả phí.</p>
+      ) : null}
+      {confirmEnd ? (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-[#1E293B]/40 p-4 sm:items-center">
+          <div role="dialog" aria-modal="true" aria-labelledby="end-demo-title" className="w-full max-w-md rounded-2xl border border-line bg-surface p-5">
+            <h2 id="end-demo-title" className="text-lg font-bold text-ink">Kết thúc gói Demo và về Free ngay</h2>
+            <p className="mt-3 text-sm leading-relaxed text-ink">Thao tác chỉ có trên môi trường Demo được máy chủ cho phép. Lịch sử gói được giữ. Chuyến đang chạy và xe không bị xóa. Nếu số xe hoạt động vượt trần Free, tài khoản chuyển OVER_LIMIT.</p>
+            <div className="mt-5 flex flex-wrap gap-2">
+              <Button type="button" variant="outline" disabled={pendingCode !== null} onClick={() => setConfirmEnd(false)}>Huỷ</Button>
+              <Button type="button" disabled={pendingCode !== null} onClick={() => void endDemo()}>{pendingCode === "end-demo" ? "Đang xử lý" : "Xác nhận về Free"}</Button>
+            </div>
+          </div>
+        </div>
       ) : null}
     </section>
   );

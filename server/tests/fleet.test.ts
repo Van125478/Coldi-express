@@ -1,3 +1,4 @@
+import { withRequiredCargoImage } from "./support/cargoImage.js";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { once } from "node:events";
@@ -67,7 +68,7 @@ async function publish(baseUrl: string, cookie: string) {
   const response = await fetch(`${baseUrl}/api/shipments`, {
     method: "POST",
     headers: { "content-type": "application/json", origin: "http://127.0.0.1:5173", cookie },
-    body: JSON.stringify({
+    body: JSON.stringify(await withRequiredCargoImage(baseUrl, cookie, {
       cargoDescription: "Hàng kiểm tra đội xe",
       pickupLocation: "Cái Bè, Tiền Giang",
       deliveryLocation: "Thủ Đức, TP. Hồ Chí Minh",
@@ -89,7 +90,7 @@ async function publish(baseUrl: string, cookie: string) {
       cargoWeightTon: 2.5,
       cargoVolumeM3: 12,
       packageCount: 180,
-    }),
+    })),
   });
   assert.equal(response.status, 201);
   return ((await response.json()) as Json).shipment as Json;

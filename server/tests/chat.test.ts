@@ -1,3 +1,4 @@
+import { withRequiredCargoImage } from "./support/cargoImage.js";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { once } from "node:events";
@@ -60,7 +61,7 @@ async function publish(baseUrl: string, cookie: string) {
   const response = await fetch(`${baseUrl}/api/shipments`, {
     method: "POST",
     headers: { "content-type": "application/json", origin: "http://127.0.0.1:5173", cookie },
-    body: JSON.stringify({
+    body: JSON.stringify(await withRequiredCargoImage(baseUrl, cookie, {
       cargoDescription: "Hàng kiểm tra chat",
       pickupLocation: "Cái Bè, Tiền Giang",
       deliveryLocation: "Thủ Đức, TP. Hồ Chí Minh",
@@ -83,7 +84,7 @@ async function publish(baseUrl: string, cookie: string) {
       cargoWeightTon: 2.5,
       cargoVolumeM3: 12,
       packageCount: 180,
-    }),
+    })),
   });
   assert.equal(response.status, 201);
   return ((await response.json()) as Json).shipment as Json;
@@ -91,6 +92,14 @@ async function publish(baseUrl: string, cookie: string) {
 
 function openChat(baseUrl: string, cookie: string, shipmentId: string, extra: Json = {}) {
   return fetch(`${baseUrl}/api/carrier/conversations/by-shipment/${shipmentId}`, {
+    method: "POST",
+    headers: { "content-type": "application/json", origin: "http://127.0.0.1:5173", cookie },
+    body: JSON.stringify(extra),
+  });
+}
+
+function openAsShipper(baseUrl: string, cookie: string, shipmentId: string, extra: Json = {}) {
+  return fetch(`${baseUrl}/api/shipments/${shipmentId}/conversations`, {
     method: "POST",
     headers: { "content-type": "application/json", origin: "http://127.0.0.1:5173", cookie },
     body: JSON.stringify(extra),
@@ -218,6 +227,56 @@ test("unauthorized roles, forged identity, and invalid messages are rejected", a
     assert.equal(missing.status, 404);
     const kept = await Message.countDocuments({ conversationId });
     assert.equal(kept, 0);
+  });
+});
+
+test("the owning shipper opens one conversation with the carrier that claimed the shipment", async () => {
+  await withServer(async (baseUrl) => {
+    const shipper = await login(baseUrl, shipperEmail);
+    const otherShipper = await login(baseUrl, otherShipperEmail);
+    const carrier = await login(baseUrl, carrierEmail);
+    const otherCarrier = await login(baseUrl, otherCarrierEmail);
+    const driver = await login(baseUrl, driverEmail);
+    const shipment = await publish(baseUrl, shipper);
+    const id = String(shipment.id);
+    const beforeClaim = await openAsShipper(baseUrl, shipper, id);
+    assert.equal(beforeClaim.status, 409);
+    const carrierFirst = await openChat(baseUrl, carrier, id);
+    assert.equal(carrierFirst.status, 200);
+    const existingId = String((((await carrierFirst.json()) as Json).conversation as Json).id);
+    const claimed = await fetch(`${baseUrl}/api/carrier/shipments/${id}/claim`, {
+      method: "POST",
+      headers: { "content-type": "application/json", origin: "http://127.0.0.1:5173", cookie: carrier },
+      body: JSON.stringify({}),
+    });
+    assert.equal(claimed.status, 200);
+    const forged = await openAsShipper(baseUrl, shipper, id, { carrierId: "other-carrier" });
+    assert.equal(forged.status, 400);
+    const [opened, again] = await Promise.all([openAsShipper(baseUrl, shipper, id), openAsShipper(baseUrl, shipper, id)]);
+    assert.equal(opened.status, 200);
+    assert.equal(again.status, 200);
+    const firstBody = (await opened.json()) as Json;
+    const secondBody = (await again.json()) as Json;
+    const conversationId = String((firstBody.conversation as Json).id);
+    assert.equal(conversationId, existingId);
+    assert.equal(String((secondBody.conversation as Json).id), conversationId);
+    assert.equal(await Conversation.countDocuments({ shipmentId: id, carrierId: { $exists: true } }), 1);
+    const sent = await fetch(`${baseUrl}/api/shipments/${id}/conversations/${conversationId}/messages`, {
+      method: "POST",
+      headers: { "content-type": "application/json", origin: "http://127.0.0.1:5173", cookie: shipper },
+      body: JSON.stringify({ body: "Chủ hàng mở trao đổi sau khi nhà xe nhận đơn" }),
+    });
+    assert.equal(sent.status, 201);
+    const reloaded = await fetch(`${baseUrl}/api/shipments/${id}/conversations/${conversationId}/messages`, { headers: { cookie: shipper } });
+    const messages = ((await reloaded.json()) as Json).messages as Json[];
+    assert.equal(reloaded.status, 200);
+    assert.equal(messages.some((item) => item.body === "Chủ hàng mở trao đổi sau khi nhà xe nhận đơn"), true);
+    assert.equal((await openAsShipper(baseUrl, otherShipper, id)).status, 404);
+    assert.equal((await openAsShipper(baseUrl, driver, id)).status, 403);
+    assert.equal((await openAsShipper(baseUrl, otherCarrier, id)).status, 403);
+    const stored = await Shipment.findById(id);
+    assert.equal(stored?.listedPriceVnd, 6200000);
+    assert.ok(stored?.carrierId);
   });
 });
 

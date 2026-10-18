@@ -63,6 +63,27 @@ function calendarDate(value: unknown): string | null {
   return value;
 }
 
+function assignClockErrors(
+  fields: Record<string, string>,
+  rawFrom: unknown,
+  rawTo: unknown,
+  parsedFrom: string | null,
+  parsedTo: string | null,
+  fromKey: string,
+  toKey: string,
+  action: string,
+) {
+  if (isBlank(rawFrom)) fields[fromKey] = `Chọn giờ bắt đầu ${action}.`;
+  else if (!parsedFrom) fields[fromKey] = `Giờ bắt đầu ${action} chưa hợp lệ.`;
+  if (isBlank(rawTo)) fields[toKey] = `Chọn giờ kết thúc ${action}.`;
+  else if (!parsedTo) fields[toKey] = `Giờ kết thúc ${action} chưa hợp lệ.`;
+  if (parsedFrom && parsedTo && parsedFrom >= parsedTo) fields[toKey] = `Giờ kết thúc ${action} phải muộn hơn giờ bắt đầu.`;
+}
+
+function isBlank(value: unknown): boolean {
+  return typeof value !== "string" || value.trim() === "";
+}
+
 function clock(value: unknown): string | null {
   if (typeof value !== "string" || !/^([01]\d|2[0-3]):[0-5]\d$/.test(value)) return null;
   return value;
@@ -119,9 +140,7 @@ export function readPublishInput(body: unknown): PublishInput {
   if (!pickupPhone) fields.pickupPhone = "Nhập số điện thoại lấy hàng.";
   if (pickupEmail === undefined) fields.pickupEmail = "Email nhận thông báo chưa hợp lệ.";
   if (!pickupDate) fields.pickupDate = "Chọn ngày lấy hàng hợp lệ.";
-  if (!pickupTimeFrom || !pickupTimeTo || pickupTimeFrom >= pickupTimeTo) {
-    fields.pickupTimeTo = "Khung giờ bốc hàng phải có giờ bắt đầu sớm hơn giờ kết thúc.";
-  }
+  assignClockErrors(fields, record.pickupTimeFrom, record.pickupTimeTo, pickupTimeFrom, pickupTimeTo, "pickupTimeFrom", "pickupTimeTo", "bốc hàng");
   if (!deliveryCompany) fields.deliveryCompany = "Nhập tên công ty hoặc kho nhận.";
   if (!deliveryLocation) fields.deliveryLocation = "Nhập địa chỉ giao hàng.";
   if (!deliveryContactName) fields.deliveryContactName = "Nhập người nhận hàng.";
@@ -131,9 +150,7 @@ export function readPublishInput(body: unknown): PublishInput {
   if (pickupDate && deliveryDate && deliveryDate < pickupDate) {
     fields.deliveryDate = "Ngày giao muộn nhất không được trước ngày lấy hàng.";
   }
-  if (!deliveryTimeFrom || !deliveryTimeTo || deliveryTimeFrom >= deliveryTimeTo) {
-    fields.deliveryTimeTo = "Khung giờ nhận hàng phải có giờ bắt đầu sớm hơn giờ kết thúc.";
-  }
+  assignClockErrors(fields, record.deliveryTimeFrom, record.deliveryTimeTo, deliveryTimeFrom, deliveryTimeTo, "deliveryTimeFrom", "deliveryTimeTo", "nhận hàng");
   if (cargoWeightTon === null) fields.cargoWeightTon = "Nhập trọng lượng bằng tấn, lớn hơn 0.";
   if (cargoVolumeM3 === null) fields.cargoVolumeM3 = "Nhập thể tích bằng mét khối, lớn hơn 0.";
   if (!packageOk) fields.packageCount = "Nhập số thùng bằng số nguyên, lớn hơn 0.";
