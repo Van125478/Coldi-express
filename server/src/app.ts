@@ -11,6 +11,7 @@ import { carrierConversationRouter } from "./routes/carrierConversation.routes.j
 import { carrierShipmentRouter } from "./routes/carrierShipment.routes.js";
 import { driverShipmentRouter } from "./routes/driverShipment.routes.js";
 import { healthRouter } from "./routes/health.routes.js";
+import { incidentRouter } from "./routes/incident.routes.js";
 import { shipmentChatRouter } from "./routes/shipmentChat.routes.js";
 import { packageRouter } from "./routes/package.routes.js";
 import { shipmentRouter } from "./routes/shipment.routes.js";
@@ -41,6 +42,7 @@ export function createApp() {
   app.use("/api/carrier/conversations", carrierConversationRouter);
   app.use("/api/carrier/fleet", carrierFleetRouter);
   app.use("/api/driver/shipments", driverShipmentRouter);
+  app.use("/api/incidents", incidentRouter);
   if (env.NODE_ENV === "test") {
     app.get("/api/test/shipper-only", requireAuth, requireRole("SHIPPER"), (_request, response) => {
       response.status(200).json({ ok: true });

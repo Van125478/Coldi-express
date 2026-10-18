@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { ClipboardList, Container, Layers, LayoutDashboard, PackagePlus, Route, Search, Truck, Users } from "lucide-react";
+import { AlertTriangle, ClipboardList, Container, Layers, LayoutDashboard, PackagePlus, Route, Search, Truck, Users } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 import { paths } from "@/app/paths";
 import { Button } from "@/components/ui/button";
@@ -21,12 +21,14 @@ const navigation: Record<BusinessRole, readonly { to: string; label: string; ico
     { to: paths.shipperHome, label: "Trang chủ", icon: LayoutDashboard },
     { to: paths.shipperCreate, label: "Tạo đơn", icon: PackagePlus },
     { to: paths.shipperShipments, label: "Quản lý đơn", icon: ClipboardList },
+    { to: paths.shipperIncidents, label: "Sự cố", icon: AlertTriangle },
     { to: paths.shipperPlan, label: "Gói dịch vụ", icon: Layers },
   ],
   CARRIER: [
     { to: paths.carrierHome, label: "Sàn chuyến", icon: LayoutDashboard },
     { to: paths.carrierFind, label: "Tìm chuyến", icon: Search },
     { to: paths.carrierTrips, label: "Chuyến của tôi", icon: Route },
+    { to: paths.carrierIncidents, label: "Sự cố", icon: AlertTriangle },
     { to: paths.carrierFleet, label: "Đội xe", icon: Container },
     { to: paths.carrierDrivers, label: "Tài xế", icon: Users },
     { to: paths.carrierPlan, label: "Gói dịch vụ", icon: Layers },
@@ -34,6 +36,7 @@ const navigation: Record<BusinessRole, readonly { to: string; label: string; ico
   DRIVER: [
     { to: paths.driverHome, label: "Trang chủ", icon: Truck },
     { to: paths.driverTrips, label: "Chuyến của tôi", icon: Route },
+    { to: paths.driverIncidents, label: "Sự cố", icon: AlertTriangle },
   ],
   ADMIN: [{ to: paths.adminHome, label: "Khu quản trị", icon: LayoutDashboard }],
 };
