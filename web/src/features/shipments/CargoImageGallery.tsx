@@ -29,13 +29,13 @@ export function CargoImageGallery({ images, compact = false }: { images?: { id: 
 
   if (!images || images.length === 0) return null;
   return (
-    <ul className={compact ? "mt-3 flex gap-2" : "grid grid-cols-2 gap-3 sm:grid-cols-5"} aria-label="Ảnh hàng hóa">
+    <ul className={compact ? "flex gap-2" : "grid grid-cols-2 gap-3 sm:grid-cols-5"} aria-label="Ảnh hàng hóa">
       {images.map((image, index) => (
         <li key={image.id}>
           {urls[image.id] ? (
-            <img src={urls[image.id]} alt={`Ảnh hàng hóa ${index + 1}`} className={compact ? "h-14 w-14 rounded-lg border border-line object-cover" : "h-28 w-full rounded-xl border border-line object-cover"} />
+            <img src={urls[image.id]} alt={`Ảnh hàng hóa ${index + 1}`} className={compact ? "aspect-[4/3] h-20 w-28 rounded-lg border border-line object-cover" : "h-28 w-full rounded-xl border border-line object-cover"} />
           ) : (
-            <div className={compact ? "h-14 w-14 rounded-lg border border-line bg-canvas" : "h-28 rounded-xl border border-line bg-canvas"} />
+            <div className={compact ? "aspect-[4/3] h-20 w-28 rounded-lg border border-line bg-canvas" : "h-28 rounded-xl border border-line bg-canvas"} />
           )}
         </li>
       ))}

@@ -1,3 +1,4 @@
+import { Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { paths } from "@/app/paths";
@@ -143,17 +144,25 @@ export function CarrierLoadBoard() {
           apply(form);
         }}
       >
-        <div>
-          <Label htmlFor="marketplace-q" className="text-base font-semibold">
-            Tìm theo hàng, điểm lấy hoặc điểm giao
-          </Label>
-          <Input
-            id="marketplace-q"
-            value={form.q}
-            onChange={(event) => setForm({ ...form, q: event.target.value })}
-            placeholder="Ví dụ: thủy sản, Cái Bè, Thủ Đức"
-            className="mt-2 min-h-12"
-          />
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+          <div className="min-w-0 flex-1">
+            <Label htmlFor="marketplace-q" className="text-base font-semibold">
+              Tìm theo hàng, điểm lấy hoặc điểm giao
+            </Label>
+            <div className="relative mt-2">
+              <Search className="pointer-events-none absolute top-1/2 left-3 size-5 -translate-y-1/2 text-muted" aria-hidden="true" />
+              <Input
+                id="marketplace-q"
+                value={form.q}
+                onChange={(event) => setForm({ ...form, q: event.target.value })}
+                placeholder="Ví dụ: thủy sản, Cái Bè, Thủ Đức"
+                className="min-h-12 pl-10"
+              />
+            </div>
+          </div>
+          <Button type="submit" className="min-h-12">
+            Tìm kiếm
+          </Button>
         </div>
         <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
           <div>
@@ -196,8 +205,8 @@ export function CarrierLoadBoard() {
             </select>
           </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button type="submit">Áp dụng</Button>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <Button type="submit">Áp dụng bộ lọc</Button>
           <Button
             type="button"
             variant="outline"

@@ -80,12 +80,14 @@ export function IncidentListPage() {
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <h2 className="text-base font-bold text-ink">{incident.title}</h2>
-                      <p className="mt-1 text-sm text-muted">{incident.shipmentLabel}</p>
+                      <h2 className="text-lg font-bold leading-snug text-ink">{incident.title}</h2>
+                      <p className="mt-1 text-sm leading-relaxed text-muted">{incident.shipmentLabel}</p>
                     </div>
                     <IncidentBadges status={incident.status} statusLabel={incident.statusLabel} categoryLabel={incident.incidentTypeLabel} />
                   </div>
-                  <p className="mt-3 text-sm text-muted">Cập nhật {formatWhen(incident.updatedAt)}</p>
+                  <p className="mt-3 text-sm leading-relaxed text-muted">
+                    Cập nhật <time dateTime={incident.updatedAt}>{formatWhen(incident.updatedAt)}</time>
+                  </p>
                 </Link>
               ))
             )}
@@ -106,8 +108,10 @@ export function IncidentListPage() {
                   >
                     {notification.label}
                   </Link>
-                  <p className="mt-1 text-xs text-muted">
-                    {notification.read ? "Đã đọc" : "Chưa đọc"} · {formatWhen(notification.createdAt)}
+                  <p className="mt-1 text-sm leading-relaxed text-muted">
+                    {notification.read ? "Đã đọc" : "Chưa đọc"}
+                    <span aria-hidden="true"> · </span>
+                    <time dateTime={notification.createdAt}>{formatWhen(notification.createdAt)}</time>
                   </p>
                 </div>
               ))}

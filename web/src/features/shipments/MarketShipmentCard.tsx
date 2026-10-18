@@ -23,12 +23,19 @@ export function MarketShipmentCard({
   const detail = `${paths.carrierHome}/chuyen/${shipment.id}`;
   const pickupParty = shipment.pickupCompany?.trim() || "Chưa ghi đơn vị lấy hàng";
   const schedule = pickupSchedule(shipment);
+  const images = shipment.cargoImages ?? [];
   return (
     <article className={`flex h-full flex-col overflow-hidden rounded-2xl border bg-surface ${selected ? "border-navy ring-2 ring-navy" : "border-line"}`}>
-      <div className="relative aspect-[4/3] overflow-hidden bg-[#E7EDF4]" aria-hidden="true">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_12%,rgba(30,58,138,0.16),transparent_46%),linear-gradient(165deg,#F8FAFC_0%,#E7EDF4_58%,#D5E0EE_100%)]" />
-        <Snowflake className="absolute left-1/2 top-1/2 size-8 -translate-x-1/2 -translate-y-1/2 text-navy/70" />
-      </div>
+      {images.length > 0 ? (
+        <div className="border-b border-line bg-canvas px-4 py-3">
+          <CargoImageGallery images={images} compact />
+        </div>
+      ) : (
+        <div className="flex h-14 items-center gap-2 border-b border-line bg-canvas px-4 text-sm font-medium text-muted">
+          <Snowflake className="size-4 shrink-0 text-navy/70" aria-hidden="true" />
+          <span>Chưa có ảnh hàng hóa</span>
+        </div>
+      )}
       <div className="flex flex-1 flex-col p-4">
         <div className="flex flex-wrap items-center gap-2">
           <p className="font-mono text-sm font-bold text-ink" title={shipment.id}>
@@ -48,7 +55,6 @@ export function MarketShipmentCard({
             <span className="text-muted"> · {shipment.cargoDescription}</span>
           </span>
         </p>
-        <CargoImageGallery images={shipment.cargoImages} compact />
         <h2 className="mt-3 text-xl font-extrabold leading-snug tracking-tight text-ink">
           <Link to={detail} className="rounded-sm hover:text-navy focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-navy">
             {shipment.pickupLocation} <span aria-hidden="true">→</span> {shipment.deliveryLocation}

@@ -1,5 +1,6 @@
 import { cloneElement, isValidElement, type ReactElement, type ReactNode } from "react";
 import { Label } from "@/components/ui/label";
+import { formatIncidentWhen } from "@/features/incidents/incidentPresentation";
 import { StatusBadge } from "@/features/workspace/ui";
 
 export function incidentTone(status: string): "open" | "waiting" | "assigned" | "neutral" {
@@ -10,8 +11,7 @@ export function incidentTone(status: string): "open" | "waiting" | "assigned" | 
 }
 
 export function formatWhen(value: string | null): string {
-  if (!value) return "Chưa có";
-  return new Intl.DateTimeFormat("vi-VN", { dateStyle: "short", timeStyle: "short" }).format(new Date(value));
+  return formatIncidentWhen(value);
 }
 
 export function Field({
@@ -57,8 +57,10 @@ export function Field({
 export function IncidentBadges({ status, statusLabel, categoryLabel }: { status: string; statusLabel: string; categoryLabel: string }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <StatusBadge tone={incidentTone(status)}>{statusLabel}</StatusBadge>
-      <span className="inline-flex items-center rounded-full bg-canvas px-3 py-1 text-xs font-semibold text-ink">{categoryLabel}</span>
+      <StatusBadge tone={incidentTone(status)}>
+        <span className="text-sm">{statusLabel}</span>
+      </StatusBadge>
+      <span className="inline-flex items-center rounded-full border border-line bg-canvas px-3 py-1 text-sm font-semibold text-ink">{categoryLabel}</span>
     </div>
   );
 }
