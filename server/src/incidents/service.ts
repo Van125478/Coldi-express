@@ -20,7 +20,7 @@ import {
   isCarrierHandler,
   recipientIds,
 } from "./access.js";
-import { attachIncidentEvidence } from "./evidence.js";
+import { assertResolutionEvidenceHeld, attachIncidentEvidence, claimResolutionEvidence, releaseResolutionClaim } from "./evidence.js";
 import {
   closeTransition,
   initialEscalationStatus,
@@ -98,6 +98,7 @@ type PendingEvent = {
   note?: string;
   occurredAt?: Date | null;
   correlationId: string;
+  evidenceIds?: string[];
 };
 
 type StoredEvent = {
@@ -112,6 +113,7 @@ type StoredEvent = {
   escalationBefore: EscalationStatus;
   escalationAfter: EscalationStatus;
   note?: string;
+  evidenceIds?: string[];
   idempotencyKey: string;
   correlationId: string;
   visibility: "PARTICIPANT" | "INTERNAL";
@@ -238,8 +240,16 @@ export async function startInvestigation(actor: Actor, incidentId: string, expec
   return transition(actor, incidentId, expectedVersion, idempotencyKey, correlationId, "START", note);
 }
 
-export async function resolveIncident(actor: Actor, incidentId: string, expectedVersion: number, idempotencyKey: string, correlationId: string, note: string) {
-  return transition(actor, incidentId, expectedVersion, idempotencyKey, correlationId, "RESOLVE", note);
+export async function resolveIncident(
+  actor: Actor,
+  incidentId: string,
+  expectedVersion: number,
+  idempotencyKey: string,
+  correlationId: string,
+  note: string,
+  evidenceIds: string[] = [],
+) {
+  return transition(actor, incidentId, expectedVersion, idempotencyKey, correlationId, "RESOLVE", note, evidenceIds);
 }
 
 export async function objectToResolution(actor: Actor, incidentId: string, expectedVersion: number, idempotencyKey: string, correlationId: string, note: string) {
@@ -642,11 +652,13 @@ async function transition(
   correlationId: string,
   kind: PrimaryAction | "COMMENT",
   note: string | null,
+  evidenceIds: string[] = [],
 ): Promise<IncidentView> {
   const current = await requireVisible(actor, incidentId);
   if (current.appliedKeys?.includes(idempotencyKey)) {
     await ensureAppliedEvent(current, actor, kind, note, idempotencyKey, correlationId);
     await repairIncident(current._id.toString());
+    if (kind === "RESOLVE") await assertResolutionEvidenceHeld(current._id, idempotencyKey, storedEvidenceIds(current, idempotencyKey));
     return presentAuthorized(actor, current);
   }
   const shipment = await loadShipment(current.shipmentId.toString());
@@ -655,6 +667,9 @@ async function transition(
   const next = action.statusAfter;
   if ((current.appliedKeys?.length ?? 0) >= appliedKeyLimit) {
     throw new HttpError(409, "incident_history_limit", "Sự cố đã đạt giới hạn kỹ thuật của số lần cập nhật.");
+  }
+  if (kind === "RESOLVE" && evidenceIds.length > 0) {
+    await claimResolutionEvidence(actor.id, current._id, idempotencyKey, evidenceIds);
   }
 
   const set: Record<string, unknown> = {};
@@ -682,24 +697,33 @@ async function transition(
         statusAfter: next,
         correlationId,
         ...(note ? { note } : {}),
+        ...(kind === "RESOLVE" ? { evidenceIds } : {}),
       },
     },
   };
   if (Object.keys(set).length > 0) update.$set = set;
 
-  const updated = await Incident.findOneAndUpdate(
-    { _id: current._id, version: expectedVersion, status: current.status, appliedKeys: { $ne: idempotencyKey } },
-    update,
-    { returnDocument: "after" },
-  ).lean<StoredIncident | null>();
+  let updated: StoredIncident | null;
+  try {
+    updated = await Incident.findOneAndUpdate(
+      { _id: current._id, version: expectedVersion, status: current.status, appliedKeys: { $ne: idempotencyKey } },
+      update,
+      { returnDocument: "after" },
+    ).lean<StoredIncident | null>();
+  } catch (error) {
+    if (kind === "RESOLVE") await releaseResolutionClaim(actor.id, current._id, idempotencyKey);
+    throw error;
+  }
 
   if (!updated) {
     const raced = await Incident.findById(current._id).lean<StoredIncident | null>();
     if (raced?.appliedKeys?.includes(idempotencyKey)) {
       await ensureAppliedEvent(raced, actor, kind, note, idempotencyKey, correlationId);
       await repairIncident(raced._id.toString());
+      if (kind === "RESOLVE") await assertResolutionEvidenceHeld(raced._id, idempotencyKey, storedEvidenceIds(raced, idempotencyKey));
       return presentAuthorized(actor, raced);
     }
+    if (kind === "RESOLVE") await releaseResolutionClaim(actor.id, current._id, idempotencyKey);
     throw new HttpError(409, "version_conflict", "Sự cố vừa được cập nhật. Hãy tải lại rồi thử lại.");
   }
 
@@ -710,12 +734,18 @@ async function transition(
     statusBefore: current.status,
     statusAfter: updated.status,
     ...(note ? { note } : {}),
+    ...(kind === "RESOLVE" && evidenceIds.length > 0 ? { evidenceIds } : {}),
     idempotencyKey,
     correlationId,
   });
   if (!event) throw new HttpError(500, "incident_audit_incomplete", "Cập nhật đã lưu nhưng lịch sử chưa ghi xong. Hãy gửi lại cùng mã idempotency.");
+  if (kind === "RESOLVE") await assertResolutionEvidenceHeld(updated._id, idempotencyKey, evidenceIds);
   await notify(updated, event, shipment, actor.id);
   return toIncidentView(updated, shipment, actor);
+}
+
+function storedEvidenceIds(incident: StoredIncident, idempotencyKey: string): string[] {
+  return incident.pendingEvents?.find((item) => item.idempotencyKey === idempotencyKey)?.evidenceIds ?? [];
 }
 
 async function ensureAppliedEvent(
@@ -736,6 +766,7 @@ async function ensureAppliedEvent(
           : kind === "RESOLVE"
             ? { event: "RESOLVED" as const, from: "IN_PROGRESS" as const, to: "RESOLVED" as const }
             : { event: "OBJECTED" as const, from: "RESOLVED" as const, to: "IN_PROGRESS" as const };
+  const evidenceIds = incident.pendingEvents?.find((item) => item.idempotencyKey === idempotencyKey)?.evidenceIds ?? [];
   const event = await ensureEvent({
     incident,
     action: mapped.event,
@@ -743,6 +774,7 @@ async function ensureAppliedEvent(
     statusBefore: mapped.from,
     statusAfter: mapped.to,
     ...(note ? { note } : {}),
+    ...(evidenceIds.length > 0 ? { evidenceIds } : {}),
     idempotencyKey,
     correlationId,
   });
@@ -827,6 +859,7 @@ function ensurePendingEvent(incident: StoredIncident, pending: PendingEvent): Pr
     statusAfter: pending.statusAfter,
     ...(pending.note ? { note: pending.note } : {}),
     ...(pending.occurredAt ? { occurredAt: pending.occurredAt } : {}),
+    ...(pending.evidenceIds && pending.evidenceIds.length > 0 ? { evidenceIds: pending.evidenceIds } : {}),
     idempotencyKey: pending.idempotencyKey,
     correlationId: pending.correlationId,
   });
@@ -854,6 +887,7 @@ async function ensureEvent(input: {
   statusBefore: IncidentStatus;
   statusAfter: IncidentStatus;
   note?: string;
+  evidenceIds?: string[];
   occurredAt?: Date;
   idempotencyKey: string;
   correlationId: string;
@@ -869,6 +903,7 @@ async function ensureEvent(input: {
     escalationBefore: input.incident.escalationStatus,
     escalationAfter: input.incident.escalationStatus,
     ...(input.note ? { note: input.note } : {}),
+    ...(input.evidenceIds && input.evidenceIds.length > 0 ? { evidenceIds: input.evidenceIds } : {}),
     idempotencyKey: input.idempotencyKey,
     correlationId: input.correlationId,
     visibility: "PARTICIPANT" as const,
@@ -881,7 +916,14 @@ async function ensureEvent(input: {
       console.error("Incident event was not stored.", error);
       return null;
     }
-    return IncidentEvent.findOne({ incidentId: input.incident._id, idempotencyKey: input.idempotencyKey }).lean<StoredEvent | null>();
+    const existing = await IncidentEvent.findOne({ incidentId: input.incident._id, idempotencyKey: input.idempotencyKey }).lean<StoredEvent | null>();
+    if (!existing || !input.evidenceIds?.length || (existing.evidenceIds?.length ?? 0) > 0) return existing;
+    const filled = await IncidentEvent.findOneAndUpdate(
+      { _id: existing._id, $or: [{ evidenceIds: { $exists: false } }, { evidenceIds: { $size: 0 } }] },
+      { $set: { evidenceIds: input.evidenceIds } },
+      { returnDocument: "after" },
+    ).lean<StoredEvent | null>();
+    return filled ?? existing;
   }
 }
 

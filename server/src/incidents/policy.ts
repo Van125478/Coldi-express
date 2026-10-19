@@ -243,7 +243,7 @@ function readKey(bodyKey: unknown, headerKey: unknown): { ok: true; value: strin
   return { ok: true, value };
 }
 
-function readEvidenceIds(value: unknown): { ok: true; value: string[] } | { ok: false; message: string } {
+export function readEvidenceIds(value: unknown): { ok: true; value: string[] } | { ok: false; message: string } {
   if (value === undefined) return { ok: true, value: [] };
   if (!Array.isArray(value) || value.length > 5) return { ok: false, message: "Chỉ được đính kèm tối đa 5 ảnh chứng cứ." };
   const ids: string[] = [];

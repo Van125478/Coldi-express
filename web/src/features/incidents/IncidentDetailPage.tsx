@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/features/auth/useAuth";
@@ -10,7 +10,7 @@ import { DetailBlock, PageHeader } from "@/features/workspace/ui";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import type { BusinessRole } from "@/models/session";
 import { ApiError } from "@/services/apiClient";
-import { fetchIncidentEvidenceUrl } from "@/services/incidentEvidenceClient";
+import { deleteIncidentEvidence, fetchIncidentEvidenceUrl, uploadIncidentEvidence } from "@/services/incidentEvidenceClient";
 import {
   acknowledgeIncident,
   closeIncident,
@@ -26,6 +26,7 @@ import {
   type IncidentRecord,
 } from "@/services/incidentService";
 import { AuthenticatedImageGallery } from "@/shared/components/media/AuthenticatedImageGallery";
+import { ImagePickerControl } from "@/shared/components/media/ImagePickerControl";
 
 type Pending = "acknowledge" | "start" | "resolve" | "object" | "close" | "reopen" | "reopen-approve" | "reopen-reject" | "admin-approve" | "admin-reject" | null;
 
@@ -57,6 +58,9 @@ export function IncidentDetailPage() {
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+  const [resolutionImages, setResolutionImages] = useState<{ id: string; preview: string }[]>([]);
+  const [resolutionError, setResolutionError] = useState("");
+  const resolutionImagesRef = useRef(resolutionImages);
 
   useEffect(() => {
     if (!id) return;
@@ -78,7 +82,75 @@ export function IncidentDetailPage() {
     };
   }, [id, logout, reloadKey]);
 
+  useEffect(() => {
+    resolutionImagesRef.current = resolutionImages;
+  }, [resolutionImages]);
+
+  useEffect(() => {
+    return () => {
+      for (const item of resolutionImagesRef.current) URL.revokeObjectURL(item.preview);
+    };
+  }, []);
+
+  function releaseResolutionPreviews(images: { id: string; preview: string }[]) {
+    for (const item of images) URL.revokeObjectURL(item.preview);
+    setResolutionImages([]);
+    setResolutionError("");
+  }
+
+  async function discardResolutionImages() {
+    const images = resolutionImagesRef.current;
+    releaseResolutionPreviews(images);
+    await Promise.all(images.map((item) => deleteIncidentEvidence(item.id).catch(() => undefined)));
+  }
+
+  async function addResolutionImages(list: FileList | null) {
+    if (!list || busy) return;
+    const selected = Array.from(list);
+    const room = 5 - resolutionImages.length;
+    if (room <= 0 || selected.length > room) {
+      setResolutionError("Chỉ được tối đa 5 ảnh kết quả xử lý.");
+      if (room <= 0) return;
+    }
+    setBusy(true);
+    try {
+      for (const file of selected.slice(0, Math.max(room, 0))) {
+        if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size === 0 || file.size > 2_000_000) {
+          setResolutionError("Ảnh kết quả xử lý dùng JPG, PNG hoặc WebP, mỗi ảnh không quá 2 MB.");
+          continue;
+        }
+        try {
+          const uploaded = await uploadIncidentEvidence(file);
+          const preview = URL.createObjectURL(file);
+          setResolutionImages((current) => [...current, { id: uploaded.id, preview }]);
+          setResolutionError("");
+        } catch (error: unknown) {
+          if (lostSession(error, logout)) return;
+          setResolutionError(error instanceof ApiError ? error.message : "Không tải được ảnh kết quả xử lý.");
+        }
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function removeResolutionImage(imageId: string) {
+    try {
+      await deleteIncidentEvidence(imageId);
+      setResolutionImages((current) => {
+        const item = current.find((entry) => entry.id === imageId);
+        if (item) URL.revokeObjectURL(item.preview);
+        return current.filter((entry) => entry.id !== imageId);
+      });
+      setResolutionError("");
+    } catch (error: unknown) {
+      if (lostSession(error, logout)) return;
+      setResolutionError(error instanceof ApiError ? error.message : "Không bỏ được ảnh kết quả xử lý.");
+    }
+  }
+
   async function apply(updated: { incident: IncidentRecord }) {
+    releaseResolutionPreviews(resolutionImagesRef.current);
     const refreshed = await getIncident(updated.incident.id);
     setIncident(refreshed.incident);
     setEvents(refreshed.events);
@@ -112,7 +184,7 @@ export function IncidentDetailPage() {
           : action === "start"
             ? await startIncident(incident.id, incident.version, key, trimmed)
             : action === "resolve"
-              ? await resolveIncident(incident.id, incident.version, key, trimmed)
+              ? await resolveIncident(incident.id, incident.version, key, trimmed, resolutionImagesRef.current.map((item) => item.id))
               : action === "object"
                 ? await objectIncident(incident.id, incident.version, key, trimmed)
                 : action === "close"
@@ -157,6 +229,7 @@ export function IncidentDetailPage() {
     }
   }
 
+  const latestResolution = [...events].reverse().find((event) => event.action === "RESOLVED");
   const handling =
     Boolean(incident?.capabilities.acknowledge) ||
     Boolean(incident?.capabilities.start) ||
@@ -218,6 +291,14 @@ export function IncidentDetailPage() {
                   <dl>
                     <IncidentFact term="Gửi lúc" value={formatWhen(incident.resolvedAt)} />
                   </dl>
+                  {latestResolution?.evidence && latestResolution.evidence.length > 0 ? (
+                    <AuthenticatedImageGallery
+                      images={latestResolution.evidence}
+                      fetchUrl={fetchIncidentEvidenceUrl}
+                      label="Ảnh kết quả xử lý"
+                      altPrefix="Ảnh kết quả xử lý"
+                    />
+                  ) : null}
                 </DetailBlock>
               ) : null}
               {incident.closeReason ? (
@@ -264,6 +345,16 @@ export function IncidentDetailPage() {
                         <time dateTime={event.occurredAt}>{formatWhen(event.occurredAt)}</time>
                       </p>
                       {event.note ? <p className="mt-2 whitespace-pre-wrap text-base leading-7 text-ink">{event.note}</p> : null}
+                      {event.action === "RESOLVED" && event.evidence && event.evidence.length > 0 ? (
+                        <div className="mt-3">
+                          <AuthenticatedImageGallery
+                            images={event.evidence}
+                            fetchUrl={fetchIncidentEvidenceUrl}
+                            label="Ảnh kết quả xử lý"
+                            altPrefix="Ảnh kết quả xử lý"
+                          />
+                        </div>
+                      ) : null}
                     </li>
                   ))}
                 </ol>
@@ -357,12 +448,60 @@ export function IncidentDetailPage() {
                         className={`mt-3 w-full rounded-xl border bg-surface px-3 py-3 text-sm text-ink ${fieldError ? "border-danger" : "border-line"}`}
                       />
                     ) : null}
+                    {pending === "resolve" ? (
+                      <div className="mt-3 space-y-3">
+                        <p className="text-sm font-semibold text-ink">Ảnh kết quả xử lý</p>
+                        <ImagePickerControl
+                          id="resolution-evidence"
+                          buttonLabel="Ảnh kết quả xử lý"
+                          optionalNote="Không bắt buộc — tối đa 5 ảnh"
+                          hintId="resolution-evidence-hint"
+                          hint={`Đã chọn ${resolutionImages.length}/5 ảnh.`}
+                          disabled={busy || resolutionImages.length >= 5}
+                          describedBy={resolutionError ? "resolution-evidence-error" : "resolution-evidence-hint"}
+                          invalid={Boolean(resolutionError)}
+                          onFiles={(files) => void addResolutionImages(files)}
+                        />
+                        {resolutionError ? (
+                          <p id="resolution-evidence-error" className="text-sm text-ink">
+                            {resolutionError}
+                          </p>
+                        ) : null}
+                        {resolutionImages.length > 0 ? (
+                          <ul className="grid grid-cols-2 gap-3" aria-label="Ảnh kết quả xử lý đã chọn">
+                            {resolutionImages.map((item, index) => (
+                              <li key={item.id} className="space-y-2">
+                                <img src={item.preview} alt={`Ảnh kết quả xử lý ${index + 1}`} className="h-28 w-full rounded-xl border border-line object-contain sm:h-32" />
+                                <button
+                                  type="button"
+                                  className="text-sm font-semibold text-navy underline-offset-4 hover:underline"
+                                  aria-label={`Bỏ ảnh ${index + 1}`}
+                                  disabled={busy}
+                                  onClick={() => void removeResolutionImage(item.id)}
+                                >
+                                  Bỏ ảnh
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : null}
+                      </div>
+                    ) : null}
                     {fieldError ? <p className="mt-2 text-sm text-ink">{fieldError}</p> : null}
                     <div className="mt-3 flex flex-wrap gap-2">
                       <Button type="button" disabled={busy} onClick={() => void run(pending, note)}>
-                        Xác nhận
+                        {pending === "resolve" ? "Gửi kết quả" : "Xác nhận"}
                       </Button>
-                      <Button type="button" variant="outline" disabled={busy} onClick={() => { setPending(null); setFieldError(""); }}>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={busy}
+                        onClick={() => {
+                          if (pending === "resolve") void discardResolutionImages();
+                          setPending(null);
+                          setFieldError("");
+                        }}
+                      >
                         Hủy
                       </Button>
                     </div>

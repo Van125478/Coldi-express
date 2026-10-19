@@ -5,6 +5,7 @@ import path from "node:path";
 import { isValidObjectId, Types } from "mongoose";
 import { HttpError } from "../middlewares/errorHandler.js";
 import { IncidentEvidence } from "../models/incidentEvidence.js";
+import { IncidentEvent } from "../models/incidentEvent.js";
 import { Shipment } from "../models/shipment.js";
 import { CARGO_IMAGE_LIMITS, detectCargoType } from "../shipments/cargoImages.js";
 import { caseScope, type Actor } from "./access.js";
@@ -90,6 +91,38 @@ export async function attachIncidentEvidence(ownerId: string, incidentId: Types.
   return evidenceIds;
 }
 
+/** Claims uploads for one resolution idempotency key. A repeated claim of the same key is a no-op. */
+export async function claimResolutionEvidence(ownerId: string, incidentId: Types.ObjectId, resolutionKey: string, evidenceIds: string[]): Promise<void> {
+  if (evidenceIds.length === 0) return;
+  const ids = evidenceIds.map((id) => new Types.ObjectId(id));
+  await IncidentEvidence.updateMany(
+    { _id: { $in: ids }, ownerId, incidentId: null, resolutionKey: null },
+    { $set: { incidentId, resolutionKey } },
+  );
+  const held = await IncidentEvidence.countDocuments({ _id: { $in: ids }, ownerId, incidentId, resolutionKey });
+  if (held === ids.length) return;
+  await releaseResolutionClaim(ownerId, incidentId, resolutionKey);
+  throw new HttpError(400, "invalid_request", "Ảnh kết quả xử lý không thuộc tài khoản này hoặc đã được dùng.", {
+    evidenceIds: "Chọn tối đa 5 ảnh còn hiệu lực của chính nhà xe đang gửi kết quả.",
+  });
+}
+
+/** Releases a claim only when that resolution was not stored. Images already on an event stay put. */
+export async function releaseResolutionClaim(ownerId: string, incidentId: Types.ObjectId, resolutionKey: string): Promise<void> {
+  const recorded = await IncidentEvent.exists({ incidentId, idempotencyKey: resolutionKey });
+  if (recorded) return;
+  await IncidentEvidence.updateMany({ ownerId, incidentId, resolutionKey }, { $set: { incidentId: null, resolutionKey: null } });
+}
+
+export async function assertResolutionEvidenceHeld(incidentId: Types.ObjectId, resolutionKey: string, evidenceIds: string[]): Promise<void> {
+  if (evidenceIds.length === 0) return;
+  const ids = evidenceIds.map((id) => new Types.ObjectId(id));
+  const held = await IncidentEvidence.countDocuments({ _id: { $in: ids }, incidentId, resolutionKey });
+  if (held !== ids.length) {
+    throw new HttpError(500, "incident_audit_incomplete", "Kết quả đã lưu nhưng ảnh chưa gắn xong. Hãy gửi lại cùng mã idempotency.");
+  }
+}
+
 export async function readIncidentEvidence(imageId: string, actor: Actor): Promise<{ bytes: Buffer; contentType: string }> {
   if (!isValidObjectId(imageId)) throw new HttpError(404, "not_found", "Không tìm thấy ảnh chứng cứ.");
   const image = await IncidentEvidence.findById(imageId);
@@ -127,7 +160,7 @@ async function canReadAttached(incidentId: string, actor: Actor): Promise<boolea
 
 async function cleanupOrphanIncidentEvidence(now = new Date()): Promise<void> {
   const cutoff = new Date(now.getTime() - INCIDENT_EVIDENCE_LIMITS.orphanAfterMs);
-  const stale = await IncidentEvidence.find({ incidentId: null, createdAt: { $lt: cutoff } }).select("storageKey");
+  const stale = await IncidentEvidence.find({ incidentId: null, resolutionKey: null, createdAt: { $lt: cutoff } }).select("storageKey");
   if (stale.length === 0) return;
   let root: string;
   try {
