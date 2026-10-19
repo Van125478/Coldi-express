@@ -4,10 +4,9 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/features/auth/useAuth";
 import { incidentKey, incidentLimits, incidentListPath } from "@/features/incidents/incidentCopy";
 import {
-  resolutionAlreadyRecorded,
-  resolutionAttemptForSubmit,
-  retainResolutionAttempt,
-  sameResolutionPayload,
+  markResolutionUnconfirmed,
+  noteResolutionFailure,
+  prepareResolutionSubmit,
   type ResolutionAttempt,
 } from "@/features/incidents/resolutionAttempt";
 import { timelineStatusText } from "@/features/incidents/incidentPresentation";
@@ -158,18 +157,27 @@ export function IncidentDetailPage() {
   }
 
   async function apply(updated: { incident: IncidentRecord }) {
-    resolutionAttemptRef.current = null;
-    releaseResolutionPreviews(resolutionImagesRef.current);
-    const refreshed = await getIncident(updated.incident.id);
-    setIncident(refreshed.incident);
-    setEvents(refreshed.events);
-    setPending(null);
-    setNote("");
-    setNotice("Đã ghi nhận thao tác.");
+    try {
+      const refreshed = await getIncident(updated.incident.id);
+      resolutionAttemptRef.current = null;
+      releaseResolutionPreviews(resolutionImagesRef.current);
+      setIncident(refreshed.incident);
+      setEvents(refreshed.events);
+      setPending(null);
+      setNote("");
+      setNotice("Đã ghi nhận thao tác.");
+    } catch (error: unknown) {
+      if (lostSession(error, logout)) return;
+      const pendingAttempt = resolutionAttemptRef.current;
+      if (pendingAttempt) resolutionAttemptRef.current = markResolutionUnconfirmed(pendingAttempt);
+      setIncident(updated.incident);
+      setNotice("Máy chủ đã nhận kết quả. Chưa tải lại được dòng thời gian. Hãy gửi lại cùng nội dung để xác nhận.");
+    }
   }
 
   function recordedResolutions(records: IncidentEventRecord[]) {
     return records.map((event) => ({
+      id: event.id,
       action: event.action,
       note: event.note,
       evidenceIds: (event.evidence ?? []).map((image) => image.id),
@@ -205,18 +213,26 @@ export function IncidentDetailPage() {
       const imageIds = resolutionImagesRef.current.map((item) => item.id);
       let attempt = action === "resolve" ? resolutionAttemptRef.current : null;
       let version = incident.version;
-      if (action === "resolve" && attempt && (attempt.uncertain || !sameResolutionPayload(attempt, trimmed, imageIds))) {
+      if (action === "resolve") {
         const refreshed = await getIncident(incident.id);
         setIncident(refreshed.incident);
         setEvents(refreshed.events);
         version = refreshed.incident.version;
-        if (resolutionAlreadyRecorded(attempt, recordedResolutions(refreshed.events))) {
+        const decision = prepareResolutionSubmit(
+          attempt,
+          trimmed,
+          imageIds,
+          recordedResolutions(refreshed.events),
+          () => incidentKey("resolve"),
+        );
+        if (decision.action === "accept") {
           acceptRecordedResolution();
           return;
         }
-      }
-      if (action === "resolve") {
-        attempt = resolutionAttemptForSubmit(attempt, trimmed, imageIds, () => incidentKey("resolve"));
+        if (decision.resentFrozenPayload) {
+          setNotice("Lần gửi trước chưa được xác nhận. Hệ thống gửi lại đúng nội dung đã gửi.");
+        }
+        attempt = decision.attempt;
         resolutionAttemptRef.current = attempt;
       }
       const key = action === "resolve" ? attempt?.key ?? incidentKey(action) : incidentKey(action);
@@ -239,8 +255,8 @@ export function IncidentDetailPage() {
       await apply(body);
     } catch (error: unknown) {
       if (lostSession(error, logout)) return;
-      if (action === "resolve" && resolutionAttemptRef.current && error instanceof ApiError && retainResolutionAttempt(error.status, error.code)) {
-        resolutionAttemptRef.current = { ...resolutionAttemptRef.current, uncertain: true };
+      if (action === "resolve" && resolutionAttemptRef.current && error instanceof ApiError) {
+        resolutionAttemptRef.current = noteResolutionFailure(resolutionAttemptRef.current, error.status, error.code);
       }
       setNotice(error instanceof ApiError ? error.message : "Không thực hiện được thao tác.");
       if (error instanceof ApiError && error.status === 409) {
@@ -249,7 +265,7 @@ export function IncidentDetailPage() {
           setIncident(refreshed.incident);
           setEvents(refreshed.events);
           const pendingAttempt = resolutionAttemptRef.current;
-          if (action === "resolve" && pendingAttempt && resolutionAlreadyRecorded(pendingAttempt, recordedResolutions(refreshed.events))) {
+          if (action === "resolve" && pendingAttempt && prepareResolutionSubmit(pendingAttempt, pendingAttempt.summary, pendingAttempt.evidenceIds, recordedResolutions(refreshed.events), () => pendingAttempt.key).action === "accept") {
             acceptRecordedResolution();
           }
         }

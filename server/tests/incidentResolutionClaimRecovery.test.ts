@@ -6,13 +6,17 @@ import mongoose, { Types } from "mongoose";
 import {
   claimResolutionEvidence,
   cleanupOrphanIncidentEvidence,
+  readIncidentEvidence,
   releaseAbandonedResolutionClaims,
   releaseResolutionClaim,
   RESOLUTION_CLAIM_GRACE_MS,
+  storeIncidentEvidence,
 } from "../src/incidents/evidence.js";
 import { Incident } from "../src/models/incident.js";
 import { IncidentEvent } from "../src/models/incidentEvent.js";
 import { IncidentEvidence } from "../src/models/incidentEvidence.js";
+import { Shipment } from "../src/models/shipment.js";
+import { TINY_PNG } from "./support/cargoImage.js";
 
 process.env.NODE_ENV = "test";
 process.env.INCIDENT_EVIDENCE_DIR = path.join(os.tmpdir(), "coldi-incident-resolution-claim-test");
@@ -186,3 +190,93 @@ test("interrupted resolution claims stay recoverable", async () => {
   assert.equal(await IncidentEvidence.countDocuments({ _id: historical }), 1);
   assert.equal(await IncidentEvidence.countDocuments({ _id: second }), 1);
 });
+
+test("cleanup that starts before the incident write cannot detach the committed resolution", async () => {
+  const shipment = await Shipment.create({
+    shipperId,
+    cargoDescription: "Hàng lạnh kiểm thử ảnh kết quả",
+    pickupLocation: "Kho A",
+    deliveryLocation: "Kho B",
+    temperatureGroup: "FROZEN",
+    vehicleRequirement: "Xe đông lạnh",
+    listedPriceVnd: 1500000,
+    status: "MATCHED",
+    carrierId: ownerId,
+  });
+  const incidentId = await incident();
+  await Incident.updateOne({ _id: incidentId }, { $set: { shipmentId: shipment._id, handlerId: ownerId } });
+  const current = await storeIncidentEvidence(ownerId.toString(), "image/png", TINY_PNG);
+  const earlier = await storeIncidentEvidence(ownerId.toString(), "image/png", TINY_PNG);
+  const key = "resolve-race-commit-01";
+  const historicalKey = "resolve-race-history-01";
+  await claimResolutionEvidence(ownerId.toString(), incidentId, historicalKey, [earlier.id]);
+  await Incident.updateOne(
+    { _id: incidentId },
+    {
+      $addToSet: { appliedKeys: historicalKey },
+      $push: { pendingEvents: resolutionEvent(historicalKey, "Đã xử lý lần trước.", [earlier.id]) },
+    },
+  );
+  await claimResolutionEvidence(ownerId.toString(), incidentId, key, [current.id]);
+  await releaseResolutionClaim(ownerId.toString(), incidentId, key, {
+    afterUncommittedRead: async () => {
+      await Incident.updateOne(
+        { _id: incidentId },
+        {
+          $set: { status: "RESOLVED" },
+          $addToSet: { appliedKeys: key },
+          $push: { pendingEvents: resolutionEvent(key, "Đã xử lý trước khi dọn ảnh.", [current.id]) },
+        },
+      );
+    },
+  });
+  const image = await IncidentEvidence.findById(current.id).lean();
+  assert.equal(image?.incidentId?.toString(), incidentId.toString());
+  assert.equal(image?.resolutionKey, key);
+  const historicalImage = await IncidentEvidence.findById(earlier.id).lean();
+  assert.equal(historicalImage?.resolutionKey, historicalKey);
+  await cleanupOrphanIncidentEvidence();
+  const read = await readIncidentEvidence(current.id, { id: ownerId.toString(), role: "CARRIER" });
+  assert.equal(Buffer.compare(read.bytes, TINY_PNG), 0);
+  const historicalRead = await readIncidentEvidence(earlier.id, { id: ownerId.toString(), role: "CARRIER" });
+  assert.equal(Buffer.compare(historicalRead.bytes, TINY_PNG), 0);
+});
+
+test("a later resolution can reuse an uncommitted reservation but not a committed image", async () => {
+  const incidentId = await incident();
+  const movable = await evidence("2".repeat(32));
+  const committed = await evidence("3".repeat(32));
+  await claimResolutionEvidence(ownerId.toString(), incidentId, "resolve-old-open-01", [movable.toString()]);
+  await claimResolutionEvidence(ownerId.toString(), incidentId, "resolve-new-open-01", [movable.toString()]);
+  assert.deepEqual(await held(movable), { incidentId: incidentId.toString(), resolutionKey: "resolve-new-open-01" });
+
+  const committedKey = "resolve-old-committed-01";
+  await claimResolutionEvidence(ownerId.toString(), incidentId, committedKey, [committed.toString()]);
+  await Incident.updateOne(
+    { _id: incidentId },
+    {
+      $addToSet: { appliedKeys: committedKey },
+      $push: { pendingEvents: resolutionEvent(committedKey, "Ảnh đã gắn.", [committed.toString()]) },
+    },
+  );
+  await assert.rejects(
+    () => claimResolutionEvidence(ownerId.toString(), incidentId, "resolve-new-committed-01", [committed.toString()]),
+    (error: unknown) => error instanceof Error && "status" in error && error.status === 400,
+  );
+  assert.deepEqual(await held(committed), { incidentId: incidentId.toString(), resolutionKey: committedKey });
+});
+
+function resolutionEvent(key: string, note: string, evidenceIds: string[]) {
+  return {
+    idempotencyKey: key,
+    action: "RESOLVED" as const,
+    actorId: ownerId,
+    actorRole: "CARRIER" as const,
+    statusBefore: "IN_PROGRESS" as const,
+    statusAfter: "RESOLVED" as const,
+    note,
+    occurredAt: new Date(),
+    correlationId: key,
+    evidenceIds,
+  };
+}

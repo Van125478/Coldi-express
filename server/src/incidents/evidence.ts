@@ -123,6 +123,14 @@ export async function claimResolutionEvidence(ownerId: string, incidentId: Types
   if (evidenceIds.length === 0) return;
   if ((await resolutionCommitState(incidentId, resolutionKey)).committed) return;
   const ids = evidenceIds.map((id) => new Types.ObjectId(id));
+  const blocking = await IncidentEvidence.find({
+    _id: { $in: ids },
+    ownerId,
+    incidentId,
+    resolutionKey: { $nin: [null, resolutionKey] },
+  }).select("resolutionKey");
+  const blockingKeys = new Set(blocking.flatMap((image) => (image.resolutionKey ? [image.resolutionKey] : [])));
+  for (const blockingKey of blockingKeys) await releaseResolutionClaim(ownerId, incidentId, blockingKey);
   const now = new Date();
   await IncidentEvidence.updateMany(
     { ownerId, incidentId, resolutionKey, _id: { $nin: ids } },
@@ -184,16 +192,24 @@ export async function ensureResolutionEvidenceBound(
  * Clears a reservation only after a fresh read shows no pending event, applied key, or timeline event.
  * A committed resolution is rebound instead of detached.
  */
-export async function releaseResolutionClaim(ownerId: string, incidentId: Types.ObjectId, resolutionKey: string): Promise<void> {
+export async function releaseResolutionClaim(
+  ownerId: string,
+  incidentId: Types.ObjectId,
+  resolutionKey: string,
+  observation?: { afterUncommittedRead?: () => Promise<void> },
+): Promise<void> {
   const state = await resolutionCommitState(incidentId, resolutionKey);
   if (state.committed) {
     await ensureResolutionEvidenceBound(ownerId, incidentId, resolutionKey, state.evidenceIds);
     return;
   }
+  if (observation?.afterUncommittedRead) await observation.afterUncommittedRead();
   await IncidentEvidence.updateMany(
     { ownerId, incidentId, resolutionKey },
     { $set: { incidentId: null, resolutionKey: null, claimedAt: null } },
   );
+  const after = await resolutionCommitState(incidentId, resolutionKey);
+  if (after.committed) await ensureResolutionEvidenceBound(ownerId, incidentId, resolutionKey, after.evidenceIds);
 }
 
 /** Frees reservations whose resolution never committed. Claims younger than the grace period stay reserved. */
