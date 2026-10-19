@@ -20,7 +20,14 @@ import {
   isCarrierHandler,
   recipientIds,
 } from "./access.js";
-import { assertResolutionEvidenceHeld, attachIncidentEvidence, claimResolutionEvidence, releaseResolutionClaim } from "./evidence.js";
+import {
+  assertResolutionEvidenceHeld,
+  attachIncidentEvidence,
+  claimResolutionEvidence,
+  ensureResolutionEvidenceBound,
+  releaseAbandonedResolutionClaims,
+  releaseResolutionClaim,
+} from "./evidence.js";
 import {
   closeTransition,
   initialEscalationStatus,
@@ -655,10 +662,15 @@ async function transition(
   evidenceIds: string[] = [],
 ): Promise<IncidentView> {
   const current = await requireVisible(actor, incidentId);
+  if (kind === "RESOLVE") await releaseAbandonedResolutionClaims(current._id);
   if (current.appliedKeys?.includes(idempotencyKey)) {
     await ensureAppliedEvent(current, actor, kind, note, idempotencyKey, correlationId);
     await repairIncident(current._id.toString());
-    if (kind === "RESOLVE") await assertResolutionEvidenceHeld(current._id, idempotencyKey, storedEvidenceIds(current, idempotencyKey));
+    if (kind === "RESOLVE") {
+      const evidenceIds = storedEvidenceIds(current, idempotencyKey);
+      await ensureResolutionEvidenceBound(actor.id, current._id, idempotencyKey, evidenceIds);
+      await assertResolutionEvidenceHeld(current._id, idempotencyKey, evidenceIds);
+    }
     return presentAuthorized(actor, current);
   }
   const shipment = await loadShipment(current.shipmentId.toString());
@@ -720,7 +732,11 @@ async function transition(
     if (raced?.appliedKeys?.includes(idempotencyKey)) {
       await ensureAppliedEvent(raced, actor, kind, note, idempotencyKey, correlationId);
       await repairIncident(raced._id.toString());
-      if (kind === "RESOLVE") await assertResolutionEvidenceHeld(raced._id, idempotencyKey, storedEvidenceIds(raced, idempotencyKey));
+      if (kind === "RESOLVE") {
+        const evidenceIds = storedEvidenceIds(raced, idempotencyKey);
+        await ensureResolutionEvidenceBound(actor.id, raced._id, idempotencyKey, evidenceIds);
+        await assertResolutionEvidenceHeld(raced._id, idempotencyKey, evidenceIds);
+      }
       return presentAuthorized(actor, raced);
     }
     if (kind === "RESOLVE") await releaseResolutionClaim(actor.id, current._id, idempotencyKey);
@@ -739,7 +755,10 @@ async function transition(
     correlationId,
   });
   if (!event) throw new HttpError(500, "incident_audit_incomplete", "Cập nhật đã lưu nhưng lịch sử chưa ghi xong. Hãy gửi lại cùng mã idempotency.");
-  if (kind === "RESOLVE") await assertResolutionEvidenceHeld(updated._id, idempotencyKey, evidenceIds);
+  if (kind === "RESOLVE") {
+    await ensureResolutionEvidenceBound(actor.id, updated._id, idempotencyKey, evidenceIds);
+    await assertResolutionEvidenceHeld(updated._id, idempotencyKey, evidenceIds);
+  }
   await notify(updated, event, shipment, actor.id);
   return toIncidentView(updated, shipment, actor);
 }
@@ -829,6 +848,7 @@ async function presentAuthorized(actor: Actor, incident: StoredIncident, now = n
 async function repairIncident(incidentId: string): Promise<void> {
   const incident = await Incident.findById(incidentId).lean<StoredIncident | null>();
   if (!incident) return;
+  await releaseAbandonedResolutionClaims(incident._id);
   const shipment = await loadShipment(incident.shipmentId.toString());
   await ensureEvent({
     incident,
@@ -841,6 +861,9 @@ async function repairIncident(incidentId: string): Promise<void> {
     correlationId: `repair-${incident._id.toString()}`,
   });
   for (const pending of incident.pendingEvents ?? []) {
+    if (pending.action === "RESOLVED" && pending.actorId && pending.evidenceIds && pending.evidenceIds.length > 0) {
+      await ensureResolutionEvidenceBound(pending.actorId.toString(), incident._id, pending.idempotencyKey, pending.evidenceIds);
+    }
     await ensurePendingEvent(incident, pending);
   }
   if (!shipment) return;

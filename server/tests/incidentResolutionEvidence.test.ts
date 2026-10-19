@@ -337,10 +337,18 @@ test("incident resolution photo evidence", { concurrency: false }, async (t) => 
       assert.equal(first.status, 200);
       const second = await request(baseUrl, `/api/incidents/${id}/resolve`, carrier, "POST", { ...payload, expectedVersion: incident.version });
       assert.equal(second.status, 200);
+      const other = await upload(baseUrl, carrier);
+      const changed = await request(baseUrl, `/api/incidents/${id}/resolve`, carrier, "POST", {
+        ...payload,
+        expectedVersion: incident.version,
+        evidenceIds: [other.id],
+      });
+      assert.equal(changed.status, 200);
       const rows = await IncidentEvent.find({ incidentId: id, idempotencyKey: key }).lean();
       assert.equal(rows.length, 1);
       assert.deepEqual(rows[0]?.evidenceIds, [image.id]);
       assert.equal(await IncidentEvidence.countDocuments({ resolutionKey: key }), 1);
+      assert.equal((await IncidentEvidence.findById(other.id).lean())?.incidentId, null);
     });
   });
 
@@ -501,6 +509,17 @@ test("incident resolution photo evidence", { concurrency: false }, async (t) => 
       assert.deepEqual(resolvedEvents(repaired).at(-1)?.evidence, [{ id: image.id }]);
 
       await IncidentEvidence.updateOne({ _id: image.id }, { $set: { incidentId: null, resolutionKey: null } });
+      const restored = await request(baseUrl, `/api/incidents/${id}/resolve`, carrier, "POST", {
+        expectedVersion: recovered.incident?.version,
+        idempotencyKey: key,
+        resolutionSummary: "Đã xử lý sau khi gián đoạn kết nối.",
+        evidenceIds: [image.id],
+      });
+      assert.equal(restored.status, 200);
+      assert.equal(String((await IncidentEvidence.findById(image.id).lean())?.incidentId), id);
+      assert.equal(await IncidentEvent.countDocuments({ incidentId: id, idempotencyKey: key }), 1);
+
+      await IncidentEvidence.deleteOne({ _id: image.id });
       const lost = await request(baseUrl, `/api/incidents/${id}/resolve`, carrier, "POST", {
         expectedVersion: recovered.incident?.version,
         idempotencyKey: key,

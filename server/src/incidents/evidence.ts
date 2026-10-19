@@ -91,27 +91,140 @@ export async function attachIncidentEvidence(ownerId: string, incidentId: Types.
   return evidenceIds;
 }
 
-/** Claims uploads for one resolution idempotency key. A repeated claim of the same key is a no-op. */
+/** A fresh claim is left alone this long so an in-flight incident write can finish. */
+export const RESOLUTION_CLAIM_GRACE_MS = 60_000;
+
+type ResolutionCommit =
+  | { committed: false }
+  | { committed: true; evidenceIds: string[] };
+
+async function resolutionCommitState(incidentId: Types.ObjectId, resolutionKey: string): Promise<ResolutionCommit> {
+  const [incident, event] = await Promise.all([
+    Incident.findById(incidentId).select("appliedKeys pendingEvents").lean<{
+      appliedKeys?: string[];
+      pendingEvents?: { idempotencyKey: string; evidenceIds?: string[] }[];
+    } | null>(),
+    IncidentEvent.findOne({ incidentId, idempotencyKey: resolutionKey }).select("evidenceIds").lean<{ evidenceIds?: string[] } | null>(),
+  ]);
+  const pending = incident?.pendingEvents?.find((item) => item.idempotencyKey === resolutionKey);
+  const applied = incident?.appliedKeys?.includes(resolutionKey) === true;
+  if (!pending && !applied && !event) return { committed: false };
+  const pendingIds = pending?.evidenceIds ?? [];
+  const eventIds = event?.evidenceIds ?? [];
+  return { committed: true, evidenceIds: pendingIds.length > 0 ? pendingIds : eventIds };
+}
+
+/**
+ * Reserves uploads for one resolution key.
+ * A committed key is never rewritten. An uncommitted retry with a different image set replaces that reservation.
+ * A failed claim releases only the images this attempt reserved.
+ */
 export async function claimResolutionEvidence(ownerId: string, incidentId: Types.ObjectId, resolutionKey: string, evidenceIds: string[]): Promise<void> {
   if (evidenceIds.length === 0) return;
+  if ((await resolutionCommitState(incidentId, resolutionKey)).committed) return;
   const ids = evidenceIds.map((id) => new Types.ObjectId(id));
+  const now = new Date();
   await IncidentEvidence.updateMany(
-    { _id: { $in: ids }, ownerId, incidentId: null, resolutionKey: null },
-    { $set: { incidentId, resolutionKey } },
+    { ownerId, incidentId, resolutionKey, _id: { $nin: ids } },
+    { $set: { incidentId: null, resolutionKey: null, claimedAt: null } },
+  );
+  const raced = await resolutionCommitState(incidentId, resolutionKey);
+  if (raced.committed) {
+    await ensureResolutionEvidenceBound(ownerId, incidentId, resolutionKey, raced.evidenceIds);
+    return;
+  }
+  await IncidentEvidence.updateMany(
+    {
+      _id: { $in: ids },
+      ownerId,
+      $or: [
+        { incidentId: null, resolutionKey: null },
+        { incidentId, resolutionKey },
+      ],
+    },
+    { $set: { incidentId, resolutionKey, claimedAt: now } },
   );
   const held = await IncidentEvidence.countDocuments({ _id: { $in: ids }, ownerId, incidentId, resolutionKey });
   if (held === ids.length) return;
+  const committedDuringClaim = await resolutionCommitState(incidentId, resolutionKey);
+  if (committedDuringClaim.committed) {
+    await ensureResolutionEvidenceBound(ownerId, incidentId, resolutionKey, committedDuringClaim.evidenceIds);
+    return;
+  }
   await releaseResolutionClaim(ownerId, incidentId, resolutionKey);
   throw new HttpError(400, "invalid_request", "Ảnh kết quả xử lý không thuộc tài khoản này hoặc đã được dùng.", {
     evidenceIds: "Chọn tối đa 5 ảnh còn hiệu lực của chính nhà xe đang gửi kết quả.",
   });
 }
 
-/** Releases a claim only when that resolution was not stored. Images already on an event stay put. */
+/** Reattaches the stored image set for a resolution that already committed, including images freed by a stale release. */
+export async function ensureResolutionEvidenceBound(
+  ownerId: string,
+  incidentId: Types.ObjectId,
+  resolutionKey: string,
+  evidenceIds: string[],
+): Promise<void> {
+  if (evidenceIds.length === 0) return;
+  const ids = evidenceIds.map((id) => new Types.ObjectId(id));
+  await IncidentEvidence.updateMany(
+    {
+      _id: { $in: ids },
+      ownerId,
+      $or: [
+        { incidentId: null, resolutionKey: null },
+        { incidentId: null, resolutionKey },
+        { incidentId, resolutionKey },
+      ],
+    },
+    { $set: { incidentId, resolutionKey, claimedAt: new Date() } },
+  );
+}
+
+/**
+ * Clears a reservation only after a fresh read shows no pending event, applied key, or timeline event.
+ * A committed resolution is rebound instead of detached.
+ */
 export async function releaseResolutionClaim(ownerId: string, incidentId: Types.ObjectId, resolutionKey: string): Promise<void> {
-  const recorded = await IncidentEvent.exists({ incidentId, idempotencyKey: resolutionKey });
-  if (recorded) return;
-  await IncidentEvidence.updateMany({ ownerId, incidentId, resolutionKey }, { $set: { incidentId: null, resolutionKey: null } });
+  const state = await resolutionCommitState(incidentId, resolutionKey);
+  if (state.committed) {
+    await ensureResolutionEvidenceBound(ownerId, incidentId, resolutionKey, state.evidenceIds);
+    return;
+  }
+  await IncidentEvidence.updateMany(
+    { ownerId, incidentId, resolutionKey },
+    { $set: { incidentId: null, resolutionKey: null, claimedAt: null } },
+  );
+}
+
+/** Frees reservations whose resolution never committed. Claims younger than the grace period stay reserved. */
+export async function releaseAbandonedResolutionClaims(
+  incidentId: Types.ObjectId,
+  now = new Date(),
+  graceMs = RESOLUTION_CLAIM_GRACE_MS,
+): Promise<number> {
+  const reserved = await IncidentEvidence.find({ incidentId, resolutionKey: { $ne: null } }).select("ownerId resolutionKey claimedAt");
+  const grouped = new Map<string, { ownerId: string; claimedAt: Date | null }>();
+  for (const image of reserved) {
+    const key = image.resolutionKey;
+    if (!key) continue;
+    const claimedAt = image.claimedAt ?? null;
+    const existing = grouped.get(key);
+    if (!existing) {
+      grouped.set(key, { ownerId: image.ownerId.toString(), claimedAt });
+      continue;
+    }
+    if (claimedAt && (!existing.claimedAt || claimedAt > existing.claimedAt)) existing.claimedAt = claimedAt;
+  }
+  const cutoff = now.getTime() - graceMs;
+  let released = 0;
+  for (const [key, info] of grouped) {
+    if (info.claimedAt && info.claimedAt.getTime() > cutoff) continue;
+    const before = await IncidentEvidence.countDocuments({ incidentId, resolutionKey: key });
+    await releaseResolutionClaim(info.ownerId, incidentId, key);
+    const after = await IncidentEvidence.countDocuments({ incidentId, resolutionKey: key });
+    released += Math.max(0, before - after);
+  }
+  return released;
 }
 
 export async function assertResolutionEvidenceHeld(incidentId: Types.ObjectId, resolutionKey: string, evidenceIds: string[]): Promise<void> {
@@ -158,7 +271,7 @@ async function canReadAttached(incidentId: string, actor: Actor): Promise<boolea
   );
 }
 
-async function cleanupOrphanIncidentEvidence(now = new Date()): Promise<void> {
+export async function cleanupOrphanIncidentEvidence(now = new Date()): Promise<void> {
   const cutoff = new Date(now.getTime() - INCIDENT_EVIDENCE_LIMITS.orphanAfterMs);
   const stale = await IncidentEvidence.find({ incidentId: null, resolutionKey: null, createdAt: { $lt: cutoff } }).select("storageKey");
   if (stale.length === 0) return;
