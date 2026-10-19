@@ -2,12 +2,12 @@
 
 COLDI là website vận tải lạnh cho doanh nghiệp. Chủ hàng đăng đơn. Nhà xe tự nhận chuyến rồi phân công xe và tài xế. Tài xế được phân công xác nhận lấy hàng, sau đó xác nhận giao hàng. Xác nhận giao không phải thanh toán.
 
-**Tài liệu nghiệp vụ hiện hành là v2.10.** Bộ v2.7, v2.6 và hồ sơ v2.4 là tài liệu trước đó. Code trên nhánh này là **WIP / Team Testing**. Đây không phải bản phát hành ứng dụng v2.10 và không phải bản production. MVP chưa hoàn thành. Package Management đã có mã. Commission Management MVP là mô phỏng Demo/QA: khóa tỷ lệ lúc đăng hoặc nhận chuyến, ghi nhận khi giao hàng, không thu tiền. Incident reporting có bản MVP kỹ thuật, giao diện chưa được nghiệm thu. Oil Price chưa được triển khai. Thanh toán production không hoạt động.
+**Tài liệu nghiệp vụ hiện hành là v2.10.** Bộ v2.7, v2.6 và hồ sơ v2.4 là tài liệu trước đó. Code trên nhánh này là **WIP / Team Testing**. Đây không phải bản phát hành ứng dụng v2.10 và không phải bản production. MVP chưa hoàn thành. Package Management đã có mã. Commission Management là mô phỏng Demo/QA khi cờ được bật: khóa tỷ lệ lúc đăng hoặc nhận chuyến, ghi nhận khi giao hàng, không thu tiền. Trên database demo dùng chung, cờ này đang tắt nên trang hoa hồng không có dòng đã khóa. Sự cố có báo cáo, ảnh tùy chọn, và đóng/mở lại cho sự cố phương tiện. Brent/WTI đã có. Giá trần diesel Việt Nam chưa có số đã xác minh. Thanh toán production không hoạt động. Nghiệm thu trình duyệt của Product Owner vẫn đang mở.
 
 ## Người mới đọc theo thứ tự này
 
 1. [Cài đặt và chạy máy](docs/team-testing/TEAM_TESTING_GUIDE.md) — Git, Node.js, MongoDB, file cấu hình, mở website.
-2. [Cách dùng từng vai trò](docs/team-testing/USER_GUIDE_BEGINNERS.md) — chủ hàng, nhà xe, tài xế, chat, GPS, kịch bản thử từ đầu đến cuối.
+2. [Cách dùng từng vai trò](docs/team-testing/USER_GUIDE_BEGINNERS.md) — chủ hàng, nhà xe, tài xế, gói, hoa hồng, sự cố, nhiên liệu, chat, GPS. Bản 19/10/2026.
 3. [Khi gặp lỗi](docs/team-testing/TROUBLESHOOTING.md) — triệu chứng, cách kiểm tra, cách xử lý an toàn.
 4. [Tài liệu nghiệp vụ v2.10](docs/v2.10/README.md) — chính sách hiện hành. Package đã có mã. Hoa hồng mô phỏng và báo cáo sự cố có bàn giao kỹ thuật riêng, không sửa chính sách v2.10.
 5. [Handoff hoa hồng mô phỏng](docs/commission/MVP_HANDOFF.md) — snapshot, sổ cái, API, guard Demo/QA và phần còn OPEN.
@@ -88,7 +88,7 @@ EARLIER DOCS. PR #4 đã merge bộ này. Các câu còn gọi giá là chưa du
 
 CURRENT IMPLEMENTED CODE trên baseline `7d07e941ace1d3490996c53a6bed36478a6d4836`: đăng đơn, sàn, nhận chuyến, phân công, lấy hàng, giao hàng, chat, GPS, đội xe, tài khoản tài xế. Product Owner đã review và chấp nhận bố cục của Carrier Home, phần phân công chuyến của Nhà xe, Driver Home và cấu trúc Shipper/Carrier Chatbox. Đây là nghiệm thu bố cục trực quan, không phải nghiệm thu toàn bộ chức năng. Luồng E2E vận tải, chat lưu dữ liệu thực và Mapbox tiles/marker vẫn chưa được xác minh đầy đủ.
 
-Package Management đã có mã sau PR #6, gồm trần xe, Demo/QA và một xe một chuyến chưa hoàn thành. Hoa hồng và giá dầu đã được duyệt nhưng chưa có module trên nhánh này. Báo cáo sự cố có MVP kỹ thuật trong [docs/incident/MVP_HANDOFF.md](docs/incident/MVP_HANDOFF.md): báo cáo chữ, RBAC, trạng thái đến kết quả xử lý, phản đối, audit và thông báo trong ứng dụng. Đóng sự cố, leo thang, ảnh chứng cứ, ưu tiên và nhắc việc vẫn khóa vì chính sách còn mở. Giao diện chưa được nghiệm thu. Thanh toán online không hoạt động. Quota đơn Shipper, quyền lợi Premium, điều khoản Enterprise từng khách và nâng gói giữa kỳ vẫn mở.
+Package Management đã có mã sau PR #6, gồm trần xe và kích hoạt Demo/QA. Hoa hồng có mã mô phỏng. Giá Brent/WTI có module đọc. Diesel trần chỉ hiện khi quản trị đã ghi một văn bản đã xác minh. Báo cáo sự cố, ảnh chứng cứ và đóng/mở lại sự cố phương tiện nằm trong [docs/incident/MVP_HANDOFF.md](docs/incident/MVP_HANDOFF.md). Phân công quản trị cho yêu cầu mở lại vẫn chưa được chốt. Giao diện chưa được Product Owner nghiệm thu hết. Thanh toán online không hoạt động. Quota đơn Shipper, điều khoản Enterprise từng khách và nâng gói giữa kỳ vẫn mở.
 
 FE-05B chưa bắt đầu.
 
