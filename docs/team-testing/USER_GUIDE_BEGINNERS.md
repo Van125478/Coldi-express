@@ -4,6 +4,8 @@
 
 Không có ảnh chụp màn hình trong file này. Làm theo chữ trên nút. Ảnh Mapbox không được đưa vào vì tile thật chưa được chứng minh.
 
+Bản hướng dẫn này khớp mã trên `main` ngày 19/10/2026. Đây là cách bấm để Product Owner tự nghiệm thu. Chưa phải biên bản PASS.
+
 Mọi bước có ghi **QUY TRÌNH KIỂM THỬ** là cách bấm để người thử tự làm trên database dùng một lần. Đó không phải biên bản PASS. Chuỗi đầu-cuối chưa được ghi nhận đã chạy thành công trong đợt viết tài liệu.
 
 ## Vai trò
@@ -13,7 +15,7 @@ Mọi bước có ghi **QUY TRÌNH KIỂM THỬ** là cách bấm để người
 | SHIPPER | Chủ hàng | Đăng đơn lạnh và theo dõi đơn của mình |
 | CARRIER | Nhà xe | Xem đơn đang tìm xe, tự nhận, phân công xe và tài xế |
 | DRIVER | Tài xế | Chỉ thấy chuyến đã được nhà xe gán, xác nhận lấy rồi giao |
-| ADMIN | Quản trị | Đăng nhập vào trang báo khu vận hành chưa mở |
+| ADMIN | Quản trị | Đăng nhập vào trang báo khu vận hành chưa mở. Không được giao mọi sự cố |
 
 Khách chưa đăng nhập mở được trang giới thiệu, không tạo được đơn và không nhận chuyến. Khách không phải vai thứ năm trong mã.
 
@@ -39,7 +41,7 @@ Chỉ tài khoản SHIPPER vào được các trang dưới. Người khác bị
 
 **Mục đích:** thấy đơn của chính tài khoản, chia nhóm.
 
-**Thấy gì:** tiêu đề trang chủ chủ hàng. Bốn nhóm: `Đang tìm xe` (“Chưa có nhà xe nhận.”), `Đã có nhà xe nhận`, `Đang vận chuyển`, `Đã giao` (“Đã xác nhận giao. Chưa phải đã thanh toán.”). Menu trái: `Trang chủ`, `Tạo đơn`, `Quản lý đơn`.
+**Thấy gì:** tiêu đề trang chủ chủ hàng. Ngay dưới tiêu đề, trước danh sách đơn, là khối `Thị trường nhiên liệu`. Bốn nhóm đơn: `Đang tìm xe` (“Chưa có nhà xe nhận.”), `Đã có nhà xe nhận`, `Đang vận chuyển`, `Đã giao` (“Đã xác nhận giao. Chưa phải đã thanh toán.”). Menu trái: `Trang chủ`, `Tạo đơn`, `Quản lý đơn`, `Sự cố`, `Hoa hồng`, `Gói dịch vụ`.
 
 **Nút:** khi đã có đơn, nút đăng đơn nằm ở menu `Tạo đơn`. Khi danh sách trống, nội dung trang có `Đăng đơn hàng`.
 
@@ -80,6 +82,7 @@ Nút `Quay lại` và `Tiếp tục: Hàng hóa và xe`.
 - `Số thùng` là số nguyên từ 1 đến 1000000
 - `Yêu cầu xe` là câu chữ
 - `Giá cước niêm yết` là số nguyên đồng, lớn hơn 0. Đây là giá niêm yết, không phải đã thu tiền
+- `Ảnh hàng hóa` bắt buộc từ 1 đến 5 ảnh. Nút xanh `Chọn ảnh hàng hóa`. Trang hiện số đã chọn, ảnh xem trước và nút bỏ từng ảnh. JPG, PNG hoặc WebP, tối đa 2 MB mỗi ảnh
 
 Khối `Xem lại trước khi đăng` hiện lại điểm lấy và điểm giao. Nút `Hoàn tất và đăng đơn`. Khi đang gửi, nút thành `Đang đăng đơn`.
 
@@ -122,7 +125,9 @@ Thay `:id` bằng mã đơn thật trên thanh địa chỉ.
 
 ## Nhà xe
 
-Chỉ tài khoản CARRIER. Menu: `Sàn chuyến`, `Tìm chuyến`, `Chuyến của tôi`, `Đội xe`, `Tài xế`.
+Chỉ tài khoản CARRIER. Menu: `Sàn chuyến`, `Tìm chuyến`, `Chuyến của tôi`, `Sự cố`, `Hoa hồng`, `Đội xe`, `Tài xế`, `Gói dịch vụ`, `Thị trường nhiên liệu`.
+
+Trang chủ nhà xe không còn khối dầu lớn. Giá nhiên liệu nằm ở mục `Thị trường nhiên liệu`.
 
 ### `/carrier` — Sàn chuyến, trang chủ nhà xe
 
@@ -140,7 +145,7 @@ Chỉ tài khoản CARRIER. Menu: `Sàn chuyến`, `Tìm chuyến`, `Chuyến c�
 
 **Thấy gì:** ô `Tìm theo hàng, điểm lấy hoặc điểm giao`. Nhóm nhiệt `Tất cả`, `Lạnh mát`, `Đông`, `Cực lạnh`. Sắp xếp: `Mới đăng`, `Thời gian lấy hàng`, `Giá thấp đến cao`, `Tải trọng nặng đến nhẹ`. Nút `Bộ lọc khác` mở thêm điểm lấy, điểm giao, tải trọng và khoảng ngày lấy.
 
-Mỗi thẻ có `Xem đơn`, `So sánh`, và có thể có `Nhận chuyến` cùng `Nhắn chủ hàng`. Mã ngắn trên thẻ là sáu ký tự cuối, có dấu `#`. Mã đầy đủ nằm ở trang chi tiết, nhãn `Mã đơn`. So sánh tối đa 2 đơn, chữ dạng `So sánh 0/2`. So sánh không lưu trên server và không nhận chuyến. `Nhận chuyến` trên thẻ mở cùng hộp xác nhận với nút trong trang chi tiết. `Nhắn chủ hàng` trên thẻ nhảy tới khối chat của đơn, chưa gửi tin.
+Mỗi thẻ có ảnh hàng hóa rộng theo thẻ khi đơn có ảnh. Bấm ảnh mở `Xem lớn`. Thẻ còn `Xem đơn`, `So sánh`, và có thể có `Nhận chuyến` cùng `Nhắn chủ hàng`. Mã ngắn trên thẻ là sáu ký tự cuối, có dấu `#`. Mã đầy đủ nằm ở trang chi tiết, nhãn `Mã đơn`. So sánh tối đa 2 đơn. So sánh không lưu trên server và không nhận chuyến. `Nhận chuyến` trên thẻ mở cùng hộp xác nhận với nút trong trang chi tiết. `Nhắn chủ hàng` trên thẻ nhảy tới khối chat của đơn, chưa gửi tin.
 
 **Vì sao sàn có thể trống:** chưa có đơn đang tìm xe, hoặc bộ lọc loại hết. Câu khi không lọc: `Hiện không có đơn mở. Đơn mới hiện tại đây khi chủ hàng niêm yết.` Xóa bớt điều kiện nếu bạn vừa lọc. Sàn trống không phải mất trang.
 
@@ -215,7 +220,7 @@ Tài khoản bị khóa đăng nhập đúng mật khẩu vẫn không vào đư
 
 Chỉ tài khoản DRIVER đã đổi mật khẩu nếu hệ thống đang yêu cầu đổi. Nếu chưa đổi, mọi trang chuyến đẩy về `/driver/doi-mat-khau`.
 
-Tài xế không thấy sàn và không có nút nhận chuyến.
+Tài xế không thấy sàn và không có nút nhận chuyến. Menu: `Trang chủ`, `Chuyến của tôi`, `Sự cố`, `Thị trường nhiên liệu`. Trang chủ tài xế không có khối giá nhiên liệu và không có cảnh báo giá. Giá chỉ đọc ở mục riêng, khi tài xế chủ động mở.
 
 ### `/driver` — Tổng quan tài xế
 
@@ -252,6 +257,58 @@ Chỉ khi tài khoản đang bị yêu cầu đổi mật khẩu tạm. Điền 
 ## Quản trị
 
 `/admin` sau khi đăng nhập ADMIN. Tiêu đề `Khu vận hành quản trị chưa mở`. Câu trên trang: tài khoản quản trị không xem đơn của chủ hàng, không nhận chuyến và không phân công xe. Không có trang duyệt doanh nghiệp, không có trang GPS cho quản trị.
+
+Quản trị không tự thấy mọi sự cố. Việc phân công quản trị xử lý yêu cầu mở lại vẫn chưa được chốt. Đừng kỳ vọng mọi tài khoản ADMIN bấm được quyết định mở lại.
+
+## Gói dịch vụ
+
+Chủ hàng: `/shipper/goi`. Nhà xe: `/carrier/goi`. Khách chưa đăng nhập: `/goi-dich-vu`. Tài xế không có mục gói và không mua gói.
+
+Chủ hàng thấy Free, Pro tháng, Pro năm và Enterprise. Nhà xe thấy Free, Pro tháng, Pro năm, Business và Enterprise. Pro năm là một kỳ thanh toán cả năm, không phải mười hai lần giá tháng cộng lại thành một gói khác. Trần xe của nhà xe không đổi theo trang này.
+
+Kích hoạt trên bản demo, nếu nút còn mở, là kích hoạt thử. Không thu tiền thật. Giá nhiên liệu không đổi giá gói.
+
+## Hoa hồng
+
+Chủ hàng: `/shipper/hoa-hong`. Nhà xe: `/carrier/hoa-hong`. Tiêu đề `Lịch sử hoa hồng`.
+
+Trang có thể hiện dòng `Mô phỏng Demo/QA — Không phải tiền đã thu`. Dòng đó không có nghĩa là phí đã thu hoặc đã quyết toán.
+
+Trên database demo đang chạy, mô phỏng hoa hồng đang tắt. Danh sách trống với câu `Chưa có hoa hồng đã khóa` và `Đơn cũ không có snapshot sẽ không được tính lại từ gói hiện tại.` Đơn mới tạo trên database đó cũng không tự khóa snapshot. Đừng bật cờ mô phỏng trên database demo nếu Product Owner chưa cho phép riêng. Đừng kỳ vọng thấy dòng đã trả.
+
+Khi mô phỏng được bật trên database dùng một lần, chủ hàng khóa tỷ lệ lúc đăng đơn và nhà xe khóa tỷ lệ lúc nhận chuyến. Giao hàng ghi nhận một lần. Bấm lại không tạo thêm dòng. Đơn cũ không có snapshot không bị tính lại.
+
+## Thị trường nhiên liệu
+
+Ba lớp, tách nhau:
+
+1. Dầu diesel 0.05S bán lẻ tham khảo. Hiện chưa có nhà cung cấp đã xác minh. Đừng điền số.
+2. Giá trần Bộ Công Thương. Khi chưa có văn bản đã xác minh, câu đúng là `Chưa có dữ liệu diesel được xác minh`. Không phải số 0.
+3. Brent và WTI, đơn vị USD/thùng, nguồn EIA. Có ngày quan sát và giờ COLDI lấy dữ liệu theo giờ Việt Nam. Không đổi thành giá bơm.
+
+Chỗ xem:
+
+| Vai | Chỗ |
+| --- | --- |
+| Khách | Trang chủ công khai, một khối `Thị trường nhiên liệu` |
+| Chủ hàng | Trang `/shipper`, dưới tiêu đề, trước danh sách đơn |
+| Nhà xe | Menu `Thị trường nhiên liệu`, trang `/carrier/thi-truong-nhien-lieu` |
+| Tài xế | Menu `Thị trường nhiên liệu`, trang `/driver/thi-truong-nhien-lieu` |
+
+Số liệu không đổi cước, giá gói, thù lao tài xế hoặc hoa hồng.
+
+## Sự cố
+
+Menu `Sự cố` của chủ hàng, nhà xe và tài xế. Ảnh chứng cứ là tùy chọn, tối đa 5, nút `Chọn ảnh chứng cứ`. Không có ảnh vẫn gửi được báo cáo.
+
+Đóng và mở lại chỉ áp dụng sự cố phương tiện đã xử lý xong:
+
+1. Nhà xe đang giữ chuyến bấm đóng khi sự cố đã ở trạng thái đã xử lý.
+2. Chủ hàng của đơn gửi yêu cầu mở lại và ghi lý do.
+3. Nhà xe đồng ý hoặc từ chối trong hạn 48 giờ.
+4. Hết 48 giờ mà nhà xe chưa trả lời thì yêu cầu được chuyển lên. Quản trị chỉ xử lý được khi sự cố đã được giao cho đúng tài khoản đó. Việc giao này chưa có màn hình, nên bước quản trị đang bị chặn.
+
+Sự cố loại khác không dùng nút đóng này. Đơn và hoa hồng không đổi trạng thái chỉ vì đóng hoặc mở lại sự cố. Hồ sơ cũ vẫn đọc được.
 
 ## Chatbox
 
@@ -370,30 +427,28 @@ Không có bước thanh toán. GPS không tự xác nhận lấy hoặc giao.
 
 ## Trạng thái MVP hiện tại và các giai đoạn tiếp theo
 
-Phương án B đã được duyệt. Phương án B thay phương án A. MVP cuối cùng bắt buộc có logistics, Package Management, quyền gói, và hạn mức được backend chặn. Bản đang chạy mới có phần logistics ở mức mã. Chưa phải full MVP.
+Phương án B đã được duyệt. Bản đang chạy có logistics, gói, hoa hồng trong mã, sự cố, ảnh hàng, và thị trường nhiên liệu. Chưa phải full MVP. Nghiệm thu trình duyệt của Product Owner vẫn đang mở.
 
-### Đã có mã, nghiệm thu còn mở
+### Đã có mã, nghiệm thu trình duyệt còn mở
 
-- Luồng đơn: đăng, nhận, phân công, lấy, giao.
+- Luồng đơn: đăng kèm 1–5 ảnh hàng, nhận, phân công, lấy, giao.
 - Vai SHIPPER, CARRIER, DRIVER, ADMIN và việc nhà xe cấp tài khoản tài xế.
-- Sàn và nhận chuyến.
+- Sàn, ảnh hàng trên thẻ, và nhận chuyến.
 - Chatbox.
 - GPS theo quyền ở trên.
 - Timeline các mốc đã ghi.
+- Gói dịch vụ và trần xe đã công bố.
+- Báo cáo sự cố và ảnh chứng cứ tùy chọn.
+- Đóng và yêu cầu mở lại sự cố phương tiện.
+- Brent/WTI và khối diesel đang để trạng thái chưa xác minh.
 
-E2E chưa có PASS. Tile Mapbox chưa có PASS. Chat lưu dữ liệu thực chưa có biên bản. Product Owner đã chấp nhận bố cục Carrier Home, phần phân công chuyến của Nhà xe, Driver Home và cấu trúc khung chat Shipper/Carrier. Đây là nghiệm thu bố cục, không phải nghiệm thu chức năng.
+E2E chưa có PASS. Tile Mapbox chưa có PASS. Product Owner đã chấp nhận một số bố cục trước đó. Đó không phải nghiệm thu chức năng của các mục mới.
 
-### Bắt buộc theo phương án B nhưng chưa làm
+### Đang chặn, đừng coi là lỗi mất trang
 
-- Danh mục gói.
-- Màn quản lý gói.
-- Quyền đi kèm gói.
-- Hạn mức sử dụng.
-- Backend từ chối khi vượt hạn mức.
-- Chỗ người dùng thấy trạng thái gói.
-- Màn quản trị gói nội bộ.
-
-Chưa có số lượng gói, tên gói, giá, hạn mức, chu kỳ, hay cách nâng hạ. Đừng điền số vào khi thử.
+- Mô phỏng hoa hồng tắt trên database demo dùng chung. Trang hoa hồng mở nhưng không có dòng đã khóa.
+- Giá trần diesel chưa có số đã xác minh. Không điền số thay.
+- Quản trị chưa được giao sự cố thì không quyết được yêu cầu mở lại.
 
 ### Để sau MVP
 

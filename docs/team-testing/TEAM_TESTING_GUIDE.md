@@ -420,7 +420,7 @@ Bản `package.json` đã commit không có lệnh đặt lại mật khẩu dem
 3. Ô mật khẩu: mật khẩu trong `.env` của máy bạn, không chép từ chat.
 4. Nút `Đăng nhập`.
 
-**Kết quả mong đợi:** trình duyệt tới `/shipper`. Menu trái có `Trang chủ`, `Tạo đơn`, `Quản lý đơn`.
+**Kết quả mong đợi:** trình duyệt tới `/shipper`. Menu trái có `Trang chủ`, `Tạo đơn`, `Quản lý đơn`, `Sự cố`, `Hoa hồng`, `Gói dịch vụ`. Ngay dưới tiêu đề trang chủ là `Thị trường nhiên liệu`.
 
 Sai email hoặc sai mật khẩu cùng câu `Email hoặc mật khẩu không đúng.`
 
@@ -437,6 +437,8 @@ Việc bấm từng luồng nghiệp vụ nằm ở [USER_GUIDE_BEGINNERS.md](US
 | Browser inspected | Đã mở trình duyệt. Thường không ghi nghiệp vụ |
 | E2E pending | Chưa có biên bản bấm đủ đăng → nhận → phân công → lấy → GPS → giao |
 | Mapbox real rendering pending | Chưa chứng minh tile và marker |
-| User visual accepted | VISUAL LAYOUT ACCEPTED: Carrier Home (thẻ chuyến, ảnh phía trên), phân công xe và tài xế, Driver Home task-first, cấu trúc khung chat Shipper/Carrier. Không phải FUNCTIONAL UAT. E2E, chat lưu thật và Mapbox tile/marker chưa xác minh đầy đủ |
+| User visual accepted | Một số bố cục cũ đã được chấp nhận hình thức. Gói, sự cố, ảnh, nhiên liệu và hoa hồng trên bản demo 19/10/2026 vẫn chờ Product Owner bấm. Không ghi PASS cho cả ứng dụng |
+| Commission on shared demo | Trang mở được. Mô phỏng đang tắt nên không có snapshot khóa. Không tự bật cờ trên database demo |
+| Diesel ceiling | Câu `Chưa có dữ liệu diesel được xác minh` là trạng thái đúng khi chưa có văn bản đã đọc |
 
 Chi tiết và phương án B: [MVP_STATUS_2026-10-18.md](../mvp-review/MVP_STATUS_2026-10-18.md).
