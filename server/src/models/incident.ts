@@ -57,6 +57,7 @@ const incidentSchema = new Schema(
             note: { type: String, maxlength: 2000 },
             occurredAt: { type: Date },
             correlationId: { type: String, required: true, maxlength: 80 },
+            evidenceIds: { type: [String], default: [] },
           },
           { _id: false },
         ),

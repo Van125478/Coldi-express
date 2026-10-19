@@ -72,6 +72,7 @@ export type IncidentEventRecord = {
   statusBeforeLabel: string;
   statusAfterLabel: string;
   note: string | null;
+  evidence?: { id: string }[];
   correlationId: string;
 };
 
@@ -117,8 +118,22 @@ export function startIncident(id: string, expectedVersion: number, idempotencyKe
   return apiRequest(`/api/incidents/${id}/start`, { method: "POST", body: JSON.stringify({ expectedVersion, idempotencyKey, note }) });
 }
 
-export function resolveIncident(id: string, expectedVersion: number, idempotencyKey: string, resolutionSummary: string): Promise<{ incident: IncidentRecord }> {
-  return apiRequest(`/api/incidents/${id}/resolve`, { method: "POST", body: JSON.stringify({ expectedVersion, idempotencyKey, resolutionSummary }) });
+export function resolveIncident(
+  id: string,
+  expectedVersion: number,
+  idempotencyKey: string,
+  resolutionSummary: string,
+  evidenceIds: string[] = [],
+): Promise<{ incident: IncidentRecord }> {
+  return apiRequest(`/api/incidents/${id}/resolve`, {
+    method: "POST",
+    body: JSON.stringify({
+      expectedVersion,
+      idempotencyKey,
+      resolutionSummary,
+      ...(evidenceIds.length > 0 ? { evidenceIds } : {}),
+    }),
+  });
 }
 
 export function objectIncident(id: string, expectedVersion: number, idempotencyKey: string, objectionReason: string): Promise<{ incident: IncidentRecord }> {

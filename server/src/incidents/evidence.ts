@@ -5,6 +5,7 @@ import path from "node:path";
 import { isValidObjectId, Types } from "mongoose";
 import { HttpError } from "../middlewares/errorHandler.js";
 import { IncidentEvidence } from "../models/incidentEvidence.js";
+import { IncidentEvent } from "../models/incidentEvent.js";
 import { Shipment } from "../models/shipment.js";
 import { CARGO_IMAGE_LIMITS, detectCargoType } from "../shipments/cargoImages.js";
 import { caseScope, type Actor } from "./access.js";
@@ -90,6 +91,167 @@ export async function attachIncidentEvidence(ownerId: string, incidentId: Types.
   return evidenceIds;
 }
 
+/** A fresh claim is left alone this long so an in-flight incident write can finish. */
+export const RESOLUTION_CLAIM_GRACE_MS = 60_000;
+
+type ResolutionCommit =
+  | { committed: false }
+  | { committed: true; evidenceIds: string[] };
+
+async function resolutionCommitState(incidentId: Types.ObjectId, resolutionKey: string): Promise<ResolutionCommit> {
+  const [incident, event] = await Promise.all([
+    Incident.findById(incidentId).select("appliedKeys pendingEvents").lean<{
+      appliedKeys?: string[];
+      pendingEvents?: { idempotencyKey: string; evidenceIds?: string[] }[];
+    } | null>(),
+    IncidentEvent.findOne({ incidentId, idempotencyKey: resolutionKey }).select("evidenceIds").lean<{ evidenceIds?: string[] } | null>(),
+  ]);
+  const pending = incident?.pendingEvents?.find((item) => item.idempotencyKey === resolutionKey);
+  const applied = incident?.appliedKeys?.includes(resolutionKey) === true;
+  if (!pending && !applied && !event) return { committed: false };
+  const pendingIds = pending?.evidenceIds ?? [];
+  const eventIds = event?.evidenceIds ?? [];
+  return { committed: true, evidenceIds: pendingIds.length > 0 ? pendingIds : eventIds };
+}
+
+/**
+ * Reserves uploads for one resolution key.
+ * A committed key is never rewritten. An uncommitted retry with a different image set replaces that reservation.
+ * A failed claim releases only the images this attempt reserved.
+ */
+export async function claimResolutionEvidence(ownerId: string, incidentId: Types.ObjectId, resolutionKey: string, evidenceIds: string[]): Promise<void> {
+  if (evidenceIds.length === 0) return;
+  if ((await resolutionCommitState(incidentId, resolutionKey)).committed) return;
+  const ids = evidenceIds.map((id) => new Types.ObjectId(id));
+  const blocking = await IncidentEvidence.find({
+    _id: { $in: ids },
+    ownerId,
+    incidentId,
+    resolutionKey: { $nin: [null, resolutionKey] },
+  }).select("resolutionKey");
+  const blockingKeys = new Set(blocking.flatMap((image) => (image.resolutionKey ? [image.resolutionKey] : [])));
+  for (const blockingKey of blockingKeys) await releaseResolutionClaim(ownerId, incidentId, blockingKey);
+  const now = new Date();
+  await IncidentEvidence.updateMany(
+    { ownerId, incidentId, resolutionKey, _id: { $nin: ids } },
+    { $set: { incidentId: null, resolutionKey: null, claimedAt: null } },
+  );
+  const raced = await resolutionCommitState(incidentId, resolutionKey);
+  if (raced.committed) {
+    await ensureResolutionEvidenceBound(ownerId, incidentId, resolutionKey, raced.evidenceIds);
+    return;
+  }
+  await IncidentEvidence.updateMany(
+    {
+      _id: { $in: ids },
+      ownerId,
+      $or: [
+        { incidentId: null, resolutionKey: null },
+        { incidentId, resolutionKey },
+      ],
+    },
+    { $set: { incidentId, resolutionKey, claimedAt: now } },
+  );
+  const held = await IncidentEvidence.countDocuments({ _id: { $in: ids }, ownerId, incidentId, resolutionKey });
+  if (held === ids.length) return;
+  const committedDuringClaim = await resolutionCommitState(incidentId, resolutionKey);
+  if (committedDuringClaim.committed) {
+    await ensureResolutionEvidenceBound(ownerId, incidentId, resolutionKey, committedDuringClaim.evidenceIds);
+    return;
+  }
+  await releaseResolutionClaim(ownerId, incidentId, resolutionKey);
+  throw new HttpError(400, "invalid_request", "Ảnh kết quả xử lý không thuộc tài khoản này hoặc đã được dùng.", {
+    evidenceIds: "Chọn tối đa 5 ảnh còn hiệu lực của chính nhà xe đang gửi kết quả.",
+  });
+}
+
+/** Reattaches the stored image set for a resolution that already committed, including images freed by a stale release. */
+export async function ensureResolutionEvidenceBound(
+  ownerId: string,
+  incidentId: Types.ObjectId,
+  resolutionKey: string,
+  evidenceIds: string[],
+): Promise<void> {
+  if (evidenceIds.length === 0) return;
+  const ids = evidenceIds.map((id) => new Types.ObjectId(id));
+  await IncidentEvidence.updateMany(
+    {
+      _id: { $in: ids },
+      ownerId,
+      $or: [
+        { incidentId: null, resolutionKey: null },
+        { incidentId: null, resolutionKey },
+        { incidentId, resolutionKey },
+      ],
+    },
+    { $set: { incidentId, resolutionKey, claimedAt: new Date() } },
+  );
+}
+
+/**
+ * Clears a reservation only after a fresh read shows no pending event, applied key, or timeline event.
+ * A committed resolution is rebound instead of detached.
+ */
+export async function releaseResolutionClaim(
+  ownerId: string,
+  incidentId: Types.ObjectId,
+  resolutionKey: string,
+  observation?: { afterUncommittedRead?: () => Promise<void> },
+): Promise<void> {
+  const state = await resolutionCommitState(incidentId, resolutionKey);
+  if (state.committed) {
+    await ensureResolutionEvidenceBound(ownerId, incidentId, resolutionKey, state.evidenceIds);
+    return;
+  }
+  if (observation?.afterUncommittedRead) await observation.afterUncommittedRead();
+  await IncidentEvidence.updateMany(
+    { ownerId, incidentId, resolutionKey },
+    { $set: { incidentId: null, resolutionKey: null, claimedAt: null } },
+  );
+  const after = await resolutionCommitState(incidentId, resolutionKey);
+  if (after.committed) await ensureResolutionEvidenceBound(ownerId, incidentId, resolutionKey, after.evidenceIds);
+}
+
+/** Frees reservations whose resolution never committed. Claims younger than the grace period stay reserved. */
+export async function releaseAbandonedResolutionClaims(
+  incidentId: Types.ObjectId,
+  now = new Date(),
+  graceMs = RESOLUTION_CLAIM_GRACE_MS,
+): Promise<number> {
+  const reserved = await IncidentEvidence.find({ incidentId, resolutionKey: { $ne: null } }).select("ownerId resolutionKey claimedAt");
+  const grouped = new Map<string, { ownerId: string; claimedAt: Date | null }>();
+  for (const image of reserved) {
+    const key = image.resolutionKey;
+    if (!key) continue;
+    const claimedAt = image.claimedAt ?? null;
+    const existing = grouped.get(key);
+    if (!existing) {
+      grouped.set(key, { ownerId: image.ownerId.toString(), claimedAt });
+      continue;
+    }
+    if (claimedAt && (!existing.claimedAt || claimedAt > existing.claimedAt)) existing.claimedAt = claimedAt;
+  }
+  const cutoff = now.getTime() - graceMs;
+  let released = 0;
+  for (const [key, info] of grouped) {
+    if (info.claimedAt && info.claimedAt.getTime() > cutoff) continue;
+    const before = await IncidentEvidence.countDocuments({ incidentId, resolutionKey: key });
+    await releaseResolutionClaim(info.ownerId, incidentId, key);
+    const after = await IncidentEvidence.countDocuments({ incidentId, resolutionKey: key });
+    released += Math.max(0, before - after);
+  }
+  return released;
+}
+
+export async function assertResolutionEvidenceHeld(incidentId: Types.ObjectId, resolutionKey: string, evidenceIds: string[]): Promise<void> {
+  if (evidenceIds.length === 0) return;
+  const ids = evidenceIds.map((id) => new Types.ObjectId(id));
+  const held = await IncidentEvidence.countDocuments({ _id: { $in: ids }, incidentId, resolutionKey });
+  if (held !== ids.length) {
+    throw new HttpError(500, "incident_audit_incomplete", "Kết quả đã lưu nhưng ảnh chưa gắn xong. Hãy gửi lại cùng mã idempotency.");
+  }
+}
+
 export async function readIncidentEvidence(imageId: string, actor: Actor): Promise<{ bytes: Buffer; contentType: string }> {
   if (!isValidObjectId(imageId)) throw new HttpError(404, "not_found", "Không tìm thấy ảnh chứng cứ.");
   const image = await IncidentEvidence.findById(imageId);
@@ -125,9 +287,9 @@ async function canReadAttached(incidentId: string, actor: Actor): Promise<boolea
   );
 }
 
-async function cleanupOrphanIncidentEvidence(now = new Date()): Promise<void> {
+export async function cleanupOrphanIncidentEvidence(now = new Date()): Promise<void> {
   const cutoff = new Date(now.getTime() - INCIDENT_EVIDENCE_LIMITS.orphanAfterMs);
-  const stale = await IncidentEvidence.find({ incidentId: null, createdAt: { $lt: cutoff } }).select("storageKey");
+  const stale = await IncidentEvidence.find({ incidentId: null, resolutionKey: null, createdAt: { $lt: cutoff } }).select("storageKey");
   if (stale.length === 0) return;
   let root: string;
   try {

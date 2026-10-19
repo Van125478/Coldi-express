@@ -22,7 +22,7 @@ import {
   startInvestigation,
   unreadNotificationCount,
 } from "../incidents/service.js";
-import { incidentLimits, readIncidentDraft, readLimit, readNote, readVersion } from "../incidents/policy.js";
+import { incidentLimits, readEvidenceIds, readIncidentDraft, readLimit, readNote, readVersion } from "../incidents/policy.js";
 
 export const incidentRouter = Router();
 
@@ -207,7 +207,9 @@ incidentRouter.post("/:id/start", requireTrustedOrigin, async (request, response
 incidentRouter.post("/:id/resolve", requireTrustedOrigin, async (request, response, next) => {
   try {
     const note = requiredNote(request.body, "resolutionSummary", incidentLimits.resolutionMin, incidentLimits.resolutionMax, "Kết quả xử lý");
-    const result = await resolveIncident(actor(request.authUser), routeId(request.params.id), versionOf(request.body), keyOf(request), correlationFrom(request.headers["x-request-id"]), note);
+    const evidenceIds = readEvidenceIds(bodyRecord(request.body).evidenceIds);
+    if (!evidenceIds.ok) throw new HttpError(400, "invalid_request", evidenceIds.message, { evidenceIds: evidenceIds.message });
+    const result = await resolveIncident(actor(request.authUser), routeId(request.params.id), versionOf(request.body), keyOf(request), correlationFrom(request.headers["x-request-id"]), note, evidenceIds.value);
     response.status(200).json({ incident: result });
   } catch (error) {
     next(error);

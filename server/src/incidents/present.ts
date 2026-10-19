@@ -93,6 +93,7 @@ export type IncidentEventView = {
   statusBeforeLabel: string;
   statusAfterLabel: string;
   note: string | null;
+  evidence: { id: string }[];
   correlationId: string;
   visibility: "PARTICIPANT" | "INTERNAL";
 };
@@ -151,6 +152,7 @@ type EventSource = {
   statusBefore: IncidentStatus;
   statusAfter: IncidentStatus;
   note?: string | null;
+  evidenceIds?: { toString(): string }[];
   correlationId: string;
   visibility: "PARTICIPANT" | "INTERNAL";
 };
@@ -243,6 +245,7 @@ export function toEventView(event: EventSource): IncidentEventView | null {
     statusBeforeLabel: incidentStatusLabels[event.statusBefore],
     statusAfterLabel: incidentStatusLabels[event.statusAfter],
     note: event.note ?? null,
+    evidence: (event.evidenceIds ?? []).map((id) => ({ id: id.toString() })),
     correlationId: event.correlationId,
     visibility: "PARTICIPANT",
   };

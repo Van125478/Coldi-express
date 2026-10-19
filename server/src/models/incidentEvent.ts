@@ -20,6 +20,7 @@ const incidentEventSchema = new Schema(
     escalationBefore: { type: String, required: true, enum: escalationStatuses },
     escalationAfter: { type: String, required: true, enum: escalationStatuses },
     note: { type: String, maxlength: 2000 },
+    evidenceIds: { type: [String], default: [] },
     idempotencyKey: { type: String, required: true },
     correlationId: { type: String, required: true, maxlength: 80 },
     visibility: { type: String, required: true, enum: ["PARTICIPANT", "INTERNAL"], default: "PARTICIPANT" },
