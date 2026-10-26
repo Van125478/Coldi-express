@@ -19,6 +19,7 @@ import { cargoImageRouter } from "./routes/cargoImage.routes.js";
 import { incidentEvidenceRouter } from "./routes/incidentEvidence.routes.js";
 import { oilPriceRouter } from "./routes/oilPrice.routes.js";
 import { fuelMarketRouter } from "./routes/fuelMarket.routes.js";
+import { mobileRouter } from "./routes/mobile.routes.js";
 import { shipmentRouter } from "./routes/shipment.routes.js";
 
 export function createApp() {
@@ -44,6 +45,7 @@ export function createApp() {
   app.use("/api/cargo-images", cargoImageRouter);
   app.use("/api/incident-evidence", incidentEvidenceRouter);
   app.use("/api/shipments", shipmentRouter);
+  app.use("/api/mobile", mobileRouter);
   app.use("/api/commission", commissionRouter);
   app.use("/api/shipments", shipmentChatRouter);
   app.use("/api/carrier/shipments", carrierShipmentRouter);
