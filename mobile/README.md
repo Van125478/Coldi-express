@@ -1,5 +1,7 @@
 # Coldi mobile
 
+Cài máy, MongoDB và tài khoản demo nằm ở [BAT_DAU.md](../BAT_DAU.md). Đọc file đó trước.
+
 Ứng dụng Expo cho vận tải lạnh. Backend đang có nằm ở `server/`, đường `/api/mobile`. App này chưa gọi API. Cấu trúc dưới đây là chỗ cả nhóm để màn hình và logic.
 
 Chạy sau khi cài gói:
