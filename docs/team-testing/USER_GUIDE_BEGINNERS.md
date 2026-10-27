@@ -1,6 +1,10 @@
 # Cách dùng COLDI — chủ hàng, nhà xe, tài xế
 
+File này là hướng dẫn bấm màn hình. Nghĩa nghiệp vụ của từng luồng, bảng giá và phần đã chốt nằm ở [mô tả dự án và luồng nghiệp vụ](../v2.10/00_MO_TA_DU_AN_VA_LUONG.md).
+
 Đọc file này sau khi website đã mở tại `http://127.0.0.1:5173` theo [TEAM_TESTING_GUIDE.md](TEAM_TESTING_GUIDE.md).
+
+App điện thoại không dùng các đường `/shipper` trong file này. Cách bấm app nằm ở [mobile/DEMO.md](../../mobile/DEMO.md) và [mobile/NGHIEM_THU.md](../../mobile/NGHIEM_THU.md).
 
 Không có ảnh chụp màn hình trong file này. Làm theo chữ trên nút. Ảnh Mapbox không được đưa vào vì tile thật chưa được chứng minh.
 

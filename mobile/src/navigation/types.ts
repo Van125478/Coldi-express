@@ -1,7 +1,11 @@
 export type RootStackParamList = {
+  Landing: undefined;
   Login: undefined;
   Register: undefined;
-  Unavailable: { topic: "forgot" };
+  ForgotPassword: undefined;
+  ResetPassword: { email: string; resetCode?: string };
   ChangePassword: undefined;
-  Home: undefined;
+  Workspace: undefined;
+  ShipmentDetail: { id: string };
+  Notifications: undefined;
 };

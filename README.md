@@ -82,13 +82,15 @@ Invoke-RestMethod http://127.0.0.1:4000/api/health
 
 `database : connected` là đã nối được.
 
-Tài khoản thử, chỉ trên database `move_truck`. Điền mật khẩu 8–72 ký tự cho bốn biến `DEMO_*_PASSWORD` trong `.env`, rồi:
+Tài khoản thử. Điền mật khẩu 8–72 ký tự cho bốn biến `DEMO_*_PASSWORD` trong `.env`, rồi:
 
 ```powershell
 cd server
 npm run seed:demo
 npm run seed:fleet
 ```
+
+`npm run seed:demo` từ chối database tên `coldi`. Database local `coldi_demo_local` cần thêm `DEMO_CREDENTIAL_SYNC_DATABASE=coldi_demo_local` khi chạy lệnh seed tài khoản. Trên đúng database đó, `npm run seed:shipments` thêm đơn sàn, chuyến tài xế và một đánh giá mẫu.
 
 | Email | Vai |
 | --- | --- |
@@ -105,26 +107,6 @@ npm install
 npm start
 ```
 
-`App.tsx` chỉ là điểm vào. Màn hình và logic để đúng thư mục:
+Cách bấm và nghiệm thu: [mobile/README.md](mobile/README.md), [mobile/DEMO.md](mobile/DEMO.md), [mobile/NGHIEM_THU.md](mobile/NGHIEM_THU.md).
 
-| Đường dẫn | Việc |
-| --- | --- |
-| `src/navigation` | Tab, stack, drawer |
-| `src/screens/shipments` | Danh sách và chi tiết chuyến |
-| `src/screens/favorites` | Chuyến đã lưu |
-| `src/screens/search` | Tìm theo mô tả hàng hoặc tuyến |
-| `src/screens/reviews` | Sao và nhận xét |
-| `src/services/api` | Gọi API. Không gọi `fetch` trong màn hình |
-| `src/components` | Nút và thẻ dùng chung |
-| `src/features` | Lọc, sắp cước, lưu, đánh giá |
-
-API cho app, cookie phiên tên `coldi_session`:
-
-- `GET /api/mobile/shipments?q=&temperature=&sort=priceDesc`
-- `GET /api/mobile/shipments/:id`
-- `GET` và `POST /api/mobile/shipments/:id/reviews`
-- `GET` và `POST /api/mobile/favorites`
-- `DELETE /api/mobile/favorites/:shipmentId`
-- `DELETE /api/mobile/favorites`
-
-Nhà xe thấy đơn đang tìm xe. Chủ hàng chỉ thấy đơn của mình. App hiện chưa gọi các đường này. Viết hàm trong `src/services/api` trước, rồi gắn vào màn hình.
+App đã có trang trước đăng nhập, tab theo vai, tạo đơn, nhận chuyến, phân công, xác nhận lấy và giao, GPS tài xế, yêu thích trên máy, chuông thông báo, lọc nhóm nhiệt, sắp giá cao đến thấp, và đánh giá trên chi tiết đơn.
