@@ -1,48 +1,67 @@
 # Coldi mobile
 
-Ứng dụng Expo cho vận tải lạnh. Backend đang có nằm ở `server/`, đường `/api/mobile`. App này chưa gọi API. Cấu trúc dưới đây là chỗ cả nhóm để màn hình và logic.
+App Expo cho vận tải lạnh: trang trước đăng nhập, đăng nhập, và khu làm việc theo vai.
 
-Chạy sau khi cài gói:
+Cách tự bấm nghiệm thu nằm ở [NGHIEM_THU.md](NGHIEM_THU.md). Kịch bản demo nằm ở [DEMO.md](DEMO.md).
 
-```bash
+## Cài và chạy
+
+Cần Node.js 22 trở lên. Expo SDK 58 không chạy ổn trên Node 20.
+
+```powershell
 cd mobile
+Copy-Item .env.example .env
 npm install
 npm start
 ```
 
-## Thư mục
+`EXPO_PUBLIC_API_ORIGIN` là địa chỉ API, không phải mật khẩu. Git không nhận file `.env`.
 
-| Đường dẫn | Việc để ở đây |
+| Máy chạy app | Giá trị |
 | --- | --- |
-| `App.tsx` | Điểm vào. Sau này chỉ gắn navigator, không viết màn hình tại file này. |
-| `src/navigation` | Tab dưới, stack chi tiết, drawer. |
-| `src/screens/shipments` | Danh sách chuyến và màn chi tiết. |
-| `src/screens/favorites` | Danh sách chuyến đã lưu quan tâm. |
-| `src/screens/search` | Ô tìm theo mô tả hàng hoặc tuyến. |
-| `src/screens/reviews` | Sao và nhận xét của một chuyến. |
-| `src/components/common` | Nút, ô nhập, trạng thái tải, dùng chung. |
-| `src/components/shipment` | Thẻ chuyến, nhãn nhóm nhiệt. |
-| `src/features/shipments` | Lọc nhóm nhiệt, sắp cước, cờ cực lạnh. |
-| `src/features/favorites` | Thêm, xóa một, xóa hết. |
-| `src/features/reviews` | Gửi đánh giá, nhóm theo số sao. |
-| `src/services/api` | Hàm gọi `/api/mobile`. Không gọi `fetch` trong màn hình. |
-| `src/hooks` | Hook dùng lại giữa các màn. |
-| `src/types` | Kiểu chuyến, đánh giá, yêu thích. |
-| `src/constants` | Địa chỉ API và nhãn nhóm nhiệt. |
-| `src/utils` | Hàm thuần, không phụ thuộc màn hình. |
-| `assets` | Icon và ảnh tĩnh của app. |
+| Máy tính, Expo web, máy ảo iOS | `http://127.0.0.1:4000` |
+| Máy ảo Android | `http://10.0.2.2:4000` |
+| Điện thoại thật | `http://<IP máy chạy API>:4000` |
 
-`ios/` và `android/` không commit. Expo tạo hai thư mục đó khi build.
+API phải đang chạy và MongoDB đã nối. Xem [README.md](../README.md) ở gốc kho. Sau khi đổi `.env`, tắt rồi chạy lại `npm start`.
 
-## API để nối sau
+## Đăng nhập
 
-Cookie phiên tên `coldi_session`, cùng máy chủ với website.
+- `POST /api/auth/register` với `{ "email", "password", "displayName", "role" }`. `role` chỉ nhận `SHIPPER` hoặc `CARRIER`.
+- `POST /api/auth/login` với `{ "email", "password" }`. `email` cũng nhận tên đăng nhập của tài xế.
+- `GET /api/auth/me` để khôi phục phiên.
+- `POST /api/auth/logout` để đăng xuất.
+- `POST /api/auth/change-required-password` với `{ "newPassword" }` khi tài khoản còn mật khẩu tạm.
+- `POST /api/auth/forgot-password` rồi `POST /api/auth/reset-password`. Máy local hiện mã trên app, không gửi email.
 
-- `GET /api/mobile/shipments?q=&temperature=&sort=priceDesc`
-- `GET /api/mobile/shipments/:id`
-- `GET` và `POST /api/mobile/shipments/:id/reviews`
-- `GET` và `POST /api/mobile/favorites`
-- `DELETE /api/mobile/favorites/:shipmentId`
-- `DELETE /api/mobile/favorites`
+Phiên là cookie `coldi_session`. Trên điện thoại, app giữ cookie trong Secure Store. Không lưu mật khẩu. Ô ghi nhớ chỉ giữ email hoặc tên đăng nhập.
 
-Nhà xe thấy đơn đang tìm xe. Chủ hàng chỉ thấy đơn của mình. Tài xế không gọi các đường này.
+## Trang và tab
+
+Trước đăng nhập: tab **Khám phá**, **Đăng nhập**, **Đăng ký**. Khám phá gọi `GET /api/marketplace/shipments`, lọc nhóm nhiệt, và xếp giá cao đến thấp.
+
+Sau đăng nhập, thanh trên là logo **Coldi** và chuông **Thông báo**.
+
+| Vai | Tab | Việc app làm |
+| --- | --- | --- |
+| Chủ hàng | Đơn hàng, Tạo đơn, Yêu thích, Tài khoản | Đơn của mình, sàn đang tìm xe, tạo đơn, hủy đơn còn đang tìm xe, đánh giá sau khi đã giao |
+| Nhà xe | Sàn chuyến, Đã nhận, Yêu thích, Tài khoản | Xem đơn đang tìm xe, nhận chuyến, phân công xe và tài xế |
+| Tài xế | Chuyến, Yêu thích, Tài khoản | Chuyến được giao, xác nhận lấy, xác nhận giao, gửi GPS khi đang vận chuyển |
+| Quản trị | Tài khoản | Chưa có khu vận hành trên app |
+
+Yêu thích lưu bằng AsyncStorage theo tài khoản trên máy. Thêm hoặc bỏ từ danh sách và từ chi tiết. Mỗi mã một lần. Tab Yêu thích xóa một mục hoặc xóa tất cả.
+
+Chuông mở màn **Thông báo**. Đăng đơn thành công, đơn được nhận, được giao chuyến, và sự cố đều nằm ở đó. Bấm một dòng mở đúng đơn.
+
+## API app đang gọi
+
+| Việc | Đường |
+| --- | --- |
+| Sàn công khai | `GET /api/marketplace/shipments` |
+| Đơn của chủ hàng | `GET /api/shipments/mine`, `GET /api/shipments/:id`, `POST /api/shipments`, `POST /api/shipments/:id/cancel` |
+| Nhà xe | `GET /api/carrier/shipments`, `POST .../claim`, `GET .../claimed`, `POST .../assign` |
+| Tài xế | `GET /api/driver/shipments`, `POST .../pickup`, `POST .../delivery`, `GET` và `POST .../location` |
+| Đánh giá | `GET /api/shipment-reviews/:id`, `POST /api/mobile/shipments/:id/reviews` |
+| Thông báo đơn và sự cố | `GET /api/notices`, `GET /api/notices/unread-count`, `POST /api/notices/:id/read` |
+
+Hủy sau khi nhà xe đã nhận chưa mở. Sửa đơn chưa có API. Quản trị chưa có khu vận hành trên app.
