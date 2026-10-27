@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { FlatList, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -24,6 +24,7 @@ export function LandingScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [query, setQuery] = useState("");
   const [group, setGroup] = useState<TemperatureFilter>("ALL");
+  const loaded = useRef(false);
 
   const load = useCallback(async (pull: boolean) => {
     if (pull) setRefreshing(true);
@@ -40,6 +41,8 @@ export function LandingScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      if (loaded.current) return;
+      loaded.current = true;
       void load(false);
     }, [load]),
   );
@@ -59,6 +62,8 @@ export function LandingScreen() {
             <FlatList
               style={styles.listFill}
               data={visible}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
               keyExtractor={(item) => item.id}
               refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void load(true)} tintColor={colors.primary} />}
               contentContainerStyle={styles.list}
@@ -75,7 +80,7 @@ export function LandingScreen() {
                   </Text>
                   <SearchField hideLabel label="Tìm hàng, điểm lấy, điểm giao" value={query} onChangeText={setQuery} />
                   <Text style={[styles.sortNote, { color: colors.muted }]}>Giá cao đến thấp</Text>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+                  <ScrollView horizontal nestedScrollEnabled showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
                     {temperatureFilters.map((item) => (
                       <ChoiceChip key={item.id} label={item.label} selected={group === item.id} onPress={() => setGroup(item.id)} />
                     ))}

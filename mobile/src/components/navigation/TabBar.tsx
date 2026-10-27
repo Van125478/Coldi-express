@@ -41,10 +41,11 @@ export function TabBar({ items, active, onChange }: { items: readonly TabItem[];
             accessibilityRole="tab"
             accessibilityState={{ selected }}
             accessibilityLabel={item.label}
+            android_ripple={{ color: colors.line, borderless: false }}
             onPress={() => onChange(item.id)}
-            style={[styles.tab, pointer]}
+            style={({ pressed }) => [styles.tab, pointer, pressed ? styles.pressed : null]}
           >
-            <MaterialCommunityIcons name={item.icon} size={selected ? 26 : 24} color={color} />
+            <MaterialCommunityIcons name={item.icon} size={24} color={color} />
             <Text maxFontSizeMultiplier={1.2} numberOfLines={1} style={[styles.label, { color, fontFamily: selected ? "Inter_700Bold" : "Inter_600SemiBold" }]}>
               {item.label}
             </Text>
@@ -58,5 +59,6 @@ export function TabBar({ items, active, onChange }: { items: readonly TabItem[];
 const styles = StyleSheet.create({
   bar: { flexShrink: 0, flexDirection: "row", borderTopWidth: 1, paddingTop: space.xs, zIndex: 20 },
   tab: { flex: 1, minHeight: 56, alignItems: "center", justifyContent: "center", gap: 3, paddingTop: space.sm },
+  pressed: { opacity: 0.72 },
   label: { fontSize: 11, lineHeight: 14 },
 });

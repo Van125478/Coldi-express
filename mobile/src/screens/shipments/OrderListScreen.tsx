@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import { FlatList, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { FlatList, Platform, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { ChoiceChip, EmptyState, ErrorState, LoadingBlock, SearchField } from "../../components/common/Feedback";
@@ -115,6 +115,9 @@ export function OrderListScreen({
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void load(true)} tintColor={colors.primary} />}
       contentContainerStyle={styles.list}
       style={styles.fill}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
+      removeClippedSubviews={Platform.OS === "android"}
       ListHeaderComponent={
         <View style={styles.header}>
           {kicker ? (
@@ -135,7 +138,7 @@ export function OrderListScreen({
           ) : null}
           <SearchField hideLabel={marketing} label={searchLabel} value={query} onChangeText={setQuery} />
           <Text style={[styles.sortNote, { color: colors.muted }]}>Giá cao đến thấp</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+          <ScrollView horizontal nestedScrollEnabled showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
             {temperatureFilters.map((item) => (
               <ChoiceChip key={item.id} label={item.label} selected={group === item.id} onPress={() => setGroup(item.id)} />
             ))}
@@ -164,7 +167,7 @@ export function OrderListScreen({
             <MarketingSectionHead title={sectionTitle} count={visible.length} />
           ) : null}
           {mode === "mine" ? (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+            <ScrollView horizontal nestedScrollEnabled showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
               {filters.map((item) => (
                 <ChoiceChip key={item.id} label={item.label} selected={filter === item.id} onPress={() => setFilter(item.id)} />
               ))}

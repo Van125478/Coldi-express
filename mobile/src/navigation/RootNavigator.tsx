@@ -70,7 +70,13 @@ export function RootNavigator() {
       <StatusBar style={scheme === "dark" ? "light" : "dark"} />
       <Stack.Navigator
         initialRouteName={signedIn ? (mustChange ? "ChangePassword" : "Workspace") : "Landing"}
-        screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}
+        screenOptions={{
+          headerShown: false,
+          animation: Platform.OS === "web" ? "fade" : "slide_from_right",
+          animationDuration: 280,
+          freezeOnBlur: true,
+          contentStyle: { backgroundColor: colors.background },
+        }}
       >
         {!signedIn ? (
           <>

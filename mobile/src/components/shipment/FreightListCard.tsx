@@ -44,6 +44,7 @@ export function FreightListCard({ model, variant = "list", saved, onPress, onTog
             accessibilityLabel={model.imageLabel}
             accessibilityIgnoresInvertColors
             resizeMode="cover"
+            fadeDuration={0}
             style={[styles.heroImage, { height: heroHeight }]}
           />
         </Pressable>

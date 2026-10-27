@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { useState, type ReactNode } from "react";
+import { StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { PhoneFrame } from "../../components/common/PhoneFrame";
 import { ScreenTopBar } from "../../components/layout/ScreenTopBar";
@@ -35,6 +35,19 @@ const driverTabs: TabItem[] = [
 
 const adminTabs: TabItem[] = [{ id: "account", label: "Tài khoản", icon: "account-outline" }];
 
+function Pane({ visible, children }: { visible: boolean; children: ReactNode }) {
+  return (
+    <View
+      style={visible ? styles.body : styles.hidden}
+      pointerEvents={visible ? "auto" : "none"}
+      accessibilityElementsHidden={!visible}
+      importantForAccessibility={visible ? "auto" : "no-hide-descendants"}
+    >
+      {children}
+    </View>
+  );
+}
+
 export function WorkspaceScreen() {
   const { colors } = useTheme();
   const { session } = useAuth();
@@ -60,76 +73,82 @@ export function WorkspaceScreen() {
         <View style={styles.shell}>
           {detailId ? null : <ScreenTopBar />}
           <View style={styles.body}>
-            {detailId ? (
-              <ShipmentDetailPanel shipmentId={detailId} onClose={() => setDetailId(null)} />
+            {detailId ? <ShipmentDetailPanel shipmentId={detailId} onClose={() => setDetailId(null)} /> : null}
+            {role === "SHIPPER" ? (
+              <Pane visible={!detailId && tab === "orders"}>
+                <OrderListScreen
+                  mode="mine"
+                  kicker="Giải pháp · Chủ hàng"
+                  title="Chủ động gửi hàng lạnh, theo dõi hành trình rõ ràng."
+                  lede="Đơn bạn niêm yết hiển thị dưới đây. Tạo đơn mới hoặc mở chi tiết để theo dõi chuyến."
+                  searchLabel="Tìm hàng, điểm lấy, điểm giao"
+                  includeMarketplace
+                  primaryAction={{ label: "Tạo đơn mới", onPress: () => changeTab("create") }}
+                  emptyTitle="Chưa có đơn"
+                  emptyBody="Bấm Tạo đơn mới để niêm yết nhu cầu vận chuyển lạnh."
+                  onOpenDetail={openDetailProp}
+                />
+              </Pane>
             ) : null}
-            {!detailId && role === "SHIPPER" && tab === "orders" ? (
-              <OrderListScreen
-                mode="mine"
-                kicker="Giải pháp · Chủ hàng"
-                title="Chủ động gửi hàng lạnh, theo dõi hành trình rõ ràng."
-                lede="Đơn bạn niêm yết hiển thị dưới đây. Tạo đơn mới hoặc mở chi tiết để theo dõi chuyến."
-                searchLabel="Tìm hàng, điểm lấy, điểm giao"
-                includeMarketplace
-                primaryAction={{ label: "Tạo đơn mới", onPress: () => changeTab("create") }}
-                emptyTitle="Chưa có đơn"
-                emptyBody="Bấm Tạo đơn mới để niêm yết nhu cầu vận chuyển lạnh."
-                onOpenDetail={openDetailProp}
-              />
-            ) : null}
-            {!detailId && role === "SHIPPER" ? (
-              <View
-                style={tab === "create" ? styles.body : styles.hidden}
-                accessibilityElementsHidden={tab !== "create"}
-                importantForAccessibility={tab === "create" ? "auto" : "no-hide-descendants"}
-              >
+            {role === "SHIPPER" ? (
+              <Pane visible={!detailId && tab === "create"}>
                 <CreateOrderScreen
                   onCreated={(id) => {
                     setTab("orders");
                     openDetail(id);
                   }}
                 />
-              </View>
+              </Pane>
             ) : null}
-            {!detailId && role === "CARRIER" && tab === "board" ? (
-              <OrderListScreen
-                mode="board"
-                title="Sàn chuyến"
-                lede="Đơn đang tìm xe. Nhà xe tự nhận, không có máy ghép."
-                emptyTitle="Chưa có chuyến đang mở"
-                emptyBody="Khi chủ hàng đăng đơn, chuyến hiện ở đây."
-                onOpenDetail={openDetailProp}
-              />
+            {role === "CARRIER" ? (
+              <Pane visible={!detailId && tab === "board"}>
+                <OrderListScreen
+                  mode="board"
+                  title="Sàn chuyến"
+                  lede="Đơn đang tìm xe. Nhà xe tự nhận, không có máy ghép."
+                  emptyTitle="Chưa có chuyến đang mở"
+                  emptyBody="Khi chủ hàng đăng đơn, chuyến hiện ở đây."
+                  onOpenDetail={openDetailProp}
+                />
+              </Pane>
             ) : null}
-            {!detailId && role === "CARRIER" && tab === "claimed" ? (
-              <OrderListScreen
-                mode="claimed"
-                title="Chuyến đã nhận"
-                lede="Chuyến nhà xe này đã nhận. Phân công xe và tài xế trong chi tiết."
-                emptyTitle="Chưa nhận chuyến"
-                emptyBody="Vào sàn chuyến để nhận đơn đang tìm xe."
-                onOpenDetail={openDetailProp}
-              />
+            {role === "CARRIER" ? (
+              <Pane visible={!detailId && tab === "claimed"}>
+                <OrderListScreen
+                  mode="claimed"
+                  title="Chuyến đã nhận"
+                  lede="Chuyến nhà xe này đã nhận. Phân công xe và tài xế trong chi tiết."
+                  emptyTitle="Chưa nhận chuyến"
+                  emptyBody="Vào sàn chuyến để nhận đơn đang tìm xe."
+                  onOpenDetail={openDetailProp}
+                />
+              </Pane>
             ) : null}
-            {!detailId && role === "DRIVER" && tab === "trips" ? (
-              <OrderListScreen
-                mode="driver"
-                title="Chuyến được giao"
-                lede="Chỉ hiện chuyến nhà xe đã phân công cho tài xế này."
-                emptyTitle="Chưa có chuyến"
-                emptyBody="Khi nhà xe phân công xe và tài xế, chuyến hiện ở đây."
-                onOpenDetail={openDetailProp}
-              />
+            {role === "DRIVER" ? (
+              <Pane visible={!detailId && tab === "trips"}>
+                <OrderListScreen
+                  mode="driver"
+                  title="Chuyến được giao"
+                  lede="Chỉ hiện chuyến nhà xe đã phân công cho tài xế này."
+                  emptyTitle="Chưa có chuyến"
+                  emptyBody="Khi nhà xe phân công xe và tài xế, chuyến hiện ở đây."
+                  onOpenDetail={openDetailProp}
+                />
+              </Pane>
             ) : null}
-            {!detailId && tab === "saved" && role !== "ADMIN" ? (
-              <FavoritesScreen
-                onOpenDetail={openDetailProp}
-                kicker={role === "SHIPPER" ? "Giải pháp · Chủ hàng" : undefined}
-                title={role === "SHIPPER" ? "Đơn đã lưu" : "Yêu thích"}
-                lede={role === "SHIPPER" ? "Mở lại nhanh các đơn bạn đánh dấu trái tim." : "Đơn và chuyến bạn đã lưu trên máy này."}
-              />
+            {role !== "ADMIN" ? (
+              <Pane visible={!detailId && tab === "saved"}>
+                <FavoritesScreen
+                  onOpenDetail={openDetailProp}
+                  kicker={role === "SHIPPER" ? "Giải pháp · Chủ hàng" : undefined}
+                  title={role === "SHIPPER" ? "Đơn đã lưu" : "Yêu thích"}
+                  lede={role === "SHIPPER" ? "Mở lại nhanh các đơn bạn đánh dấu trái tim." : "Đơn và chuyến bạn đã lưu trên máy này."}
+                />
+              </Pane>
             ) : null}
-            {!detailId && tab === "account" ? <AccountScreen /> : null}
+            <Pane visible={!detailId && tab === "account"}>
+              <AccountScreen />
+            </Pane>
           </View>
         </View>
         <TabBar items={tabs} active={tab} onChange={changeTab} />

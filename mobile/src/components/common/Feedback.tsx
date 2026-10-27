@@ -97,10 +97,12 @@ export function ChoiceChip({ label, selected, onPress }: { label: string; select
       accessibilityRole="button"
       accessibilityState={{ selected }}
       accessibilityLabel={label}
+      android_ripple={{ color: selected ? colors.onPrimaryMuted : colors.line, borderless: false }}
       onPress={onPress}
-      style={[
+      style={({ pressed }) => [
         styles.chip,
         pointer,
+        pressed ? styles.chipPressed : null,
         {
           backgroundColor: selected ? colors.primary : colors.surface,
           borderColor: selected ? colors.primary : colors.line,
@@ -175,7 +177,8 @@ const styles = StyleSheet.create({
   searchLabel: { fontFamily: "Inter_600SemiBold", fontSize: 14, lineHeight: 20 },
   searchShell: { minHeight: 52, borderWidth: 1, borderRadius: radius.control, flexDirection: "row", alignItems: "center", paddingHorizontal: space.md },
   searchInput: { flex: 1, minHeight: 48, marginLeft: space.sm, fontFamily: "Inter_400Regular", fontSize: 16 },
-  chip: { minHeight: 44, borderWidth: 1, borderRadius: 999, paddingHorizontal: space.lg, alignItems: "center", justifyContent: "center" },
+  chip: { minHeight: 44, borderWidth: 1, borderRadius: 999, paddingHorizontal: space.lg, alignItems: "center", justifyContent: "center", overflow: "hidden" },
+  chipPressed: { opacity: 0.82 },
   chipText: { fontFamily: "Inter_600SemiBold", fontSize: 14, lineHeight: 20 },
   modalBackdrop: { flex: 1, backgroundColor: "rgba(15, 23, 42, 0.48)", justifyContent: "center", padding: space.xl },
   dialog: { borderRadius: radius.card, padding: space.xl, maxWidth: 440, width: "100%", alignSelf: "center" },
