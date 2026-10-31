@@ -1,6 +1,6 @@
 # COLDI — Bộ tài liệu sản phẩm và nghiệp vụ v2.6
 
-> **Chính sách hiện hành là [v2.7](../v2.7/README.md), ngày 18/10/2026.** Trang này giữ bộ đã merge trong PR #4 tại `30c9d5fea609e041cb56f9634769cf61f13388b4`. Các câu bên dưới nói bảng giá chưa duyệt, trần xe chỉ là đề xuất, gói trả phí luôn cần Admin duyệt, hoặc COM-02 đến COM-07 còn mở là **lịch sử lúc merge**, không còn là luật đang dùng. PKG-01, PKG-02, PKG-03, PKG-06B, PKG-07 và COM-01 đến COM-07A đã được duyệt trong v2.7. Bản gốc đúng từng chữ lúc merge vẫn nằm trong Git tại commit đó. Phê duyệt v2.7 không có nghĩa các module đã được code.
+> **Bản giải thích đang dùng là [mô tả dự án và luồng nghiệp vụ](../v2.10/00_MO_TA_DU_AN_VA_LUONG.md).** Chính sách PKG và COM lúc PR #5 nằm ở [v2.7](../v2.7/README.md). Trang này giữ bộ đã merge trong PR #4 tại `30c9d5fea609e041cb56f9634769cf61f13388b4`. Các câu bên dưới nói bảng giá chưa duyệt, trần xe chỉ là đề xuất, gói trả phí luôn cần Admin duyệt, hoặc COM-02 đến COM-07 còn mở là **lịch sử lúc merge**, không còn là luật đang dùng. PKG-01, PKG-02, PKG-03, PKG-06B, PKG-07 và COM-01 đến COM-07A đã được duyệt trong v2.7. Bản gốc đúng từng chữ lúc merge vẫn nằm trong Git tại commit đó. Phê duyệt v2.7 không có nghĩa các module đã được code.
 
 **Ngày:** 18/10/2026 · **Loại:** Bản đặc tả đã merge trong PR #4, sau đó được chú thích · **Không phải biên bản nghiệm thu code**.
 

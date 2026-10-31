@@ -15,7 +15,7 @@ No annual Enterprise package is approved.
 | Shipper Pro Annual | Year | 7.990.000 VND | 3,5% (350 bps) | Not a carrier plan |
 | Shipper Enterprise | Month | 6.990.000 VND | 2,5% (250 bps) | No vehicle quota |
 | Carrier Free | None | 0 VND | 5% (500 bps) | 2 ACTIVE |
-| Carrier Pro Monthly | Month | 999.000 VND | 4% (400 bps) | 10 ACTIVE |
+| Carrier Pro Monthly | Month | 799.000 VND | 4% (400 bps) | 10 ACTIVE |
 | Carrier Pro Annual | Year | 9.990.000 VND | 3,5% (350 bps) | 10 ACTIVE |
 | Carrier Business | Month | 2.990.000 VND | 3% (300 bps) | 30 ACTIVE |
 | Carrier Enterprise | Month | 7.990.000 VND | 2% (200 bps) | 100 ACTIVE |

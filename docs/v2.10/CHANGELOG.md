@@ -18,3 +18,14 @@ Baseline: `main` `2a41797dae188c1b749a08d85517fb8ec05737c3`, sau khi PR #5 và P
 - Không đưa cây HISTORY của ZIP v2.8 vào repository.
 - Không đổi tên hoặc ghi đè thư mục v2.8/v2.9 ngoài Git.
 - Không sửa DOCX v2.4, Core 08–14, hay báo cáo kiểm thử cũ.
+
+## 23/10/2026 — bản giải thích cho người đọc
+
+- Thêm [00_MO_TA_DU_AN_VA_LUONG.md](00_MO_TA_DU_AN_VA_LUONG.md). File này gom mô tả dự án và các luồng đã chốt để đọc một mạch.
+- Gắn dòng dẫn ở các cổng vào. Không viết đè thân sổ quyết định ngày 18/10/2026.
+- Ghi rõ giá Business và Enterprise công khai theo PKG-BIZ-01, và ghi mã hoa hồng, sự cố, giá dầu làm sau ngày viết sổ v2.10.
+
+## 26/10/2026 — checklist rủi ro vận hành
+
+- Thêm [08_CHECKLIST_RUI_RO_VAN_HANH.md](08_CHECKLIST_RUI_RO_VAN_HANH.md). Danh sách để rà rủi ro trên một chuyến và rủi ro nghiệp vụ của cả sàn. Không đổi giá, hoa hồng, sự cố hay giá dầu.
+- Bổ sung rủi ro không thanh toán sau giao, lệch đơn và xe, bàn không chốt, hủy lặp. Phần E ghi giả thuyết đang bàn, gồm bảo hiểm Pro trở lên. Phần E chưa phải luật và chưa đổi giá.

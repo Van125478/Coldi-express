@@ -15,7 +15,7 @@ No monthly price, yearly price, commission rate, or Enterprise vehicle cap is se
 | Shipper Pro Annual | 7.990.000 VND/năm | 3,5% (350 bps) | Not a carrier plan |
 | Shipper Enterprise | Quote required | Contract range 2–3% (200–300 bps) | Not a carrier plan |
 | Carrier Free | 0 VND | 5% (500 bps) | 2 ACTIVE |
-| Carrier Pro Monthly | 999.000 VND/tháng | 4% (400 bps) | 10 ACTIVE |
+| Carrier Pro Monthly | 799.000 VND/tháng | 4% (400 bps) | 10 ACTIVE |
 | Carrier Pro Annual | 9.990.000 VND/năm | 3,5% (350 bps) | 10 ACTIVE |
 | Carrier Business | Quote required | Contract range 2,5–3% (250–300 bps) | 30 ACTIVE |
 | Carrier Enterprise | Quote required | Contract range 1,5–2,5% (150–250 bps) | By contract, no numeric cap stored |

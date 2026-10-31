@@ -1,6 +1,6 @@
 # COLDI — Chính sách nghiệp vụ hiện hành v2.7
 
-> **Hiện hành là [v2.10](../v2.10/README.md).** Bộ này giữ quyết định PKG và COM lúc PR #5. INC-01 đến INC-04 và OIL-01 đến OIL-04 đã được duyệt sau đó và được ghi ở v2.10. Package đã có mã sau PR #6. Câu "chưa có module" bên dưới đúng với baseline của chính file này.
+> **Bản giải thích đang dùng là [mô tả dự án và luồng nghiệp vụ](../v2.10/00_MO_TA_DU_AN_VA_LUONG.md).** Sổ ngày 18/10/2026 nằm ở [v2.10](../v2.10/README.md). Bộ này giữ quyết định PKG và COM lúc PR #5. INC-01 đến INC-04 và OIL-01 đến OIL-04 đã được duyệt sau đó và được ghi ở v2.10. Package đã có mã sau PR #6. Câu "chưa có module" bên dưới đúng với baseline của chính file này.
 
 **Ngày:** 18/10/2026. **Loại:** Product/Business source of truth. **Không phải** phiên bản phát hành ứng dụng và **không phải** biên bản code đã triển khai.
 

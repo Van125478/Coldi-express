@@ -1,5 +1,7 @@
 # Package Management — IMPLEMENTED
 
+> Bảng “báo giá” của Business và Enterprise ở dưới là ảnh chụp ngày 18/10/2026. Giá công khai đã chốt sau đó: chủ hàng Enterprise 6.990.000 VND/tháng, hoa hồng 2,5%; nhà xe Business 2.990.000 VND/tháng, hoa hồng 3%, trần 30 xe; nhà xe Enterprise 7.990.000 VND/tháng, hoa hồng 2%, trần 100 xe. Không có gói Enterprise theo năm. Nguồn: [PKG-BIZ-01](../uat/PKG_BIZ_01_APPROVED_POLICY.md). Bản đọc chung: [mô tả dự án và luồng nghiệp vụ](00_MO_TA_DU_AN_VA_LUONG.md).
+
 Module này đã nằm trên `main` qua [PR #6](https://github.com/Van125478/Coldi-express/pull/6). Merge commit `2a41797dae188c1b749a08d85517fb8ec05737c3`. Mã Package được kiểm tra tại `bebab893b18871abd1b2c7ec818d4411db6ceb49`.
 
 GitHub Actions `verify` **PASS** trên commit đó: https://github.com/Van125478/Coldi-express/actions/runs/39109089893
@@ -15,7 +17,7 @@ Trước khi push commit đó, suite backend local báo **94 passed, 0 failed** 
 | Shipper | Pro năm | 7.990.000 VND/năm | 3,5% (350 bps) | không áp dụng |
 | Shipper | Enterprise | báo giá, khoảng chỉ dẫn 5–15 triệu VND/tháng | 2–3% theo hợp đồng | không áp dụng |
 | Carrier | Free | 0 VND/tháng | 5% (500 bps) | 2 |
-| Carrier | Pro tháng | 999.000 VND/tháng | 4% (400 bps) | 10 |
+| Carrier | Pro tháng | 799.000 VND/tháng | 4% (400 bps) | 10 |
 | Carrier | Pro năm | 9.990.000 VND/năm | 3,5% (350 bps) | 10 |
 | Carrier | Business | báo giá, khoảng chỉ dẫn 2–5 triệu VND/tháng | 2,5–3% theo hợp đồng | 30 |
 | Carrier | Enterprise | báo giá, khoảng chỉ dẫn 5–20 triệu VND/tháng | 1,5–2,5% theo hợp đồng | theo hợp đồng |

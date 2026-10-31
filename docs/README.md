@@ -14,6 +14,7 @@ Code đang chạy không phải bản phát hành ứng dụng v2.10. MVP chưa 
 
 ## v2.10 — tài liệu nghiệp vụ hiện hành
 
+- [Mô tả dự án và luồng nghiệp vụ](v2.10/00_MO_TA_DU_AN_VA_LUONG.md) — đọc file này trước
 - [Trang khởi đầu](v2.10/README.md)
 - [Sổ quyết định](v2.10/01_DECISION_REGISTER.md)
 - [Package đã triển khai](v2.10/02_PACKAGE_IMPLEMENTED.md)
@@ -21,6 +22,7 @@ Code đang chạy không phải bản phát hành ứng dụng v2.10. MVP chưa 
 - [Nghiệm thu desktop](v2.10/04_DESKTOP_UAT.md)
 - [Sự cố và giá dầu](v2.10/05_INCIDENT_AND_OIL.md)
 - [Hoa hồng, chưa code](v2.10/06_COMMISSION_NEXT.md)
+- [Checklist rủi ro vận hành](v2.10/08_CHECKLIST_RUI_RO_VAN_HANH.md)
 
 ## v2.7 — chính sách PKG và COM đã merge
 
@@ -79,4 +81,4 @@ Cài đặt Windows đầy đủ: [TEAM_TESTING_GUIDE](team-testing/TEAM_TESTING
 
 `_ARCHIVE_PREVIOUS` trong ZIP v2.6 không được copy vào repo. Bản nháp tiêu hao nhiên liệu xe trong archive đó không phải yêu cầu hiện hành. Các báo cáo kiểm thử cũ không bị sửa cho khớp v2.6.
 
-Chính sách nghiệp vụ hiện hành là v2.10. Phiên bản tài liệu và phiên bản ứng dụng là hai việc khác nhau. Core 08 đến Core 14, FE-05A, hướng dẫn nhóm và mvp-review được giữ nguyên. Hồ sơ v2.8 và v2.9 ngoài Git không bị sửa đè.
+Chính sách nghiệp vụ hiện hành là v2.10. Bản giải thích để đưa cho người khác đọc là [mô tả dự án và luồng nghiệp vụ](v2.10/00_MO_TA_DU_AN_VA_LUONG.md). Phiên bản tài liệu và phiên bản ứng dụng là hai việc khác nhau. Core 08 đến Core 14, FE-05A, hướng dẫn nhóm và mvp-review được giữ nguyên. Hồ sơ v2.8 và v2.9 ngoài Git không bị sửa đè.

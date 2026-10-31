@@ -10,6 +10,7 @@ Khi v2.10 khác một bản cũ hơn về trạng thái triển khai hoặc về
 
 ## Đọc theo thứ tự
 
+0. [Mô tả dự án và luồng nghiệp vụ](00_MO_TA_DU_AN_VA_LUONG.md) — bản giải thích ngày 23/10/2026. Đọc file này trước khi đọc các bảng trạng thái bên dưới.
 1. [Sổ quyết định](01_DECISION_REGISTER.md)
 2. [Package đã có trong code](02_PACKAGE_IMPLEMENTED.md)
 3. [Backlog UAT đã duyệt, chưa code](03_UAT_BACKLOG.md)
@@ -17,8 +18,11 @@ Khi v2.10 khác một bản cũ hơn về trạng thái triển khai hoặc về
 5. [Sự cố và giá dầu](05_INCIDENT_AND_OIL.md)
 6. [Hoa hồng — module kế tiếp](06_COMMISSION_NEXT.md)
 7. [Nguồn đã đọc và phần không đưa vào repo](07_SOURCES.md)
+8. [Checklist rủi ro vận hành](08_CHECKLIST_RUI_RO_VAN_HANH.md) — rủi ro trên chuyến và rủi ro nghiệp vụ toàn hệ thống. Không thay luật đã chốt.
 
 [Mục lục](INDEX.md) · [Phiên bản](VERSIONING.md) · [Changelog](CHANGELOG.md)
+
+Bảng dưới đây là ảnh chụp ngày 18/10/2026. Hoa hồng, sự cố và giá dầu sau đó đã có mã thử. Giải thích đang dùng nằm ở [mô tả dự án và luồng nghiệp vụ](00_MO_TA_DU_AN_VA_LUONG.md). Giá Business và Enterprise công khai nằm ở quyết định PKG-BIZ-01, không còn là khoảng báo giá trong file gói của bộ này.
 
 ## Ba việc cần tách
 

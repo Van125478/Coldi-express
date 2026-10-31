@@ -1,5 +1,7 @@
 # Hoa hồng — module kế tiếp, NOT IMPLEMENTED
 
+> Tiêu đề “chưa có mã” đúng lúc viết file này ngày 18/10/2026. Luật bên dưới vẫn là luật đã chốt. Sau đó đã có sổ mô phỏng Demo/QA: khóa tỷ lệ, ghi nhận khi giao hàng, không thu tiền. Hủy trên sổ, tạm giữ và điều chỉnh vẫn bị chặn. Chi tiết mã: [handoff hoa hồng](../commission/MVP_HANDOFF.md). Bản đọc chung: [mô tả dự án và luồng nghiệp vụ](00_MO_TA_DU_AN_VA_LUONG.md).
+
 COM-01 đến COM-07A vẫn là chính sách đã duyệt từ v2.7 và được v2.8/v2.9 giữ nguyên. Chưa có snapshot hoa hồng, sổ cái, đối soát hay màn hình hoa hồng trên `main`.
 
 ## Luật đã duyệt, chưa code

@@ -1,5 +1,7 @@
 # Sự cố và giá dầu — APPROVED, NOT IMPLEMENTED
 
+> Tiêu đề “chưa có mã” đúng lúc viết file này ngày 18/10/2026. Sau đó đã có bản kỹ thuật sự cố và đường đọc Brent/WTI. Luật nghiệp vụ bên dưới vẫn là luật đã chốt. Trạng thái mã và phần còn khóa nằm ở [mô tả dự án và luồng nghiệp vụ](00_MO_TA_DU_AN_VA_LUONG.md), [handoff sự cố](../incident/MVP_HANDOFF.md) và [handoff dầu](../oil/MVP_HANDOFF.md).
+
 Nguồn duyệt là hồ sơ CURRENT v2.8 đọc ngày 18/10/2026. v2.7 trên Git vẫn ghi các mục này là mở vì PR #5 merge trước khi quyết định v2.8 được đưa vào repository. v2.10 thay câu đó. Không có module sự cố hay giá dầu trong mã đã merge.
 
 ## INC-01 — APPROVED

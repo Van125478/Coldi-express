@@ -1,5 +1,7 @@
 # Sổ quyết định v2.10
 
+> Ảnh chụp ngày 18/10/2026. Cột “Mã trên main” của COM, INC và OIL đúng với ngày đó. Bản giải thích đang dùng, gồm mã làm sau ngày này và giá Business/Enterprise đã công bố, là [mô tả dự án và luồng nghiệp vụ](00_MO_TA_DU_AN_VA_LUONG.md).
+
 `APPROVED` là Product Owner đã chốt hướng nghiệp vụ. `OPEN` là chưa được tự đặt. `IMPLEMENTED` chỉ dùng khi mã đã nằm trên `main` và có bằng chứng kiểm tra. Duyệt tài liệu không có nghĩa đã có mã.
 
 | ID | Quyết định | Duyệt | Mã trên main |
